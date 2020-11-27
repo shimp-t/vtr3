@@ -55,10 +55,14 @@ target_link_libraries(BumblebeeRecorder ${PROJECT_NAME}_index)
 add_executable(BumblebeeReplay src/xb3_replay.cpp)
 target_link_libraries(BumblebeeReplay ${PROJECT_NAME}_index)
 
+add_executable(DatasetConverter src/dataset_converter.cpp)
+target_link_libraries(DatasetConverter ${PROJECT_NAME}_index)
+
 install(TARGETS
         BumblebeeDriver
         BumblebeeRecorder
         BumblebeeReplay
+        DatasetConverter
         DESTINATION lib/${PROJECT_NAME})
 
 
