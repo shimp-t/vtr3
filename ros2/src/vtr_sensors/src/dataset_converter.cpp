@@ -55,12 +55,12 @@ int main(int argc, char *argv[]) {
         cam_name = "right";
       }
 
-      cam_im.name = cam_name;
+//      cam_im.name = cam_name;
       cam_im.height = im.rows;
       cam_im.width = im.cols;
-      cam_im.depth = 3;
+      cam_im.depth = 0; // 3;
       cam_im.encoding = "bgr8";
-      cam_im.is_bigendian = false;
+      cam_im.is_bigendian = true;
       cam_im.stamp.nanoseconds_since_epoch = stamp_vec[img_num];
       cam_im.step = 512; //im.step[0];
       cam_im.data.resize(cam_im.height * cam_im.width * 3);
