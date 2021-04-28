@@ -47,7 +47,7 @@ int main(int argc, char** argv) {
     return -1;
   }
 
-  // gps parameters and setup (todo)
+  // gps parameters and setup
   auto use_tdcp = node->declare_parameter<bool>("use_tdcp", false);
   auto tdcp_data_dir_str = node->declare_parameter<std::string>("tdcp_data_dir", "");
   auto tdcp_stream_name = node->declare_parameter<std::string>("tdcp_stream_name", "");
@@ -60,10 +60,12 @@ int main(int argc, char** argv) {
   std::shared_ptr<storage::DataStreamReader<GpggaMsg>> gpgga_stream;
 
   if (use_tdcp) {
+    LOG(INFO) << "Using time-differenced carrier phase measurements.";
     tdcp_dir = fs::path{common::utils::expand_user(tdcp_data_dir_str)};
     tdcp_stream = std::make_shared<storage::DataStreamReader<TdcpMsg>>(tdcp_dir.string(), tdcp_stream_name);
   }
   if (use_gpgga) {
+    LOG(INFO) << "Logging GNSS position measurements.";
     gpgga_dir =  fs::path{common::utils::expand_user(gpgga_data_dir_str)};
     gpgga_stream = std::make_shared<storage::DataStreamReader<GpggaMsg>>(gpgga_dir.string(), gpgga_stream_name);
   }
