@@ -7,6 +7,7 @@
 #include <vtr_navigation/types.hpp>
 #include <vtr_path_planning/planning_interface.hpp>
 #include <vtr_pose_graph/path/localization_chain.hpp>
+#include <nmea_msgs/msg/gpgga.hpp>
 
 #if 0
 #include <vtr/navigation/pipelines.h>  // should not include anything related to pipling, use forward declearation instead.
@@ -34,6 +35,7 @@ class MapMemoryManager;
 
 using QueryCachePtr = std::shared_ptr<QueryCache>;
 using MapCachePtr = std::shared_ptr<MapCache>;
+using GpggaMsg = nmea_msgs::msg::Gpgga;
 
 /**
  * \brief Supposed to be the base class of tactic. API for a tactic is not clear
@@ -314,6 +316,9 @@ class BasicTactic : public mission_planning::StateMachineInterface {
       LOG(WARNING) << "Attempted to set target loc without a covariance!";
     }
   }
+
+  /** \brief Associate GPGGA (GNSS position) msg with current vertex */
+  void logGpsPos(const GpggaMsg &msg);
 
   /** \brief accessor for the tactic configuration. */
   const TacticConfig& config() {

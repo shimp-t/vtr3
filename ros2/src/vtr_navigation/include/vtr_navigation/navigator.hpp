@@ -71,6 +71,7 @@ using Trigger = vtr_messages::srv::Trigger;
 using SetGraph = vtr_messages::srv::SetGraph;
 using RigImages = vtr_messages::msg::RigImages;
 using RigCalibration = vtr_messages::msg::RigCalibration;
+using GpggaMsg = nmea_msgs::msg::Gpgga;
 using PlannerPtr = vtr::path_planning::PlanningInterface::Ptr;
 
 class Navigator : public PublisherInterface {
@@ -144,6 +145,8 @@ class Navigator : public PublisherInterface {
     rigimages_subscription_ = node_->create_subscription<RigImages>(
         "xb3_images", subscriber_buffer_len,
         std::bind(&Navigator::_imageCallback, this, std::placeholders::_1));
+    gpspos_subscription_ = node_->create_subscription<GpggaMsg>(
+        "gpgga", 10, std::bind(&Navigator::_gpggaCallback, this, std::placeholders::_1));
     following_path_publisher_ =
         node_->create_publisher<PathMsg>("out/following_path", 1);
 #if 0
@@ -258,6 +261,9 @@ class Navigator : public PublisherInterface {
 
   /** \brief ROS callback to accept rig images */
   void _imageCallback(const RigImages::SharedPtr msg);
+
+  /** \brief ROS callback to accept GPGGA (GNSS position) msgs */
+  void _gpggaCallback(GpggaMsg::SharedPtr msg);
 
   /** \brief Fetch image calibration data from a service */
   void _fetchCalibration();
@@ -375,6 +381,9 @@ class Navigator : public PublisherInterface {
   /** \brief Rig Images Subscriber */
   rclcpp::Subscription<RigImages>::SharedPtr rigimages_subscription_;
   rclcpp::Client<GetRigCalibration>::SharedPtr rig_calibration_client_;
+
+  /** \brief GNSS Position Subscriber */
+  rclcpp::Subscription<GpggaMsg>::SharedPtr gpspos_subscription_;
 
   /**
    * \brief Set true when pipeline is processing, and read by robochunk sensor

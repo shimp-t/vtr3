@@ -763,5 +763,17 @@ void BasicTactic::updateLocalization(QueryCachePtr q_data, MapCachePtr m_data) {
   }
 }
 
+void BasicTactic::logGpsPos(const GpggaMsg &msg) {
+  if (!pose_graph_->contains(currentVertexID())) {
+    return;
+  }
+
+  Vertex::Ptr vertex = pose_graph_->at(currentVertexID());
+  const Graph::RunIdType rid = (currentVertexID()).majorId();
+  std::string gps_obs_str = "gpgga";
+  pose_graph_->registerVertexStream<GpggaMsg>(rid, gps_obs_str);
+  vertex->insert(gps_obs_str, msg, vertex->keyFrameTime());     // todo: check this stamp correct
+}
+
 }  // namespace navigation
 }  // namespace vtr

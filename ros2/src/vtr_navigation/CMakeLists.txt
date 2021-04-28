@@ -50,6 +50,7 @@ ament_target_dependencies(${PROJECT_NAME}
   OpenCV
   OpenMP
   rclcpp
+  nmea_msgs
   gpusurf
   steam
   vtr_common
@@ -106,6 +107,7 @@ ament_export_dependencies(
   OpenCV
   OpenMP
   rclcpp
+  nmea_msgs
   gpusurf
   steam
   vtr_common

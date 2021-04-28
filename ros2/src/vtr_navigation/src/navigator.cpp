@@ -194,6 +194,12 @@ void Navigator::_imageCallback(const RigImages::SharedPtr msg) {
   process_.notify_one();
 }
 
+void Navigator::_gpggaCallback(const nmea_msgs::msg::Gpgga::SharedPtr msg) {
+  if (state_machine_->name() != "::Idle") {
+    tactic_->logGpsPos(*msg);
+  }
+}
+
 #if 0
 // GPS call back
 void Navigator::NavSatFixCallback(const sensor_msgs::NavSatFix &fix) {
