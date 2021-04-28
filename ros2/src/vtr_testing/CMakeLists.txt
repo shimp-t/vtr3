@@ -13,6 +13,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 find_package(rclcpp REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
+find_package(cpo_interfaces REQUIRED)
+find_package(nmea_msgs REQUIRED)
 find_package(vtr_common REQUIRED)
 find_package(vtr_logging REQUIRED)
 find_package(vtr_navigation REQUIRED)
@@ -28,6 +30,8 @@ ament_target_dependencies(module_vo
   rclcpp
   tf2_ros
   tf2_geometry_msgs
+  cpo_interfaces
+  nmea_msgs
   vtr_common
   vtr_logging
   vtr_navigation
@@ -40,11 +44,32 @@ target_include_directories(module_vo
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>)
 
+add_executable(module_vo_gps src/module_vo_gps.cpp)
+ament_target_dependencies(module_vo_gps
+  rclcpp
+  tf2_ros
+  tf2_geometry_msgs
+  cpo_interfaces
+  nmea_msgs
+  vtr_common
+  vtr_logging
+  vtr_navigation
+  vtr_storage
+  vtr_messages
+  vtr_vision
+)
+target_include_directories(module_vo_gps
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>)
+
 add_executable(module_loc src/module_loc.cpp)
 ament_target_dependencies(module_loc
   rclcpp
   tf2_ros
   tf2_geometry_msgs
+  cpo_interfaces
+  nmea_msgs
   vtr_common
   vtr_logging
   vtr_navigation
@@ -61,6 +86,7 @@ target_include_directories(module_loc
 install(
   TARGETS
     module_vo
+    module_vo_gps
     module_loc
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib

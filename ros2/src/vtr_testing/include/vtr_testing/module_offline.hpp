@@ -10,6 +10,8 @@
 
 namespace fs = std::filesystem;
 using namespace vtr;
+using TdcpMsg = cpo_interfaces::msg::TDCP;
+using GpggaMsg = nmea_msgs::msg::Gpgga;
 
 class ModuleOffline {
  public:
@@ -71,6 +73,14 @@ class ModuleOffline {
                 << "rate: " << 1000 / avg_speed << " hz";
       timer.reset();
     }
+  }
+
+  void processTdcpData(const std::shared_ptr<TdcpMsg>& msg) {
+    tactic_->logGpsRaw(*msg);
+  }
+
+  void processGpggaData(const std::shared_ptr<GpggaMsg>& msg) {
+    tactic_->logGpsPos(*msg);
   }
 
   void saveGraph() {

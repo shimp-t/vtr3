@@ -12,6 +12,8 @@
   <depend>rclcpp</depend>
   <depend>tf2_ros</depend>
   <depend>tf2_geometry_msgs</depend>
+  <depend>nmea_msgs</depend>
+  <depend>cpo_interfaces</depend>
 
   <depend>vtr_common</depend>
   <depend>vtr_logging</depend>
