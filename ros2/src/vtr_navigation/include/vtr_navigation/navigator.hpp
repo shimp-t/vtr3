@@ -4,6 +4,7 @@
 
 #include <rclcpp/rclcpp.hpp>
 
+#include <cpo_interfaces/msg/tdcp.hpp>
 #include <vtr_lgmath_extensions/conversions.hpp>
 #include <vtr_messages/msg/graph_path.hpp>
 #include <vtr_messages/msg/rig_images.hpp>
@@ -72,6 +73,7 @@ using SetGraph = vtr_messages::srv::SetGraph;
 using RigImages = vtr_messages::msg::RigImages;
 using RigCalibration = vtr_messages::msg::RigCalibration;
 using GpggaMsg = nmea_msgs::msg::Gpgga;
+using TdcpMsg = cpo_interfaces::msg::TDCP;
 using PlannerPtr = vtr::path_planning::PlanningInterface::Ptr;
 
 class Navigator : public PublisherInterface {
@@ -147,6 +149,9 @@ class Navigator : public PublisherInterface {
         std::bind(&Navigator::_imageCallback, this, std::placeholders::_1));
     gpspos_subscription_ = node_->create_subscription<GpggaMsg>(
         "gpgga", 10, std::bind(&Navigator::_gpggaCallback, this, std::placeholders::_1));
+    gpsraw_subscription_ = node_->create_subscription<TdcpMsg>(
+        "tdcp", 10, std::bind(&Navigator::_tdcpCallback, this, std::placeholders::_1));
+
     following_path_publisher_ =
         node_->create_publisher<PathMsg>("out/following_path", 1);
 #if 0
@@ -264,6 +269,9 @@ class Navigator : public PublisherInterface {
 
   /** \brief ROS callback to accept GPGGA (GNSS position) msgs */
   void _gpggaCallback(GpggaMsg::SharedPtr msg);
+
+  /** \brief ROS callback to accept time-differenced carrier phase msgs */
+  void _tdcpCallback(TdcpMsg::SharedPtr msg);
 
   /** \brief Fetch image calibration data from a service */
   void _fetchCalibration();
@@ -384,6 +392,9 @@ class Navigator : public PublisherInterface {
 
   /** \brief GNSS Position Subscriber */
   rclcpp::Subscription<GpggaMsg>::SharedPtr gpspos_subscription_;
+
+  /** \brief TDCP Subscriber */
+  rclcpp::Subscription<TdcpMsg>::SharedPtr gpsraw_subscription_;
 
   /**
    * \brief Set true when pipeline is processing, and read by robochunk sensor

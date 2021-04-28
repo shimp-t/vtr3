@@ -15,9 +15,11 @@
   <depend>OpenCV</depend>
 
   <depend>rclcpp</depend>
+  <depend>nmea_msgs</depend>
 
   <depend>gpusurf</depend>
   <depend>steam</depend>
+  <depend>cpo_interfaces</depend>
   <depend>vtr_common</depend>
   <depend>vtr_logging</depend>
   <depend>vtr_mission_planning</depend>

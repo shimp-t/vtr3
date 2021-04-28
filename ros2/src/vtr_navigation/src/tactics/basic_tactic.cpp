@@ -775,5 +775,17 @@ void BasicTactic::logGpsPos(const GpggaMsg &msg) {
   vertex->insert(gps_obs_str, msg, vertex->keyFrameTime());     // todo: check this stamp correct
 }
 
+void BasicTactic::logGpsRaw(const TdcpMsg &msg) {
+  if (!pose_graph_->contains(currentVertexID())) {
+    return;
+  }
+
+  Vertex::Ptr vertex = pose_graph_->at(currentVertexID());
+  const Graph::RunIdType rid = (currentVertexID()).majorId();
+  std::string tdcp_obs_str = "tdcp";
+  pose_graph_->registerVertexStream<TdcpMsg>(rid, tdcp_obs_str);
+  vertex->insert(tdcp_obs_str, msg, vertex->keyFrameTime());     // todo: check this stamp correct
+}
+
 }  // namespace navigation
 }  // namespace vtr

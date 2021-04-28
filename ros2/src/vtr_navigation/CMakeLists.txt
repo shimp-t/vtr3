@@ -20,6 +20,7 @@ find_package(nmea_msgs REQUIRED)
 find_package(gpusurf REQUIRED)  # currently assuming this is required
 add_definitions(-DGPUSURF_ENABLED=1)
 find_package(steam REQUIRED)
+find_package(cpo_interfaces REQUIRED)
 find_package(vtr_common REQUIRED)
 find_package(vtr_lgmath_extensions REQUIRED)
 find_package(vtr_logging REQUIRED)
@@ -51,6 +52,7 @@ ament_target_dependencies(${PROJECT_NAME}
   OpenMP
   rclcpp
   nmea_msgs
+  cpo_interfaces
   gpusurf
   steam
   vtr_common
@@ -81,6 +83,8 @@ ament_target_dependencies(navigator
   OpenCV
   OpenMP
   rclcpp
+  nmea_msgs
+  cpo_interfaces
   gpusurf
   steam
   vtr_common
@@ -108,6 +112,7 @@ ament_export_dependencies(
   OpenMP
   rclcpp
   nmea_msgs
+  cpo_interfaces
   gpusurf
   steam
   vtr_common

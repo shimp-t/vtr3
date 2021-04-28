@@ -8,6 +8,7 @@
 #include <vtr_path_planning/planning_interface.hpp>
 #include <vtr_pose_graph/path/localization_chain.hpp>
 #include <nmea_msgs/msg/gpgga.hpp>
+#include <cpo_interfaces/msg/tdcp.hpp>
 
 #if 0
 #include <vtr/navigation/pipelines.h>  // should not include anything related to pipling, use forward declearation instead.
@@ -36,6 +37,7 @@ class MapMemoryManager;
 using QueryCachePtr = std::shared_ptr<QueryCache>;
 using MapCachePtr = std::shared_ptr<MapCache>;
 using GpggaMsg = nmea_msgs::msg::Gpgga;
+using TdcpMsg = cpo_interfaces::msg::TDCP;
 
 /**
  * \brief Supposed to be the base class of tactic. API for a tactic is not clear
@@ -319,6 +321,9 @@ class BasicTactic : public mission_planning::StateMachineInterface {
 
   /** \brief Associate GPGGA (GNSS position) msg with current vertex */
   void logGpsPos(const GpggaMsg &msg);
+
+  /** \brief Associate carrier phase msg with current vertex */
+  void logGpsRaw(const TdcpMsg &msg);
 
   /** \brief accessor for the tactic configuration. */
   const TacticConfig& config() {
