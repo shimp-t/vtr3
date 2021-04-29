@@ -295,6 +295,30 @@ WindowOptimizationModule::generateOptimizationProblem(
 #endif
   }
 
+  // Set up TDCP factors
+  if (config_->tdcp_enable) {
+
+    // recall TDCP pseudo-measurements for each vertex in window
+    for (const auto &pose : poses) {
+      auto v = graph->at(pose.first);
+      try {
+        std::cout << "Retrieving tdcp from " << pose.first << std::endl;    //
+        auto msg = v->retrieveKeyframeData<TdcpMsg>("tdcp");
+
+        // add cost terms if data available for this vertex
+        if (msg != nullptr) {
+          std::cout << "Msg available, adding cost term " << std::endl;
+          addTdcpCost(msg);
+        }
+      } // catch stream not initialized error
+      catch (std::exception &e) {   // todo: more specific exception, cleaner msg/handling (the rc_stream_interface exception prints its own scary looking error message)
+        LOG(WARNING) << "Error retrieving TDCP data from vertex " << pose.first << ". Likely just DNE";
+        continue;
+      }
+    }
+    std::cout << "Added " << tdcp_cost_terms_->numCostTerms() << " cost terms." << std::endl;
+  }
+
   // add pose variables
   int jj = 0;
   for (auto &pose : poses) {
@@ -314,6 +338,12 @@ WindowOptimizationModule::generateOptimizationProblem(
   problem_->addCostTerm(cost_terms_);
   if (config_->depth_prior_enable) {
     problem_->addCostTerm(depth_cost_terms_);
+  }
+  if (config_->tdcp_enable && tdcp_cost_terms_->numCostTerms() > 5) {     // todo: not sure whether we'll need minimum number of terms to resolve orientation or not
+//    problem_->addStateVariable(T_0g);
+    // todo: add prior on T_0g to fix position and give initial estimate of orientation
+
+    problem_->addCostTerm(tdcp_cost_terms_);
   }
 
   // add trajectory stuff
@@ -349,14 +379,20 @@ void WindowOptimizationModule::resetProblem() {
   // make the depth loss function
   sharedDepthLossFunc_.reset(new steam::DcsLossFunc(2.0));
 
-  // make the loss function, TODO: make this configurable, move to member var.
+  // make the stereo loss function, TODO (old): make this configurable, move to member var.
   sharedLossFunc_.reset(new steam::DcsLossFunc(2.0));
+
+  // make the TDCP loss function
+  sharedTdcpLossFunc_.reset(new steam::DcsLossFunc(2.0));
 
   // setup cost terms
   cost_terms_.reset(new steam::ParallelizedCostTermCollection());
 
   // setup cost terms for the depth
   depth_cost_terms_.reset(new steam::ParallelizedCostTermCollection());
+
+  // setup cost terms for the TDCP
+  tdcp_cost_terms_.reset(new steam::ParallelizedCostTermCollection());
 
   // set up the steam problem_.
   problem_.reset(new steam::OptimizationProblem());
@@ -374,6 +410,16 @@ void WindowOptimizationModule::addDepthCost(
       new steam::WeightedLeastSqCostTerm<1, 3>(errorfunc_range, rangeNoiseModel,
                                                sharedDepthLossFunc_));
   depth_cost_terms_->add(depth_cost);
+}
+
+void WindowOptimizationModule::addTdcpCost(const TdcpMsg::SharedPtr& msg) {
+  // todo
+  std::cout << "READY TO ADD TDCP COST " << std::endl;
+  std::cout << "msg->t_b " << msg->t_b << std::endl;
+  // will need to add TdcpErrorEval to steam_extensions(?)
+
+
+//  tdcp_cost_terms_->add(cost);
 }
 
 bool WindowOptimizationModule::verifyInputData(QueryCache &qdata,

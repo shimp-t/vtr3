@@ -614,6 +614,8 @@ void ROSModuleFactory::configureWindowOptimization(
 
   config->depth_prior_enable = node_->declare_parameter<decltype(config->depth_prior_enable)>(param_prefix_ + ".depth_prior_enable", config->depth_prior_enable);
   config->depth_prior_weight = node_->declare_parameter<decltype(config->depth_prior_weight)>(param_prefix_ + ".depth_prior_weight", config->depth_prior_weight);
+  config->tdcp_enable = node_->declare_parameter<decltype(config->tdcp_enable)>(param_prefix_ + ".tdcp_enable", config->tdcp_enable);
+  config->tdcp_cov = node_->declare_parameter<decltype(config->tdcp_cov)>(param_prefix_ + ".tdcp_cov", config->tdcp_cov);
   // config->max_point_depth = node_->declare_parameter<decltype(config->max_point_depth)>(param_prefix_ + ".max_point_depth", config->max_point_depth);
 
   std::dynamic_pointer_cast<WindowOptimizationModule>(new_module)->setConfig(config);
