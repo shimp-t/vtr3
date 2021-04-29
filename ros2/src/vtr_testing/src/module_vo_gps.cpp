@@ -6,12 +6,11 @@
 #include <vtr_logging/logging_init.hpp>
 #include <vtr_testing/module_vo.hpp>
 
-
 using namespace vtr;
 using RigImages = vtr_messages::msg::RigImages;
 using RigCalibration = vtr_messages::msg::RigCalibration;
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
   // easylogging++ configuration
   logging::configureLogging();
 
@@ -41,7 +40,7 @@ int main(int argc, char** argv) {
     auto calibration_msg =
         stereo_stream.fetchCalibration()->get<RigCalibration>();
     rig_calibration = messages::copyCalibration(calibration_msg);
-  } catch (storage::NoBagExistsException& e) {
+  } catch (storage::NoBagExistsException &e) {
     LOG(ERROR) << "No calibration message recorded! URI: "
                << e.get_directory().string();
     return -1;
@@ -66,10 +65,9 @@ int main(int argc, char** argv) {
   }
   if (use_gpgga) {
     LOG(INFO) << "Logging GNSS position measurements.";
-    gpgga_dir =  fs::path{common::utils::expand_user(gpgga_data_dir_str)};
+    gpgga_dir = fs::path{common::utils::expand_user(gpgga_data_dir_str)};
     gpgga_stream = std::make_shared<storage::DataStreamReader<GpggaMsg>>(gpgga_dir.string(), gpgga_stream_name);
   }
-
 
   ModuleVO vo(node, results_dir);
 
@@ -79,6 +77,8 @@ int main(int argc, char** argv) {
   std::shared_ptr<storage::VTRMessage> gpgga_msg;
   std::shared_ptr<storage::VTRMessage> tdcp_msg;
   int image_idx = 0;
+  int tdcp_idx = 0;
+  int gpgga_idx = 0;
 
   // get first image
   bool seek_success = stereo_stream.seekByIndex(static_cast<int32_t>(start_index));
@@ -98,7 +98,7 @@ int main(int argc, char** argv) {
 
   // get first GPS messages
   if (use_tdcp) {
-    seek_success = tdcp_stream->seekByTimestamp(image_stamp.nanoseconds_since_epoch);     // todo: not sure if these units equivalent
+    seek_success = tdcp_stream->seekByTimestamp(image_stamp.nanoseconds_since_epoch);
     if (!seek_success) {
       LOG(ERROR) << "TDCP seek failed!";
       return 0;
@@ -106,7 +106,7 @@ int main(int argc, char** argv) {
     tdcp_msg = tdcp_stream->readNextFromSeek();
   }
   if (use_gpgga) {
-    seek_success = gpgga_stream->seekByTimestamp(image_stamp.nanoseconds_since_epoch);     // todo: not sure if these units equivalent
+    seek_success = gpgga_stream->seekByTimestamp(image_stamp.nanoseconds_since_epoch);
     if (!seek_success) {
       LOG(ERROR) << "TDCP seek failed!";
       return 0;
@@ -114,17 +114,16 @@ int main(int argc, char** argv) {
     gpgga_msg = gpgga_stream->readNextFromSeek();
   }
 
-
   // loop through streams, processing whichever of available data is chronologically first
   while (image_idx + start_index < stop_index && rclcpp::ok()) {
 
     if ((tdcp_msg == nullptr ||
         image_stamp.nanoseconds_since_epoch < tdcp_msg->template get<TdcpMsg>().t_b)
         && (gpgga_msg == nullptr ||
-        image_stamp.nanoseconds_since_epoch < gpgga_msg->template get<GpggaMsg>().utc_seconds * 1e9)) {
+            image_stamp.nanoseconds_since_epoch < gpgga_msg->template get<GpggaMsg>().utc_seconds * 1e9)) {
 
       // process image
-      LOG(INFO) << "\nProcessing image: " << image_idx;
+      LOG(INFO) << "Processing image: " << image_idx;
       vo.processImageData(std::make_shared<RigImages>(rig_images), image_stamp);
       image_idx++;
 
@@ -138,12 +137,14 @@ int main(int argc, char** argv) {
       rig_images.vtr_header.sensor_time_stamp.nanoseconds_since_epoch =
           rig_images.channels[0].cameras[0].stamp.nanoseconds_since_epoch;
       image_stamp = rig_images.vtr_header.sensor_time_stamp;
-    } else if (tdcp_msg != nullptr && (gpgga_msg == nullptr || tdcp_msg->template get<TdcpMsg>().t_b < gpgga_msg->template get<GpggaMsg>().utc_seconds * 1e9)) {
+    } else if (tdcp_msg != nullptr && (gpgga_msg == nullptr
+        || tdcp_msg->template get<TdcpMsg>().t_b < gpgga_msg->template get<GpggaMsg>().utc_seconds * 1e9)) {
 
       // process tdcp data
-      LOG(INFO) << "\nProcessing TDCP data. ";
+      LOG(INFO) << "Processing TDCP measurement: " << tdcp_idx;
       auto tdcp_meas = tdcp_msg->template get<TdcpMsg>();
       vo.processTdcpData(std::make_shared<TdcpMsg>(tdcp_meas));
+      tdcp_idx++;
 
       // get next tdcp measurement
       tdcp_msg = tdcp_stream->readNextFromSeek();
@@ -151,9 +152,10 @@ int main(int argc, char** argv) {
     } else if (gpgga_msg != nullptr) {
 
       // process gpgga data
-      LOG(INFO) << "\nProcessing GPS position measurement. ";
-      auto gpgga_meas = tdcp_msg->template get<GpggaMsg>();
+      LOG(INFO) << "Processing GPS position measurement: " << gpgga_idx;
+      auto gpgga_meas = gpgga_msg->template get<GpggaMsg>();
       vo.processGpggaData(std::make_shared<GpggaMsg>(gpgga_meas));
+      gpgga_idx++;
 
       // get next gpgga measurement
       gpgga_msg = gpgga_stream->readNextFromSeek();

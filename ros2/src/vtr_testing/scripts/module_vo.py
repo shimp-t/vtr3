@@ -6,6 +6,9 @@ import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import axes3d
+import seaborn as sns
+
+sns.set_style("whitegrid")
 
 matplotlib.use("TkAgg")  # Can change to 'Agg' for non-interactive mode
 matplotlib.rcParams["pdf.fonttype"] = 42
@@ -24,7 +27,7 @@ plt.rc("figure", titlesize=MEDIUM_SIZE)  # fontsize of the figure title
 plt.rc("legend", fontsize=SMALL_SIZE)  # legend fontsize
 
 # Flags
-results_dir = osp.expanduser("~/ASRL/vtr3_offline_test/results/run_000000")
+results_dir = osp.expanduser("~/ASRL/vtr3g_offline_test/results/run_000000")
 
 entries = ["data_size", "read_time", "write_time"]
 unit = ["(Mb)", "(ms)", "(ms)"]
@@ -47,5 +50,8 @@ print("Number of points: ", r.shape[0])
 fig = plt.figure()
 ax = fig.add_subplot(111)
 ax.plot(r[:, 0], r[:, 1])
+plt.title("Integrated VO")
+plt.xlabel("x [m]")
+plt.ylabel("y [m]")
 plt.axis('equal')
 plt.show()

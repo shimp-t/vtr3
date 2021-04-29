@@ -1,7 +1,7 @@
 navigator:
   ros__parameters:
     # Input data directory for ModuleVO
-    input_data_dir: "/home/ben/feb_stereo_collection/feb15b"      # todo: find where I put these
+    input_data_dir: "/mnt/tumblehome/home/benc/feb_stereo_collection/feb15a"
     # Directory to save results to
     results_dir: "~/ASRL/vtr3g_offline_test/results"
     # Data directory for chunked data (contains run_000***)
@@ -22,11 +22,11 @@ navigator:
     ############ GPS-related parameters ############
     use_tdcp: true
     tdcp_data_dir: "~/CLionProjects/ros2-ws/bagfiles"
-    tdcp_stream_name: "feb15b"
+    tdcp_stream_name: "feb15a"
 
     use_gpgga: false
-    gpgga_data_dir: "~/todo"
-    gpgga_stream_name: "feb15b"
+    gpgga_data_dir: "/home/ben/ASRL/temp/gpgga_bags"
+    gpgga_stream_name: "feb15a"
 
     ############ Tactic configuration ############
     tactic:
