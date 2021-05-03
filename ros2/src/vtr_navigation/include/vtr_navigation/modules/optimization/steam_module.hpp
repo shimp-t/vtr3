@@ -122,6 +122,17 @@ class SteamModule : public BaseModule {
     double ang_vel_std_dev_x;
     double ang_vel_std_dev_y;
     double ang_vel_std_dev_z;
+
+    /** \brief tf_gps_vehicle paramters
+     * \todo better way to handle these
+     */
+    double tf_gv_x;
+    double tf_gv_y;
+    double tf_gv_z;
+    double tf_gv_phi1;
+    double tf_gv_phi2;
+    double tf_gv_phi3;
+
   };
 
   SteamModule(std::string name = type_str_) : BaseModule{name} {
@@ -147,6 +158,9 @@ class SteamModule : public BaseModule {
   steam::se3::FixedTransformEvaluator::Ptr tf_sensor_vehicle_;
   std::map<VertexId, steam::se3::FixedTransformEvaluator::Ptr>
       tf_sensor_vehicle_map_;
+
+  /** \brief GPS receiver to vehicle frame transform **/
+  steam::se3::FixedTransformEvaluator::Ptr tf_gps_vehicle_;
 
   steam::se3::FixedTransformEvaluator::Ptr tf_identity_;
 

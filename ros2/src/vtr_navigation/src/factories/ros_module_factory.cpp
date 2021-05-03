@@ -577,6 +577,13 @@ void ROSModuleFactory::configureSteam(
   config->ang_vel_std_dev_x = node_->declare_parameter<decltype(config->ang_vel_std_dev_x)>(param_prefix_ + ".ang_vel_std_dev_x", config->ang_vel_std_dev_x);
   config->ang_vel_std_dev_y = node_->declare_parameter<decltype(config->ang_vel_std_dev_y)>(param_prefix_ + ".ang_vel_std_dev_y", config->ang_vel_std_dev_y);
   config->ang_vel_std_dev_z = node_->declare_parameter<decltype(config->ang_vel_std_dev_z)>(param_prefix_ + ".ang_vel_std_dev_z", config->ang_vel_std_dev_z);
+
+  config->tf_gv_x = node_->declare_parameter<decltype(config->tf_gv_x)>(param_prefix_ + ".tf_gv_x", -0.60);
+  config->tf_gv_y = node_->declare_parameter<decltype(config->tf_gv_y)>(param_prefix_ + ".tf_gv_y", 0.0);
+  config->tf_gv_z = node_->declare_parameter<decltype(config->tf_gv_z)>(param_prefix_ + ".tf_gv_z", -0.52);
+  config->tf_gv_phi1 = node_->declare_parameter<decltype(config->tf_gv_phi1)>(param_prefix_ + ".tf_gv_phi1", 0.0);
+  config->tf_gv_phi2 = node_->declare_parameter<decltype(config->tf_gv_phi2)>(param_prefix_ + ".tf_gv_phi2", 0.0);
+  config->tf_gv_phi3 = node_->declare_parameter<decltype(config->tf_gv_phi3)>(param_prefix_ + ".tf_gv_phi3", 0.0);
   // clang-format on
 }
 

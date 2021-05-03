@@ -54,6 +54,14 @@ void SteamModule::setConfig(std::shared_ptr<Config> &config) {
   }
   velocity_prior_cov_.setZero();
   velocity_prior_cov_.diagonal() = 1.0 / Qv_diag;
+
+  // temporary way to set up GPS-vehicle transform
+  Eigen::Vector3d r_vg_g, phi;
+  r_vg_g << config_->tf_gv_x, config_->tf_gv_y, config_->tf_gv_z;
+  phi << config_->tf_gv_phi1, config_->tf_gv_phi2, config_->tf_gv_phi3;
+  tf_gps_vehicle_ =
+      steam::se3::FixedTransformEvaluator::MakeShared(lgmath::se3::Transformation(lgmath::so3::Rotation(phi).matrix(),
+                                                                                  r_vg_g).inverse());
 }
 
 std::shared_ptr<steam::SolverBase> SteamModule::generateSolver(
