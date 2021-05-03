@@ -2,10 +2,11 @@
 
 #include <steam.hpp>
 
-namespace steam {
+namespace vtr {
+namespace steam_extensions {
 
 /** \brief Error evaluator for unicycle model */
-class UnicycleErrorEval : public ErrorEvaluator<4, 6>::type {
+class UnicycleErrorEval : public steam::ErrorEvaluator<4, 6>::type {
  public:
 
   // Convenience typedefs
@@ -13,7 +14,7 @@ class UnicycleErrorEval : public ErrorEvaluator<4, 6>::type {
   using ConstPtr = boost::shared_ptr<const UnicycleErrorEval>;
   
   /** \brief Constructor - Error between y,z,roll,pitch velocities and zero */
-  explicit UnicycleErrorEval(const VectorSpaceStateVar::Ptr &state_vec);
+  explicit UnicycleErrorEval(const steam::VectorSpaceStateVar::Ptr &state_vec);
   
   /** \brief Returns whether or not an evaluator contains unlocked state variables */
   virtual bool isActive() const;
@@ -23,14 +24,15 @@ class UnicycleErrorEval : public ErrorEvaluator<4, 6>::type {
   
   /** \brief Evaluate the 4-d measurement error and Jacobian */
   virtual Eigen::Matrix<double, 4, 1> evaluate(const Eigen::Matrix<double, 4, 4> &lhs,
-                                               std::vector<Jacobian<4, 6>
+                                               std::vector<steam::Jacobian<4, 6>
                                                > *jacs) const;
 
  private:
 
   /** \brief Velocity state vector */
-  VectorSpaceStateVar::ConstPtr state_vec_;
+  steam::VectorSpaceStateVar::ConstPtr state_vec_;
 
 };
 
-} // steam
+}  // namespace steam_extensions
+}  // namespace vtr

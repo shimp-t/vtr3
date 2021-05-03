@@ -1,8 +1,9 @@
 #include <vtr_steam_extensions/evaluator/unicycle_error_eval.hpp>
 
-namespace steam {
+namespace vtr {
+namespace steam_extensions {
 
-UnicycleErrorEval::UnicycleErrorEval(const VectorSpaceStateVar::Ptr &state_vec)
+UnicycleErrorEval::UnicycleErrorEval(const steam::VectorSpaceStateVar::Ptr &state_vec)
     : state_vec_(state_vec) {}
 
 bool UnicycleErrorEval::isActive() const {
@@ -17,7 +18,7 @@ Eigen::Matrix<double, 4, 1> UnicycleErrorEval::evaluate() const {
 }
 
 Eigen::Matrix<double, 4, 1> UnicycleErrorEval::evaluate(const Eigen::Matrix<double, 4, 4> &lhs,
-                                                        std::vector<Jacobian<4, 6> > *jacs) const {
+                                                        std::vector<steam::Jacobian<4, 6> > *jacs) const {
   // Check and initialize Jacobian array
   if (jacs == nullptr) {
     throw std::invalid_argument("Null pointer provided to return-input 'jacs' in evaluate");
@@ -36,4 +37,5 @@ Eigen::Matrix<double, 4, 1> UnicycleErrorEval::evaluate(const Eigen::Matrix<doub
   return P * state_vec_->getValue();
 }
 
-} // steam
+}  // namespace steam_extensions
+}  // namespace vtr
