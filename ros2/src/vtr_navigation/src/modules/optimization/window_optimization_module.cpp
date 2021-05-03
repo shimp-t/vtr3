@@ -297,45 +297,6 @@ WindowOptimizationModule::generateOptimizationProblem(
 #endif
   }
 
-  steam::se3::TransformStateVar::Ptr T_0g_statevar(new steam::se3::TransformStateVar(lgmath::se3::Transformation()));
-  std::vector<TdcpMsg::SharedPtr> tdcp_msgs;
-
-  // Set up TDCP factors
-  if (config_->tdcp_enable) {
-
-    // recall TDCP pseudo-measurements for each vertex in window
-    for (const auto &pose : poses) {
-      auto v = graph->at(pose.first);
-      auto msg = v->retrieveKeyframeData<TdcpMsg>("tdcp", true);
-
-      // add cost terms if data available for this vertex
-      if (msg != nullptr) {
-        tdcp_msgs.push_back(msg);
-      }
-    }
-
-    if (tdcp_msgs.size() >= 2) {      // for now require hard-coded number of msgs
-      // get heading estimate by looking at displacement of code solutions from front and back of window
-      // todo: still need to figure out how we want to handle this orientation
-      Eigen::Vector3d r_k0_ing =
-          Eigen::Vector3d(tdcp_msgs.back()->enu_pos.x, tdcp_msgs.back()->enu_pos.y, tdcp_msgs.back()->enu_pos.z)
-              - Eigen::Vector3d(tdcp_msgs.front()->enu_pos.x,
-                                tdcp_msgs.front()->enu_pos.y,
-                                tdcp_msgs.front()->enu_pos.z);
-      double theta = atan2(r_k0_ing.y(), r_k0_ing.x());
-
-      Eigen::Matrix<double, 6, 1> init_pose_vec;
-      init_pose_vec << 0, 0, 0, 0, 0, -theta;
-
-      T_0g_statevar->setValue(lgmath::se3::Transformation(init_pose_vec));
-
-      for (const auto & msg : tdcp_msgs) {
-        addTdcpCost(msg, T_0g_statevar);
-      }
-    }
-    std::cout << "Added " << tdcp_cost_terms_->numCostTerms() << " cost terms." << std::endl;
-  }
-
   // add pose variables
   int jj = 0;
   for (auto &pose : poses) {
@@ -355,12 +316,6 @@ WindowOptimizationModule::generateOptimizationProblem(
   problem_->addCostTerm(cost_terms_);
   if (config_->depth_prior_enable) {
     problem_->addCostTerm(depth_cost_terms_);
-  }
-  if (config_->tdcp_enable && tdcp_cost_terms_->numCostTerms() > 4) {     // todo: not sure whether we'll need minimum number of terms to resolve orientation or not
-    problem_->addStateVariable(T_0g_statevar);
-    // todo: add prior on T_0g to fix position and give initial estimate of orientation
-
-    problem_->addCostTerm(tdcp_cost_terms_);
   }
 
   // add trajectory stuff
@@ -387,6 +342,49 @@ WindowOptimizationModule::generateOptimizationProblem(
 
     // Add smoothing cost terms
     trajectory_->appendPriorCostTerms(cost_terms_);
+
+    // Set up TDCP factors. We require a trajectory to interpolate so it happens in this if block
+    steam::se3::TransformStateVar::Ptr T_0g_statevar(new steam::se3::TransformStateVar(lgmath::se3::Transformation()));
+    std::vector<TdcpMsg::SharedPtr> tdcp_msgs;
+    if (config_->tdcp_enable) {
+
+      // recall TDCP pseudo-measurements for each vertex in window
+      for (const auto &pose : poses) {
+        auto v = graph->at(pose.first);
+        auto msg = v->retrieveKeyframeData<TdcpMsg>("tdcp", true);
+
+        // add cost terms if data available for this vertex
+        if (msg != nullptr) {
+          tdcp_msgs.push_back(msg);
+        }
+      }
+
+      if (tdcp_msgs.size() >= 2) {      // for now require hard-coded number of msgs
+        // get heading estimate by looking at displacement of code solutions from front and back of window
+        // todo: still need to figure out how we want to handle this orientation
+        Eigen::Vector3d r_k0_ing =
+            Eigen::Vector3d(tdcp_msgs.back()->enu_pos.x, tdcp_msgs.back()->enu_pos.y, tdcp_msgs.back()->enu_pos.z)
+                - Eigen::Vector3d(tdcp_msgs.front()->enu_pos.x,
+                                  tdcp_msgs.front()->enu_pos.y,
+                                  tdcp_msgs.front()->enu_pos.z);
+        double theta = atan2(r_k0_ing.y(), r_k0_ing.x());
+
+        Eigen::Matrix<double, 6, 1> init_pose_vec;
+        init_pose_vec << 0, 0, 0, 0, 0, -theta;
+
+        T_0g_statevar->setValue(lgmath::se3::Transformation(init_pose_vec));
+
+        for (const auto & msg : tdcp_msgs) {
+          addTdcpCost(msg, T_0g_statevar);
+        }
+
+        problem_->addStateVariable(T_0g_statevar);
+        // todo: add prior on T_0g to fix position and give initial estimate of orientation
+
+        problem_->addCostTerm(tdcp_cost_terms_);
+      }
+      std::cout << "Added " << tdcp_cost_terms_->numCostTerms() << " cost terms." << std::endl;
+    }
   }
 
   return problem_;
