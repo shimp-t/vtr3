@@ -372,18 +372,32 @@ WindowOptimizationModule::generateOptimizationProblem(
         Eigen::Matrix<double, 6, 1> init_pose_vec;
         init_pose_vec << 0, 0, 0, 0, 0, -theta;
 
-        T_0g_statevar->setValue(lgmath::se3::Transformation(init_pose_vec));
+        auto init_global_pose = lgmath::se3::Transformation(init_pose_vec);
+        T_0g_statevar->setValue(init_global_pose);
+        steam::se3::TransformEvaluator::ConstPtr T_0g(new steam::se3::TransformStateEvaluator(T_0g_statevar));
 
-        for (const auto & msg : tdcp_msgs) {
-          addTdcpCost(msg, T_0g_statevar);
+        for (const auto &msg : tdcp_msgs) {
+          addTdcpCost(msg, T_0g);
         }
 
         problem_->addStateVariable(T_0g_statevar);
-        // todo: add prior on T_0g to fix position and give initial estimate of orientation
+
+        // add weak prior on initial pose to deal with roll uncertainty and constrain r^0g_g to zero
+        steam::BaseNoiseModel<6>::Ptr
+            sharedNoiseModel(new steam::StaticNoiseModel<6>(Eigen::Matrix<double, 6, 6>::Identity()));
+        steam::TransformErrorEval::Ptr prior_error_func(new steam::TransformErrorEval(init_global_pose, T_0g));
+        steam::LossFunctionBase::Ptr pp_loss_function_(new steam::L2LossFunc());
+        auto pose_prior_factor_ = steam::WeightedLeastSqCostTerm<6, 6>::Ptr(new steam::WeightedLeastSqCostTerm<6, 6>(
+            prior_error_func,
+            sharedNoiseModel,
+            pp_loss_function_));
+
+        problem_->addCostTerm(pose_prior_factor_);
 
         problem_->addCostTerm(tdcp_cost_terms_);
       }
-      std::cout << "Added " << tdcp_cost_terms_->numCostTerms() << " cost terms." << std::endl;
+      std::cout << "Initial Carrier Phase Cost:       " << tdcp_cost_terms_->cost() << "        Terms:  "   // debugging
+                << tdcp_cost_terms_->numCostTerms() << std::endl;
     }
   }
 
@@ -427,20 +441,15 @@ void WindowOptimizationModule::addDepthCost(
   depth_cost_terms_->add(depth_cost);
 }
 
-void WindowOptimizationModule::addTdcpCost(const TdcpMsg::SharedPtr& msg, const steam::se3::TransformStateVar::Ptr& T_0g_statevar) {
-  // todo
-  std::cout << "READY TO ADD TDCP COST " << std::endl;
-  std::cout << "msg->t_b " << msg->t_b << std::endl;
+void WindowOptimizationModule::addTdcpCost(const TdcpMsg::SharedPtr& msg, const steam::se3::TransformEvaluator::ConstPtr& T_0g) {
 
-  // todo: clean up mix of ConstPtr, Ptr
   steam::se3::SteamTrajPoseInterpEval::ConstPtr T_a0_v = trajectory_->getInterpPoseEval(steam::Time((int64_t)msg->t_a));
   steam::se3::SteamTrajPoseInterpEval::ConstPtr T_b0_v = trajectory_->getInterpPoseEval(steam::Time((int64_t)msg->t_b));
-  steam::se3::TransformEvaluator::Ptr T_a0_s = steam::se3::compose(tf_gps_vehicle_, T_a0_v);
-  steam::se3::TransformEvaluator::Ptr T_b0_s = steam::se3::compose(tf_gps_vehicle_, T_b0_v);
+  steam::se3::TransformEvaluator::ConstPtr T_a0_s = steam::se3::compose(tf_gps_vehicle_, T_a0_v);
+  steam::se3::TransformEvaluator::ConstPtr T_b0_s = steam::se3::compose(tf_gps_vehicle_, T_b0_v);
   steam::se3::TransformEvaluator::ConstPtr T_ba = steam::se3::composeInverse(T_b0_s, T_a0_s);
   steam::se3::PositionEvaluator::ConstPtr r_ba_ina(new steam::se3::PositionEvaluator(T_ba));
 
-  steam::se3::TransformEvaluator::ConstPtr T_0g = steam::se3::TransformStateEvaluator::MakeShared(T_0g_statevar);
   steam::se3::TransformEvaluator::ConstPtr T_ag = steam::se3::compose(T_a0_s, T_0g);
 
   // using constant covariance here for now
@@ -726,6 +735,9 @@ void WindowOptimizationModule::updateGraph(QueryCache &qdata, MapCache &mdata,
       *mdata.success == false) {
     return;
   }
+
+  std::cout << "Final Carrier Phase Cost:         " << tdcp_cost_terms_->cost() << "        Terms:  "   // debugging
+            << tdcp_cost_terms_->numCostTerms() << std::endl;
 
   if (config_->save_trajectory) {
     throw std::runtime_error{
