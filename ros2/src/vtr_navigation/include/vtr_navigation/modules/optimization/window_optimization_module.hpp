@@ -73,8 +73,9 @@ class WindowOptimizationModule : public SteamModule {
    * \brief Adds a TDCP cost associated with this carrier phase measurement to
    * the TDCP cost terms.
    * \param msg The TDCP psuedo-measurement.
+   * \param T_0g_statevar Extra state variable required for TDCP, global pose.
    */
-  void addTdcpCost(const TdcpMsg::SharedPtr& msg);
+  void addTdcpCost(const TdcpMsg::SharedPtr& msg, const steam::se3::TransformStateVar::Ptr& T_0g_statevar);
 
   /**
    * \brief Verifies the input data being used in the optimization problem,

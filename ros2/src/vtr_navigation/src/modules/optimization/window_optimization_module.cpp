@@ -1,8 +1,10 @@
 
+#include <steam/trajectory/SteamTrajPoseInterpEval.hpp>
 #include <vtr_common/timing/simple_timer.hpp>
 #include <vtr_navigation/modules/optimization/window_optimization_module.hpp>
 #include <vtr_steam_extensions/evaluator/range_conditioning_eval.hpp>
 #include <vtr_steam_extensions/evaluator/scale_error_eval.hpp>
+#include <vtr_steam_extensions/evaluator/tdcp_error_eval.hpp>
 #include <vtr_vision/geometry/geometry_tools.hpp>
 #include <vtr_vision/messages/bridge.hpp>
 #include <vtr_vision/types.hpp>
@@ -295,6 +297,9 @@ WindowOptimizationModule::generateOptimizationProblem(
 #endif
   }
 
+  steam::se3::TransformStateVar::Ptr T_0g_statevar(new steam::se3::TransformStateVar(lgmath::se3::Transformation()));
+  std::vector<TdcpMsg::SharedPtr> tdcp_msgs;
+
   // Set up TDCP factors
   if (config_->tdcp_enable) {
 
@@ -305,7 +310,27 @@ WindowOptimizationModule::generateOptimizationProblem(
 
       // add cost terms if data available for this vertex
       if (msg != nullptr) {
-        addTdcpCost(msg);
+        tdcp_msgs.push_back(msg);
+      }
+    }
+
+    if (tdcp_msgs.size() >= 2) {      // for now require hard-coded number of msgs
+      // get heading estimate by looking at displacement of code solutions from front and back of window
+      // todo: still need to figure out how we want to handle this orientation
+      Eigen::Vector3d r_k0_ing =
+          Eigen::Vector3d(tdcp_msgs.back()->enu_pos.x, tdcp_msgs.back()->enu_pos.y, tdcp_msgs.back()->enu_pos.z)
+              - Eigen::Vector3d(tdcp_msgs.front()->enu_pos.x,
+                                tdcp_msgs.front()->enu_pos.y,
+                                tdcp_msgs.front()->enu_pos.z);
+      double theta = atan2(r_k0_ing.y(), r_k0_ing.x());
+
+      Eigen::Matrix<double, 6, 1> init_pose_vec;
+      init_pose_vec << 0, 0, 0, 0, 0, -theta;
+
+      T_0g_statevar->setValue(lgmath::se3::Transformation(init_pose_vec));
+
+      for (const auto & msg : tdcp_msgs) {
+        addTdcpCost(msg, T_0g_statevar);
       }
     }
     std::cout << "Added " << tdcp_cost_terms_->numCostTerms() << " cost terms." << std::endl;
@@ -331,8 +356,8 @@ WindowOptimizationModule::generateOptimizationProblem(
   if (config_->depth_prior_enable) {
     problem_->addCostTerm(depth_cost_terms_);
   }
-  if (config_->tdcp_enable && tdcp_cost_terms_->numCostTerms() > 5) {     // todo: not sure whether we'll need minimum number of terms to resolve orientation or not
-//    problem_->addStateVariable(T_0g);
+  if (config_->tdcp_enable && tdcp_cost_terms_->numCostTerms() > 4) {     // todo: not sure whether we'll need minimum number of terms to resolve orientation or not
+    problem_->addStateVariable(T_0g_statevar);
     // todo: add prior on T_0g to fix position and give initial estimate of orientation
 
     problem_->addCostTerm(tdcp_cost_terms_);
@@ -404,14 +429,45 @@ void WindowOptimizationModule::addDepthCost(
   depth_cost_terms_->add(depth_cost);
 }
 
-void WindowOptimizationModule::addTdcpCost(const TdcpMsg::SharedPtr& msg) {
+void WindowOptimizationModule::addTdcpCost(const TdcpMsg::SharedPtr& msg, const steam::se3::TransformStateVar::Ptr& T_0g_statevar) {
   // todo
   std::cout << "READY TO ADD TDCP COST " << std::endl;
   std::cout << "msg->t_b " << msg->t_b << std::endl;
-  // will need to add TdcpErrorEval to steam_extensions(?)
 
+  // todo: clean up mix of ConstPtr, Ptr
+  steam::se3::SteamTrajPoseInterpEval::ConstPtr T_a0_v = trajectory_->getInterpPoseEval(steam::Time((int64_t)msg->t_a));
+  steam::se3::SteamTrajPoseInterpEval::ConstPtr T_b0_v = trajectory_->getInterpPoseEval(steam::Time((int64_t)msg->t_b));
+  steam::se3::TransformEvaluator::Ptr T_a0_s = steam::se3::compose(tf_gps_vehicle_, T_a0_v);
+  steam::se3::TransformEvaluator::Ptr T_b0_s = steam::se3::compose(tf_gps_vehicle_, T_b0_v);
+  steam::se3::TransformEvaluator::ConstPtr T_ba = steam::se3::composeInverse(T_b0_s, T_a0_s);
+  steam::se3::PositionEvaluator::ConstPtr r_ba_ina(new steam::se3::PositionEvaluator(T_ba));
 
-//  tdcp_cost_terms_->add(cost);
+  steam::se3::TransformEvaluator::ConstPtr T_0g = steam::se3::TransformStateEvaluator::MakeShared(T_0g_statevar);
+  steam::se3::TransformEvaluator::ConstPtr T_ag = steam::se3::compose(T_a0_s, T_0g);
+
+  // using constant covariance here for now
+  steam::BaseNoiseModel<1>::Ptr tdcp_noise_model(new steam::StaticNoiseModel<1>(Eigen::Matrix<double, 1, 1>(config_->tdcp_cov)));
+
+  // iterate through satellite pairs in msg and add TDCP costs
+  for (const auto &pair : msg->pairs) {
+    Eigen::Vector3d r_1a_ing_ata{pair.r_1a_a.x, pair.r_1a_a.y, pair.r_1a_a.z};
+    Eigen::Vector3d r_1a_ing_atb{pair.r_1a_b.x, pair.r_1a_b.y, pair.r_1a_b.z};
+    Eigen::Vector3d r_2a_ing_ata{pair.r_2a_a.x, pair.r_2a_a.y, pair.r_2a_a.z};
+    Eigen::Vector3d r_2a_ing_atb{pair.r_2a_b.x, pair.r_2a_b.y, pair.r_2a_b.z};
+
+    vtr::steam_extensions::TdcpErrorEval::Ptr tdcp_error(new vtr::steam_extensions::TdcpErrorEval(pair.phi_measured,
+                                                                  r_ba_ina,
+                                                                  T_ag,
+                                                                  r_1a_ing_ata,
+                                                                  r_1a_ing_atb,
+                                                                  r_2a_ing_ata,
+                                                                  r_2a_ing_atb));
+    auto tdcp_factor = steam::WeightedLeastSqCostTerm<1, 6>::Ptr(new steam::WeightedLeastSqCostTerm<1, 6>(
+        tdcp_error,
+        tdcp_noise_model,
+        sharedTdcpLossFunc_));
+    tdcp_cost_terms_->add(tdcp_factor);
+  }
 }
 
 bool WindowOptimizationModule::verifyInputData(QueryCache &qdata,
