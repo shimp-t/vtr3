@@ -301,19 +301,11 @@ WindowOptimizationModule::generateOptimizationProblem(
     // recall TDCP pseudo-measurements for each vertex in window
     for (const auto &pose : poses) {
       auto v = graph->at(pose.first);
-      try {
-        std::cout << "Retrieving tdcp from " << pose.first << std::endl;    //
-        auto msg = v->retrieveKeyframeData<TdcpMsg>("tdcp");
+      auto msg = v->retrieveKeyframeData<TdcpMsg>("tdcp", true);
 
-        // add cost terms if data available for this vertex
-        if (msg != nullptr) {
-          std::cout << "Msg available, adding cost term " << std::endl;
-          addTdcpCost(msg);
-        }
-      } // catch stream not initialized error
-      catch (std::exception &e) {   // todo: more specific exception, cleaner msg/handling (the rc_stream_interface exception prints its own scary looking error message)
-        LOG(WARNING) << "Error retrieving TDCP data from vertex " << pose.first << ". Likely just DNE";
-        continue;
+      // add cost terms if data available for this vertex
+      if (msg != nullptr) {
+        addTdcpCost(msg);
       }
     }
     std::cout << "Added " << tdcp_cost_terms_->numCostTerms() << " cost terms." << std::endl;
