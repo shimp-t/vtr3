@@ -35,7 +35,7 @@ class TdcpErrorEval : public steam::ErrorEvaluator<1, 6>::type {
   steam::se3::PositionEvaluator::ConstPtr r_ba_ina_;
 
   /** Estimated rotation between the vehicle frame at a and the ENU frame */
-  steam::se3::TransformEvaluator::ConstPtr &T_ag_;
+  steam::se3::TransformEvaluator::ConstPtr T_ag_;
 
   /** Vector to satellite 1 from position a at time a in ENU frame */
   const Eigen::Vector3d r_1a_ing_ata_;
