@@ -102,11 +102,23 @@ def main():
       if i == 0:
         continue
       else:
-        tmp.append([float(i) for i in row[:6]])
-        assert len(tmp[-1]) == 6
+        tmp.append([float(i) for i in row[:22]])  # t, va, vb, r_v0_0, T_0v
+        assert len(tmp[-1]) == 22
 
+  results = np.array(tmp)
+  print("Number of keyframes: ", results.shape[0])
+
+  # Use poses and sensor vehicle transform to get position estimates of GPS receiver to compare to ground truth
+  T_vs = np.eye(4)
+  T_vs[0, 3] = 0.60
+  T_vs[1, 3] = 0.00
+  T_vs[2, 3] = 0.52
+  tmp = []
+  for row in results:
+    T_0v = np.reshape(row[6:], (4, 4)).transpose()
+    T_0s = T_0v @ T_vs
+    tmp.append([row[0], row[1], row[2], T_0s[0, 3], T_0s[1, 3], T_0s[2, 3]])
   r = np.array(tmp)
-  print("Number of vertices: ", r.shape[0])
 
   if gt_available:
 
@@ -147,7 +159,9 @@ def main():
 
   if gt_available:
     ax.plot(r_rot[:, 3] - r_rot[0, 3], r_rot[:, 4] - r_rot[0, 4], c='r')
-    plt.plot(gt[:, 1] - gt[0, 1], gt[:, 2] - gt[0, 2], c='g')
+    ax.plot(gt[:, 1] - gt[0, 1], gt[:, 2] - gt[0, 2], c='g')
+    ax.scatter(r_rot[r_idx, 3] - r_rot[0, 3], r_rot[r_idx, 4] - r_rot[0, 4], c='r')
+    ax.scatter(gt[gt_idx, 1] - gt[0, 1], gt[gt_idx, 2] - gt[0, 2], c='g')
 
     fig2 = plt.figure(2)
     ax = fig2.add_subplot(111)
