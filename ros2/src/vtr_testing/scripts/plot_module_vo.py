@@ -148,7 +148,7 @@ def main():
     r_rot[:, 3] = c * r[:, 3] + s * r[:, 4]
     r_rot[:, 4] = -s * r[:, 3] + c * r[:, 4]
 
-  fig = plt.figure(1, figsize=[8, 3])
+  fig = plt.figure(1, figsize=[9, 5])
   ax = fig.add_subplot(111)
   if not gt_available:
     ax.plot(r[:, 3], r[:, 4], c='b')
@@ -158,14 +158,50 @@ def main():
   plt.axis('equal')
 
   if gt_available:
-    ax.plot(r_rot[:, 3] - r_rot[0, 3], r_rot[:, 4] - r_rot[0, 4], c='r')
-    ax.plot(gt[:, 1] - gt[0, 1], gt[:, 2] - gt[0, 2], c='g')
+    ax.plot(r_rot[:, 3] - r_rot[0, 3], r_rot[:, 4] - r_rot[0, 4], c='r', label='Rotated Estimates')
+    ax.plot(gt[:, 1] - gt[0, 1], gt[:, 2] - gt[0, 2], c='g', label='RTK Ground Truth')
     ax.scatter(r_rot[r_idx, 3] - r_rot[0, 3], r_rot[r_idx, 4] - r_rot[0, 4], c='r')
     ax.scatter(gt[gt_idx, 1] - gt[0, 1], gt[gt_idx, 2] - gt[0, 2], c='g')
+    plt.legend()
 
-    fig2 = plt.figure(2)
-    ax = fig2.add_subplot(111)
-    plt.title("Errors")
+    # interpolate ground truth to keyframe times
+    tmp = []
+    for i, row in enumerate(r_rot):
+      if row[0] < gt[0, 0] or row[0] > gt[-1, 0]:  # check that time in range we have ground truth
+        continue
+
+      idx = np.argmax(gt[:, 0] > row[0])
+      time_fraction = (row[0] - gt[idx - 1, 0]) / (gt[idx, 0] - gt[idx - 1, 0])
+      interp_x = gt[idx - 1, 1] + time_fraction * (gt[idx, 1] - gt[idx - 1, 1])
+      interp_y = gt[idx - 1, 2] + time_fraction * (gt[idx, 2] - gt[idx - 1, 2])
+      interp_z = gt[idx - 1, 3] + time_fraction * (gt[idx, 3] - gt[idx - 1, 3])
+      interp_d = gt[idx - 1, 7] + time_fraction * (gt[idx, 7] - gt[idx - 1, 7])
+
+      tmp.append([row[0], row[1], row[2], interp_x, interp_y, interp_z, interp_d])
+
+    gt_interp = np.array(tmp)
+
+    assert (len(gt_interp) == len(r_rot) - 2)
+
+    e_x = (gt_interp[:, 3] - gt_interp[0, 3]) - (r_rot[1:-1, 3] - r_rot[1, 3])
+    e_y = (gt_interp[:, 4] - gt_interp[0, 4]) - (r_rot[1:-1, 4] - r_rot[1, 4])
+    e_z = (gt_interp[:, 5] - gt_interp[0, 5]) - (r_rot[1:-1, 5] - r_rot[1, 5])
+    e_planar = np.sqrt(np.square(e_x) + np.square(e_y))
+
+    fig2, ax2 = plt.subplots(nrows=3, ncols=1, figsize=[8, 8])
+    fig2.subplots_adjust(left=0.10, bottom=0.06, right=0.96, top=0.93)
+    ax2[0].plot(gt_interp[:, 6] - gt_interp[0, 6], e_x)  # x errors
+    ax2[1].plot(gt_interp[:, 6] - gt_interp[0, 6], e_y)  # y errors
+    ax2[2].plot(gt_interp[:, 6] - gt_interp[0, 6], e_planar, c='C0')  # planar errors
+
+    ax2[0].set_title('Position Errors wrt Ground Truth - {0}'.format(dataset))
+    ax2[2].set_xlabel('Distance Along Path (m)')
+    ax2[0].set_ylabel('x Error (m)')
+    ax2[0].set_ylim([-3, 3])
+    ax2[1].set_ylabel('y Error (m)')
+    ax2[1].set_ylim([-3, 3])
+    ax2[2].set_ylabel('2D Position Error (m)')
+    ax2[2].set_ylim([0, 4])
 
   plt.show()
 
