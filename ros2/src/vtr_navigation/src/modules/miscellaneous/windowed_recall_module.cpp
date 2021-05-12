@@ -273,6 +273,35 @@ void WindowedRecallModule::getTimesandVelocities(
         steam::Time(static_cast<int64_t>(stamp.nanoseconds_since_epoch));
     pose.second.setVelocity(velocity);
   }
+
+  // if last pose we don't have a good velocity estimate so just use the last vertex's
+  if (poses.size() > 1) {     // todo: more efficient way. Avoid retrieving and setting twice
+    auto latest_pose = poses.rbegin();
+    auto previous_vertex = graph->at(VertexId(latest_pose->first.majorId(), latest_pose->first.minorId()-1));   // assumes no gaps in vertex numbering
+
+    auto proto_velocity =
+        previous_vertex->retrieveKeyframeData<vtr_messages::msg::Velocity>(
+            "_velocities");
+
+    if (proto_velocity == nullptr) {
+      std::stringstream err;
+      err << "Couldn't retrieve velocities from vertex data! Is the "
+             "vertex still unloaded?";
+      LOG(ERROR) << err.str();
+      throw std::runtime_error{err.str()};
+    }
+
+    Eigen::Matrix<double, 6, 1> velocity;
+    velocity(0, 0) = proto_velocity->translational.x;
+    velocity(1, 0) = proto_velocity->translational.y;
+    velocity(2, 0) = proto_velocity->translational.z;
+    velocity(3, 0) = proto_velocity->rotational.x;
+    velocity(4, 0) = proto_velocity->rotational.y;
+    velocity(5, 0) = proto_velocity->rotational.z;
+
+    latest_pose->second.proto_velocity = proto_velocity;
+    latest_pose->second.setVelocity(velocity);
+  }
 }
 
 void WindowedRecallModule::loadSensorTransform(
