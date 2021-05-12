@@ -101,7 +101,10 @@ class WindowOptimizationModule : public SteamModule {
   bool isLandmarkValid(const Eigen::Vector3d &point, MapCache &mdata);
 
   /** \brief the cost terms associated with landmark observations. */
-  steam::ParallelizedCostTermCollection::Ptr cost_terms_;
+  steam::ParallelizedCostTermCollection::Ptr vision_cost_terms_;
+
+  /** \brief the cost terms associated with white-noise-on-acceleration motion prior */
+  steam::ParallelizedCostTermCollection::Ptr smoothing_cost_terms_;
 
   /** \brief The cost terms associated with landmark depth. */
   steam::ParallelizedCostTermCollection::Ptr depth_cost_terms_;

@@ -221,7 +221,7 @@ WindowOptimizationModule::generateOptimizationProblem(
                                                   sharedLossFunc_));
 
           // finally, add the cost.
-          cost_terms_->add(cost);
+          vision_cost_terms_->add(cost);
 #endif
         } else {
           // Construct error function for the current camera
@@ -234,7 +234,7 @@ WindowOptimizationModule::generateOptimizationProblem(
                                                        sharedLossFunc_));
 
           // finally, add the cost.
-          cost_terms_->add(cost);
+          vision_cost_terms_->add(cost);
         }
 
         // steam throws?
@@ -292,7 +292,7 @@ WindowOptimizationModule::generateOptimizationProblem(
       steam::WeightedLeastSqCostTermX::Ptr scale_cost(
           new steam::WeightedLeastSqCostTermX(scale_error_func,
                                               scaleUncertainty, scaleLossFunc));
-      cost_terms_->add(scale_cost);
+      vision_cost_terms_->add(scale_cost);
     }
 #endif
   }
@@ -313,7 +313,7 @@ WindowOptimizationModule::generateOptimizationProblem(
     }
   }
 
-  problem_->addCostTerm(cost_terms_);
+  problem_->addCostTerm(vision_cost_terms_);
   if (config_->depth_prior_enable) {
     problem_->addCostTerm(depth_cost_terms_);
   }
@@ -341,7 +341,8 @@ WindowOptimizationModule::generateOptimizationProblem(
     }
 
     // Add smoothing cost terms
-    trajectory_->appendPriorCostTerms(cost_terms_);
+    trajectory_->appendPriorCostTerms(smoothing_cost_terms_);
+    problem_->addCostTerm(smoothing_cost_terms_);
 
     // Set up TDCP factors. We require a trajectory to interpolate so it happens in this if block
     steam::se3::TransformStateVar::Ptr T_0g_statevar(new steam::se3::TransformStateVar(lgmath::se3::Transformation()));
@@ -396,10 +397,14 @@ WindowOptimizationModule::generateOptimizationProblem(
 
         problem_->addCostTerm(tdcp_cost_terms_);
       }
-      std::cout << "Initial Carrier Phase Cost:       " << tdcp_cost_terms_->cost() << "        Terms:  "   // debugging
+      std::cout << "Initial Carrier Phase Cost:     " << tdcp_cost_terms_->cost() << "        Terms:  "   // debugging
                 << tdcp_cost_terms_->numCostTerms() << std::endl;
     }
+    std::cout << "Initial Smoothing Cost:         " << smoothing_cost_terms_->cost() << "        Terms:  "
+              << smoothing_cost_terms_->numCostTerms() << std::endl;
   }
+  std::cout << "Initial Vision Cost:            " << vision_cost_terms_->cost() << "        Terms:  "
+            << vision_cost_terms_->numCostTerms() << std::endl;
 
   return problem_;
 }
@@ -415,7 +420,8 @@ void WindowOptimizationModule::resetProblem() {
   sharedTdcpLossFunc_.reset(new steam::DcsLossFunc(2.0));
 
   // setup cost terms
-  cost_terms_.reset(new steam::ParallelizedCostTermCollection());
+  vision_cost_terms_.reset(new steam::ParallelizedCostTermCollection());
+  smoothing_cost_terms_.reset(new steam::ParallelizedCostTermCollection());
 
   // setup cost terms for the depth
   depth_cost_terms_.reset(new steam::ParallelizedCostTermCollection());
@@ -736,8 +742,12 @@ void WindowOptimizationModule::updateGraph(QueryCache &qdata, MapCache &mdata,
     return;
   }
 
-  std::cout << "Final Carrier Phase Cost:         " << tdcp_cost_terms_->cost() << "        Terms:  "   // debugging
+  std::cout << "Final Carrier Phase Cost:     " << tdcp_cost_terms_->cost() << "        Terms:  "   // debugging
             << tdcp_cost_terms_->numCostTerms() << std::endl;
+  std::cout << "Final Smoothing Cost:         " << smoothing_cost_terms_->cost() << "        Terms:  "
+            << smoothing_cost_terms_->numCostTerms() << std::endl;
+  std::cout << "Final Vision Cost:            " << vision_cost_terms_->cost() << "        Terms:  "
+            << vision_cost_terms_->numCostTerms() << std::endl;
 
   if (config_->save_trajectory) {
     throw std::runtime_error{
