@@ -181,7 +181,7 @@ navigator:
       steam:
         trajectory_smoothing: true
         velocity_prior: false
-        verbose: false
+        verbose: true
         use_T_q_m_prior: false
         # solver_type: "LevenburgMarquardt"
         depth_prior_enable: true
@@ -192,3 +192,4 @@ navigator:
         plane_distance: 20.0
 
         tdcp_cov: 0.01
+        stereo_cov_multiplier: 100.0

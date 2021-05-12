@@ -28,6 +28,7 @@ class WindowOptimizationModule : public SteamModule {
     double depth_prior_weight;
     bool tdcp_enable = true;
     double tdcp_cov;
+    double stereo_cov_multiplier;
   };
 
   WindowOptimizationModule(std::string name = type_str_) : SteamModule(name) {}

@@ -186,8 +186,8 @@ WindowOptimizationModule::generateOptimizationProblem(
         // add the measurement covariances from the stored memory
         unsigned idx = 0;
         for (auto &cov : obs.covariances) {
-          meas_cov(2 * idx, 2 * idx) = cov[0];
-          meas_cov(2 * idx + 1, 2 * idx + 1) = cov[3];
+          meas_cov(2 * idx, 2 * idx) = config_->stereo_cov_multiplier * cov[0];
+          meas_cov(2 * idx + 1, 2 * idx + 1) = config_->stereo_cov_multiplier *  cov[3];
           idx++;
         }
 
