@@ -127,6 +127,9 @@ class WindowOptimizationModule : public SteamModule {
 
   /** \brief Module configuration. */
   std::shared_ptr<Config> config_;
+
+  /** \brief Stores absolute orientation for use with GPS terms */
+  steam::se3::TransformStateVar::Ptr T_0g_statevar_;
 };
 
 }  // namespace navigation

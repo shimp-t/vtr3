@@ -345,7 +345,7 @@ WindowOptimizationModule::generateOptimizationProblem(
     problem_->addCostTerm(smoothing_cost_terms_);
 
     // Set up TDCP factors. We require a trajectory to interpolate so it happens in this if block
-    steam::se3::TransformStateVar::Ptr T_0g_statevar(new steam::se3::TransformStateVar(lgmath::se3::Transformation()));
+    T_0g_statevar_.reset(new steam::se3::TransformStateVar(lgmath::se3::Transformation()));     // todo: may not actually want to reset if have good estimate
     std::vector<TdcpMsg::SharedPtr> tdcp_msgs;
     if (config_->tdcp_enable) {
 
@@ -374,14 +374,14 @@ WindowOptimizationModule::generateOptimizationProblem(
         init_pose_vec << 0, 0, 0, 0, 0, -theta;
 
         auto init_global_pose = lgmath::se3::Transformation(init_pose_vec);
-        T_0g_statevar->setValue(init_global_pose);
-        steam::se3::TransformEvaluator::ConstPtr T_0g(new steam::se3::TransformStateEvaluator(T_0g_statevar));
+        T_0g_statevar_->setValue(init_global_pose);
+        steam::se3::TransformEvaluator::ConstPtr T_0g(new steam::se3::TransformStateEvaluator(T_0g_statevar_));
 
         for (const auto &msg : tdcp_msgs) {
           addTdcpCost(msg, T_0g);
         }
 
-        problem_->addStateVariable(T_0g_statevar);
+        problem_->addStateVariable(T_0g_statevar_);
 
         // add weak prior on initial pose to deal with roll uncertainty and constrain r^0g_g to zero
         steam::BaseNoiseModel<6>::Ptr
@@ -748,6 +748,10 @@ void WindowOptimizationModule::updateGraph(QueryCache &qdata, MapCache &mdata,
             << smoothing_cost_terms_->numCostTerms() << std::endl;
   std::cout << "Final Vision Cost:            " << vision_cost_terms_->cost() << "        Terms:  "
             << vision_cost_terms_->numCostTerms() << std::endl;
+
+  if (config_->tdcp_enable) {
+    // todo: save off T_0g estimate to pose graph
+  }
 
   if (config_->save_trajectory) {
     throw std::runtime_error{
