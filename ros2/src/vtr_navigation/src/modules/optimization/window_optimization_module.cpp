@@ -365,7 +365,7 @@ WindowOptimizationModule::generateOptimizationProblem(
         }
       }
 
-      if (tdcp_msgs.size() >= 2) {      // for now require hard-coded number of msgs
+      if (!tdcp_msgs.empty()) {
         // get heading estimate by looking at displacement of code solutions from front and back of window
         // todo: still need to figure out how we want to handle this orientation
         Eigen::Vector3d r_k0_ing =
@@ -386,21 +386,23 @@ WindowOptimizationModule::generateOptimizationProblem(
           addTdcpCost(msg, T_0g);
         }
 
-        problem_->addStateVariable(T_0g_statevar_);
+        if (tdcp_cost_terms_->numCostTerms() >= 3) {      // for now require hard-coded number of terms to use TDCP
+          problem_->addStateVariable(T_0g_statevar_);
 
-        // add weak prior on initial pose to deal with roll uncertainty and constrain r^0g_g to zero
-        steam::BaseNoiseModel<6>::Ptr
-            sharedNoiseModel(new steam::StaticNoiseModel<6>(Eigen::Matrix<double, 6, 6>::Identity()));
-        steam::TransformErrorEval::Ptr prior_error_func(new steam::TransformErrorEval(init_global_pose, T_0g));
-        steam::LossFunctionBase::Ptr pp_loss_function_(new steam::L2LossFunc());
-        auto pose_prior_factor_ = steam::WeightedLeastSqCostTerm<6, 6>::Ptr(new steam::WeightedLeastSqCostTerm<6, 6>(
-            prior_error_func,
-            sharedNoiseModel,
-            pp_loss_function_));
+          // add weak prior on initial pose to deal with roll uncertainty and constrain r^0g_g to zero
+          steam::BaseNoiseModel<6>::Ptr
+              sharedNoiseModel(new steam::StaticNoiseModel<6>(Eigen::Matrix<double, 6, 6>::Identity()));
+          steam::TransformErrorEval::Ptr prior_error_func(new steam::TransformErrorEval(init_global_pose, T_0g));
+          steam::LossFunctionBase::Ptr pp_loss_function_(new steam::L2LossFunc());
+          auto pose_prior_factor_ = steam::WeightedLeastSqCostTerm<6, 6>::Ptr(new steam::WeightedLeastSqCostTerm<6, 6>(
+              prior_error_func,
+              sharedNoiseModel,
+              pp_loss_function_));
 
-        problem_->addCostTerm(pose_prior_factor_);
+          problem_->addCostTerm(pose_prior_factor_);
 
-        problem_->addCostTerm(tdcp_cost_terms_);
+          problem_->addCostTerm(tdcp_cost_terms_);
+        }
       }
       std::cout << "Initial Carrier Phase Cost:     " << tdcp_cost_terms_->cost() << "        Terms:  "   // debugging
                 << tdcp_cost_terms_->numCostTerms() << std::endl;
