@@ -191,5 +191,12 @@ navigator:
         perform_planarity_check: false
         plane_distance: 20.0
 
+        lin_acc_std_dev_x: 2.5    # 10x Grizzly default
+        lin_acc_std_dev_y: 0.01
+        lin_acc_std_dev_z: 0.1
+        ang_acc_std_dev_x: 0.01
+        ang_acc_std_dev_y: 0.01
+        ang_acc_std_dev_z: 0.03
+
         tdcp_cov: 0.01
         stereo_cov_multiplier: 100.0
