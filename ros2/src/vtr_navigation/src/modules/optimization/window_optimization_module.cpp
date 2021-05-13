@@ -351,6 +351,11 @@ WindowOptimizationModule::generateOptimizationProblem(
 
       // recall TDCP pseudo-measurements for each vertex in window
       for (const auto &pose : poses) {
+
+        if (pose.second.tf_state_var->isLocked()) {
+          // locked poses are landmark dependent and not a part of the window proper
+          continue;
+        }
         auto v = graph->at(pose.first);
         auto msg = v->retrieveKeyframeData<TdcpMsg>("tdcp", true);
 
