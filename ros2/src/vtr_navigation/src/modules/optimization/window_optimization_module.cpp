@@ -349,12 +349,19 @@ WindowOptimizationModule::generateOptimizationProblem(
     std::vector<TdcpMsg::SharedPtr> tdcp_msgs;
     if (config_->tdcp_enable) {
 
+      VertexId vid_0;         // keep track of actual start of window
+      bool vid_0_set = false;
       // recall TDCP pseudo-measurements for each vertex in window
       for (const auto &pose : poses) {
 
         if (pose.second.tf_state_var->isLocked()) {
           // locked poses are landmark dependent and not a part of the window proper
           continue;
+        }
+        // earliest unlocked pose will be start of window
+        if (!vid_0_set || pose.first < vid_0) {
+          vid_0 = pose.first;
+          vid_0_set = true;
         }
         auto v = graph->at(pose.first);
         auto msg = v->retrieveKeyframeData<TdcpMsg>("tdcp", true);
@@ -365,7 +372,7 @@ WindowOptimizationModule::generateOptimizationProblem(
         }
       }
 
-      if (!tdcp_msgs.empty()) {
+      if (!tdcp_msgs.empty() && vid_0_set) {
         // get heading estimate by looking at displacement of code solutions from front and back of window
         // todo: still need to figure out how we want to handle this orientation
         Eigen::Vector3d r_k0_ing =
@@ -383,7 +390,7 @@ WindowOptimizationModule::generateOptimizationProblem(
         steam::se3::TransformEvaluator::ConstPtr T_0g(new steam::se3::TransformStateEvaluator(T_0g_statevar_));
 
         for (const auto &msg : tdcp_msgs) {
-          addTdcpCost(msg, T_0g);
+          addTdcpCost(msg, T_0g, poses[vid_0].tf_state_eval);
         }
 
         if (tdcp_cost_terms_->numCostTerms() >= 3) {      // for now require hard-coded number of terms to use TDCP
@@ -454,12 +461,18 @@ void WindowOptimizationModule::addDepthCost(
   depth_cost_terms_->add(depth_cost);
 }
 
-void WindowOptimizationModule::addTdcpCost(const TdcpMsg::SharedPtr& msg, const steam::se3::TransformEvaluator::ConstPtr& T_0g) {
+void WindowOptimizationModule::addTdcpCost(const TdcpMsg::SharedPtr& msg, const steam::se3::TransformEvaluator::ConstPtr& T_0g, const steam::se3::TransformEvaluator::ConstPtr& T_0i) {
 
-  steam::se3::SteamTrajPoseInterpEval::ConstPtr T_a0_v = trajectory_->getInterpPoseEval(steam::Time((int64_t)msg->t_a));
-  steam::se3::SteamTrajPoseInterpEval::ConstPtr T_b0_v = trajectory_->getInterpPoseEval(steam::Time((int64_t)msg->t_b));
+  // GPS measurement time vehicle pose wrt to start of trajectory
+  steam::se3::SteamTrajPoseInterpEval::ConstPtr T_ai_v = trajectory_->getInterpPoseEval(steam::Time((int64_t)msg->t_a));
+  steam::se3::SteamTrajPoseInterpEval::ConstPtr T_bi_v = trajectory_->getInterpPoseEval(steam::Time((int64_t)msg->t_b));
+  // GPS measurement time vehicle pose wrt to start of window
+  steam::se3::TransformEvaluator::ConstPtr T_a0_v = steam::se3::composeInverse(T_ai_v, T_0i);
+  steam::se3::TransformEvaluator::ConstPtr T_b0_v = steam::se3::composeInverse(T_bi_v, T_0i);
+  // GPS measurement time sensor pose wrt to start of window
   steam::se3::TransformEvaluator::ConstPtr T_a0_s = steam::se3::compose(tf_gps_vehicle_, T_a0_v);
   steam::se3::TransformEvaluator::ConstPtr T_b0_s = steam::se3::compose(tf_gps_vehicle_, T_b0_v);
+  // change in sensor pose between the two GPS measurement times
   steam::se3::TransformEvaluator::ConstPtr T_ba = steam::se3::composeInverse(T_b0_s, T_a0_s);
   steam::se3::PositionEvaluator::ConstPtr r_ba_ina(new steam::se3::PositionEvaluator(T_ba));
 
