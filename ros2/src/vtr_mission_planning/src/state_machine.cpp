@@ -1,7 +1,3 @@
-#if 0
-#include <boost/thread/shared_lock_guard.hpp>
-#endif
-
 #include <vtr_mission_planning/state_machine.hpp>
 
 namespace vtr {
@@ -49,7 +45,8 @@ void StateMachine::step(BaseState::Ptr& oldState,
 
   // Invoke exit/entry logic for the old/new state
   oldState->onExit(tactic_, newState.get());
-  tactic_->setPipeline(newState->pipeline());
+  tactic_->setPipeline(newState->pipeline());  // \todo not needed for new arch
+  tactic_->setPipeline(newState->pipelineMode());
   newState->onEntry(tactic_, oldState.get());
   oldState = newState;
 
@@ -115,6 +112,7 @@ void BaseState::processGoals(Tactic*,
       case Action::Reset:
         // Goal canceled so we reset the statemachine
         container_->goals_ = std::list<Ptr>();
+        reset = true;
         break;
       case Action::EndGoal:
         // EndGoal: This goal ended normally, so remove it from the stack and
@@ -141,7 +139,6 @@ void BaseState::processGoals(Tactic*,
 
     // If we ever finish our list of goals, drop into Idle automatically
     if (container_->goals_.empty()) {
-      reset = true;
       container_->goals_.push_front(Ptr(new Idle()));
       container_->goals_.front()->setContainer(container_);
     }
@@ -150,8 +147,7 @@ void BaseState::processGoals(Tactic*,
     // to the target goal. We don't need to check if the target was changed,
     // as goal->nextStep(goal) always returns nullptr.
     Ptr intermediateState = nextStep(container_->goals_.front().get());
-    if (intermediateState)
-      container_->goals_.push_front(intermediateState);
+    if (intermediateState) container_->goals_.push_front(intermediateState);
   }  // We are now done modifying the goals
 
   // Raise appropriate callbacks for state changes/successful goal completion
@@ -171,17 +167,17 @@ auto BaseState::nextStep(const BaseState* newState) const -> Ptr {
     throw std::runtime_error(s);
   }
 
-  // We can always go straight to Idle
   if (Idle::IsType(newState)) {
+    // We can always go straight to Idle
     return nullptr;
-    // We must use the entry state of the correct child for composite states
   } else if (Teach::InChain(newState) || Repeat::InChain(newState)) {
+    // We must use the entry state of the correct child for composite states
     return newState->entryState(this);
+  } else {
     // One of two things screwed up if we got here:
     //    - We attempted to transition to some weird, unknown state
     //    - A transition that should have been handled lower in the tree
     //    wasn't
-  } else {
     std::stringstream ss;
     ss << "Transitioning to state " << newState->name()
        << " should be handled before the base state.";

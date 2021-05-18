@@ -340,7 +340,6 @@ class Navigator : public PublisherInterface {
   rclcpp::Subscription<std_msgs::msg::UInt8>::SharedPtr path_tracker_subscription_;
 
   /** \brief Publisher to send the path tracker new following paths. */
-  // ros::Publisher followingPathPublisher_;
   rclcpp::Publisher<PathMsg>::SharedPtr following_path_publisher_;
 #if 0
   /// @brief Publisher to send status updates from the navigator
