@@ -104,6 +104,12 @@ class WindowedRecallModule : public BaseModule {
                            const std::string &rig_name,
                            const Graph::ConstPtr &graph);
 
+  void getTdcpMeas(std::vector<cpo_interfaces::msg::TDCP::SharedPtr> &msgs,
+                                         std::pair<pose_graph::VertexId,
+                                                   lgmath::se3::TransformationWithCovariance> &T_0g_prior,
+                                         const std::shared_ptr<const Graph> &graph,
+                                         const pose_graph::RCVertex::Ptr& vertex_0);
+
   /**
    * \brief a map that keeps track of the pointers into the vertex landmark
    * messages.
