@@ -822,6 +822,8 @@ void WindowOptimizationModule::updateGraph(QueryCache &qdata, MapCache &mdata,
         pose_a_itr->second.tf_state_var->getValue();
     lgmath::se3::Transformation T_b_0 =
         pose_b_itr->second.tf_state_var->getValue();
+    T_a_0.reproject(true);    // quick fix for lgmath orthonormal issue
+    T_b_0.reproject(true);
     if (pose_b_itr->second.isLocked() == false) {
       if (pose_a_itr->first.majorId() != qdata.live_id->majorId()) {
         continue;

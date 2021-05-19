@@ -98,6 +98,8 @@ class ModuleOffline {
 
     for (; path_itr != graph_->end(); ++path_itr) {
       T_curr = T_curr * path_itr->T();
+      T_curr.reproject(true);
+
       if (path_itr->from().isValid()) {
         LOG(INFO) << path_itr->e()->id();
       }
