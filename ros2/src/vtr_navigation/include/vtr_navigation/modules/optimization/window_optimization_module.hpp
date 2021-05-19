@@ -113,6 +113,9 @@ class WindowOptimizationModule : public SteamModule {
   /** \brief The cost terms associated with carrier phase pseudo-measurements (TDCP) */
   steam::ParallelizedCostTermCollection::Ptr tdcp_cost_terms_;
 
+  /** \brief The cost associated with the prior on global orientation needed for TDCP  */
+  steam::ParallelizedCostTermCollection::Ptr global_prior_cost_term_;
+
   /** \brief The loss function used for the depth cost. */
   steam::LossFunctionBase::Ptr sharedDepthLossFunc_;
 

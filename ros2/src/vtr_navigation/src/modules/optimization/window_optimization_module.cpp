@@ -345,75 +345,45 @@ WindowOptimizationModule::generateOptimizationProblem(
     problem_->addCostTerm(smoothing_cost_terms_);
 
     // Set up TDCP factors. We require a trajectory to interpolate so it happens in this if block
-    T_0g_statevar_.reset(new steam::se3::TransformStateVar(lgmath::se3::Transformation()));     // todo: may not actually want to reset if have good estimate
+    T_0g_statevar_.reset(new steam::se3::TransformStateVar(lgmath::se3::Transformation()));
     std::vector<TdcpMsg::SharedPtr> tdcp_msgs;
-    if (config_->tdcp_enable) {
+    if (qdata.tdcp_msgs.is_valid() && !qdata.tdcp_msgs->empty()
+        && qdata.T_0g_prior.is_valid()) {
 
-      VertexId vid_0;         // keep track of actual start of window
-      bool vid_0_set = false;
-      // recall TDCP pseudo-measurements for each vertex in window
-      for (const auto &pose : poses) {
+      T_0g_statevar_->setValue(qdata.T_0g_prior->second);
+      steam::se3::TransformEvaluator::ConstPtr
+          T_0g(new steam::se3::TransformStateEvaluator(T_0g_statevar_));
 
-        if (pose.second.tf_state_var->isLocked()) {
-          // locked poses are landmark dependent and not a part of the window proper
-          continue;
-        }
-        // earliest unlocked pose will be start of window
-        if (!vid_0_set || pose.first < vid_0) {
-          vid_0 = pose.first;
-          vid_0_set = true;
-        }
-        auto v = graph->at(pose.first);
-        auto msg = v->retrieveKeyframeData<TdcpMsg>("tdcp", true);
-
-        // add cost terms if data available for this vertex
-        if (msg != nullptr) {
-          tdcp_msgs.push_back(msg);
-        }
+      for (const auto &msg : tdcp_msgs) {
+        addTdcpCost(msg, T_0g, poses[qdata.T_0g_prior->first].tf_state_eval);
       }
-
-      if (!tdcp_msgs.empty() && vid_0_set) {
-        // get heading estimate by looking at displacement of code solutions from front and back of window
-        // todo: still need to figure out how we want to handle this orientation
-        Eigen::Vector3d r_k0_ing =
-            Eigen::Vector3d(tdcp_msgs.back()->enu_pos.x, tdcp_msgs.back()->enu_pos.y, tdcp_msgs.back()->enu_pos.z)
-                - Eigen::Vector3d(tdcp_msgs.front()->enu_pos.x,
-                                  tdcp_msgs.front()->enu_pos.y,
-                                  tdcp_msgs.front()->enu_pos.z);
-        double theta = atan2(r_k0_ing.y(), r_k0_ing.x());
-
-        Eigen::Matrix<double, 6, 1> init_pose_vec;
-        init_pose_vec << 0, 0, 0, 0, 0, -theta;
-
-        auto init_global_pose = lgmath::se3::Transformation(init_pose_vec);
-        T_0g_statevar_->setValue(init_global_pose);
-        steam::se3::TransformEvaluator::ConstPtr T_0g(new steam::se3::TransformStateEvaluator(T_0g_statevar_));
-
-        for (const auto &msg : tdcp_msgs) {
-          addTdcpCost(msg, T_0g, poses[vid_0].tf_state_eval);
-        }
 
       // if enough cost terms, add the costs and extra state to problem
       if (tdcp_cost_terms_->numCostTerms() >= config_->min_tdcp_terms) {
         problem_->addStateVariable(T_0g_statevar_);
 
-          // add weak prior on initial pose to deal with roll uncertainty and constrain r^0g_g to zero
-          steam::BaseNoiseModel<6>::Ptr
-              sharedNoiseModel(new steam::StaticNoiseModel<6>(Eigen::Matrix<double, 6, 6>::Identity()));
-          steam::TransformErrorEval::Ptr prior_error_func(new steam::TransformErrorEval(init_global_pose, T_0g));
-          steam::LossFunctionBase::Ptr pp_loss_function_(new steam::L2LossFunc());
-          auto pose_prior_factor_ = steam::WeightedLeastSqCostTerm<6, 6>::Ptr(new steam::WeightedLeastSqCostTerm<6, 6>(
-              prior_error_func,
-              sharedNoiseModel,
-              pp_loss_function_));
+        // add prior on global orientation at start of window
+        Eigen::Matrix<double, 6, 6> temp_cov = qdata.T_0g_prior->second.cov();
+        steam::BaseNoiseModel<6>::Ptr
+            prior_noise_model(new steam::StaticNoiseModel<6>(temp_cov));
+        steam::TransformErrorEval::Ptr prior_error_func
+            (new steam::TransformErrorEval(qdata.T_0g_prior->second, T_0g));
+        steam::LossFunctionBase::Ptr prior_loss_func(new steam::L2LossFunc());
+        auto prior_factor = steam::WeightedLeastSqCostTerm<6, 6>::Ptr(
+            new steam::WeightedLeastSqCostTerm<6, 6>(
+                prior_error_func,
+                prior_noise_model,
+                prior_loss_func));
 
-          problem_->addCostTerm(pose_prior_factor_);
+        global_prior_cost_term_->add(prior_factor);
+        problem_->addCostTerm(global_prior_cost_term_);
 
-          problem_->addCostTerm(tdcp_cost_terms_);
-        }
+        problem_->addCostTerm(tdcp_cost_terms_);
       }
       std::cout << "Initial Carrier Phase Cost:     " << tdcp_cost_terms_->cost() << "        Terms:  "   // debugging
                 << tdcp_cost_terms_->numCostTerms() << std::endl;
+      std::cout << "Initial Global Prior Cost:      " << global_prior_cost_term_->cost() << "        Terms:  "
+                << global_prior_cost_term_->numCostTerms() << std::endl;
     }
     std::cout << "Initial Smoothing Cost:         " << smoothing_cost_terms_->cost() << "        Terms:  "
               << smoothing_cost_terms_->numCostTerms() << std::endl;
@@ -443,6 +413,7 @@ void WindowOptimizationModule::resetProblem() {
 
   // setup cost terms for the TDCP
   tdcp_cost_terms_.reset(new steam::ParallelizedCostTermCollection());
+  global_prior_cost_term_.reset(new steam::ParallelizedCostTermCollection());
 
   // set up the steam problem_.
   problem_.reset(new steam::OptimizationProblem());
@@ -765,6 +736,8 @@ void WindowOptimizationModule::updateGraph(QueryCache &qdata, MapCache &mdata,
 
   std::cout << "Final Carrier Phase Cost:     " << tdcp_cost_terms_->cost() << "        Terms:  "   // debugging
             << tdcp_cost_terms_->numCostTerms() << std::endl;
+  std::cout << "Final Global Prior Cost:      " << global_prior_cost_term_->cost() << "        Terms:  "
+            << global_prior_cost_term_->numCostTerms() << std::endl;
   std::cout << "Final Smoothing Cost:         " << smoothing_cost_terms_->cost() << "        Terms:  "
             << smoothing_cost_terms_->numCostTerms() << std::endl;
   std::cout << "Final Vision Cost:            " << vision_cost_terms_->cost() << "        Terms:  "
