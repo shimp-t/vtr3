@@ -231,7 +231,7 @@ struct QueryCache : public common::CacheContainer {
   common::cache_ptr<int> new_vertex_flag;
 
   // stores carrier phase pseudo-measurements for refined VO
-  common::cache_ptr<std::vector<cpo_interfaces::msg::TDCP>> tdcp_msgs;
+  common::cache_ptr<std::vector<cpo_interfaces::msg::TDCP::SharedPtr>> tdcp_msgs;
 
   // prior on global orientation state required for using TDCP
   common::cache_ptr<std::pair<pose_graph::VertexId, lgmath::se3::TransformationWithCovariance>> T_0g_prior;
