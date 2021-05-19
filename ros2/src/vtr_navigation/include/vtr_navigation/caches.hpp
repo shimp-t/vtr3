@@ -17,6 +17,7 @@
 #include <vtr_messages/msg/localization_status.hpp>
 #include <vtr_messages/msg/match.hpp>
 #include <vtr_messages/msg/time_stamp.hpp>
+#include <cpo_interfaces/msg/tdcp.hpp>
 
 ////////////////////////////////////////////////////////////////////////////////
 // This awful mess of forward declarations is to avoid the awful sprawl of
@@ -197,7 +198,9 @@ struct QueryCache : public common::CacheContainer {
         live_id("live_id", janitor_.get()),
         steam_mutex("steam_mutex", janitor_.get()),
         trajectory("trajectory", janitor_.get()),
-        new_vertex_flag("new_vertex_flag", janitor_.get()) {
+        new_vertex_flag("new_vertex_flag", janitor_.get()),
+        tdcp_msgs("tdcp_msgs", janitor_.get()),
+        T_0g_prior("T_0g_prior", janitor_.get()){
   }
 
   common::cache_ptr<vtr_messages::msg::TimeStamp, true> stamp;
@@ -226,6 +229,12 @@ struct QueryCache : public common::CacheContainer {
   // Indicates whether the frame failed vertex creation test criteria or should
   // become a candidate
   common::cache_ptr<int> new_vertex_flag;
+
+  // stores carrier phase pseudo-measurements for refined VO
+  common::cache_ptr<std::vector<cpo_interfaces::msg::TDCP>> tdcp_msgs;
+
+  // prior on global orientation state required for using TDCP
+  common::cache_ptr<std::pair<pose_graph::VertexId, lgmath::se3::TransformationWithCovariance>> T_0g_prior;
 };
 
 struct MapCache : public common::CacheContainer {

@@ -85,6 +85,10 @@ template class cache_ptr<pose_graph::LocalizationChain>;  // localization_chain
 
 template class cache_ptr<vtr_messages::msg::LocalizationStatus>;  // localization_status
 
+template class cache_ptr<std::vector<cpo_interfaces::msg::TDCP>>;  // tdcp_msgs
+
+template class cache_ptr<std::pair<pose_graph::VertexId, lgmath::se3::TransformationWithCovariance>>;  // T_0g_prior
+
 // clang-format on
 
 #if false  // \todo yuchen old code as reference
