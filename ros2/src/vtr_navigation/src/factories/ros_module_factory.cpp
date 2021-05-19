@@ -625,8 +625,8 @@ void ROSModuleFactory::configureWindowOptimization(
 
   config->depth_prior_enable = node_->declare_parameter<decltype(config->depth_prior_enable)>(param_prefix_ + ".depth_prior_enable", config->depth_prior_enable);
   config->depth_prior_weight = node_->declare_parameter<decltype(config->depth_prior_weight)>(param_prefix_ + ".depth_prior_weight", config->depth_prior_weight);
-  config->tdcp_enable = node_->declare_parameter<decltype(config->tdcp_enable)>(param_prefix_ + ".tdcp_enable", config->tdcp_enable);
   config->tdcp_cov = node_->declare_parameter<decltype(config->tdcp_cov)>(param_prefix_ + ".tdcp_cov", 0.01);
+  config->min_tdcp_terms = node_->declare_parameter<decltype(config->min_tdcp_terms)>(param_prefix_ + ".min_tdcp_terms", 3);
   config->stereo_cov_multiplier = node_->declare_parameter<decltype(config->stereo_cov_multiplier)>(param_prefix_ + ".stereo_cov_multiplier", 1.0);
   // config->max_point_depth = node_->declare_parameter<decltype(config->max_point_depth)>(param_prefix_ + ".max_point_depth", config->max_point_depth);
 
@@ -926,6 +926,12 @@ void ROSModuleFactory::configureWindowedRecallModule(
   auto config = std::make_shared<WindowedRecallModule::Config>();
 
   config->window_size = node_->declare_parameter<decltype(config->window_size)>(param_prefix_ + ".window_size", config->window_size);
+  config->tdcp_enable = node_->declare_parameter<decltype(config->tdcp_enable)>(param_prefix_ + ".tdcp_enable", config->tdcp_enable);
+  std::vector<double> default_T_0g_cov_diag = node_->declare_parameter<std::vector<double>>(param_prefix_ + ".default_T_0g_cov_diag", std::vector<double>{1.0, 1.0, 1.0, 0.1, 0.1, 1.0});
+  config->default_T_0g_cov = Eigen::Matrix<double, 6, 6>::Identity();
+  if (default_T_0g_cov_diag.size() == 6) {
+    config->default_T_0g_cov.diagonal() << default_T_0g_cov_diag[0], default_T_0g_cov_diag[1], default_T_0g_cov_diag[2], default_T_0g_cov_diag[3], default_T_0g_cov_diag[4], default_T_0g_cov_diag[5];
+  }
 
   std::dynamic_pointer_cast<WindowedRecallModule>(new_module)->setConfig(config);
   // clang-format on

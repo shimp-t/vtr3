@@ -393,8 +393,9 @@ WindowOptimizationModule::generateOptimizationProblem(
           addTdcpCost(msg, T_0g, poses[vid_0].tf_state_eval);
         }
 
-        if (tdcp_cost_terms_->numCostTerms() >= 3) {      // for now require hard-coded number of terms to use TDCP
-          problem_->addStateVariable(T_0g_statevar_);
+      // if enough cost terms, add the costs and extra state to problem
+      if (tdcp_cost_terms_->numCostTerms() >= config_->min_tdcp_terms) {
+        problem_->addStateVariable(T_0g_statevar_);
 
           // add weak prior on initial pose to deal with roll uncertainty and constrain r^0g_g to zero
           steam::BaseNoiseModel<6>::Ptr

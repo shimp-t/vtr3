@@ -26,7 +26,7 @@ class WindowOptimizationModule : public SteamModule {
   struct Config : SteamModule::Config {
     bool depth_prior_enable;
     double depth_prior_weight;
-    bool tdcp_enable = true;
+    int min_tdcp_terms;
     double tdcp_cov;
     double stereo_cov_multiplier;
   };

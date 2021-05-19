@@ -21,6 +21,8 @@ class WindowedRecallModule : public BaseModule {
   /** \brief Collection of config parameters */
   struct Config {
     int window_size;
+    bool tdcp_enable;
+    Eigen::Matrix<double, 6, 6> default_T_0g_cov;
   };
 
   WindowedRecallModule(std::string name = type_str_) : BaseModule{name} {};
