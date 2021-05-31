@@ -49,5 +49,5 @@ windows:
   - window_name: calibration
     layout: main-horizontal
     panes:
-      - ros2 run vtr_sensors BumblebeeCalibration ${VTRDATA}/utias_20210412/ front_xb3
+      - ros2 run vtr_sensors BumblebeeCalibration ${VTRDATA}/utias_2016_inthedark/run_000003/ front_xb3
       # - ros2 run vtr_sensors BumblebeeDriver --ros-args --params-file ./vtr3/ros2/src/vtr_sensors/param/XB3.yaml
