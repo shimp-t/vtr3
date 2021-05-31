@@ -9,6 +9,8 @@
 #include <nav_msgs/msg/odometry.hpp>
 #include <nav_msgs/msg/path.hpp>
 
+#include <cpo_interfaces/msg/tdcp.hpp>
+
 #include <vtr_path_tracker/base.h>
 #include <vtr_tactic/caches.hpp>
 #include <vtr_tactic/memory_manager/live_memory_manager.hpp>
@@ -21,6 +23,7 @@ using OdometryMsg = nav_msgs::msg::Odometry;
 using ROSPathMsg = nav_msgs::msg::Path;
 using PoseStampedMsg = geometry_msgs::msg::PoseStamped;
 using TimeStampMsg = vtr_messages::msg::TimeStamp;
+using TdcpMsg = cpo_interfaces::msg::TDCP;
 
 /// \todo define PathTracker::Ptr in Base
 using PathTrackerPtr = std::shared_ptr<vtr::path_tracker::Base>;
@@ -314,6 +317,17 @@ class Tactic : public mission_planning::StateMachineInterface {
     }
 
     LOG(DEBUG) << "[Lock Released] setPath";
+  }
+
+  /** \brief Associate carrier phase msg with current vertex */
+  void logGpsRaw(const TdcpMsg &msg) {
+    if (!graph_->contains(currentVertexID())) {
+      return;
+    }
+
+    Vertex::Ptr vertex = graph_->at(currentVertexID());
+    graph_->registerVertexStream<TdcpMsg>(currentVertexID().majorId(), "tdcp");
+    vertex->insert("tdcp", msg, vertex->keyFrameTime());
   }
 
   VertexId closest_ = VertexId::Invalid();

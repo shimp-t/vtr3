@@ -21,6 +21,8 @@
 
   <depend>OpenMP</depend>
 
+  <depend>cpo_interfaces</depend>
+
   <depend>vtr_lidar</depend>
   <depend>vtr_logging</depend>
   <depend>vtr_tactic</depend>

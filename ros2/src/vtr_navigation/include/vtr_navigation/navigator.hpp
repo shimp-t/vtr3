@@ -35,6 +35,8 @@
 // camera messages
 #include <vtr_messages/msg/rig_images.hpp>
 #include <vtr_messages/srv/get_rig_calibration.hpp>
+// gps messages
+#include <cpo_interfaces/msg/tdcp.hpp>
 
 // common
 using PathTrackerMsg = std_msgs::msg::UInt8;
@@ -48,6 +50,8 @@ using ResultMsg = std_msgs::msg::Bool;
 using RigImagesMsg = vtr_messages::msg::RigImages;
 using RigCalibrationMsg = vtr_messages::msg::RigCalibration;
 using RigCalibrationSrv = vtr_messages::srv::GetRigCalibration;
+// gps
+using TdcpMsg = cpo_interfaces::msg::TDCP;
 
 namespace fs = std::filesystem;
 using namespace vtr::tactic;
@@ -86,6 +90,8 @@ class Navigator : public PublisherInterface {
   // camera
   void imageCallback(const RigImagesMsg::SharedPtr msg);
   void fetchRigCalibration();
+  // gps
+  void tdcpCallback(const TdcpMsg::SharedPtr msg);
 
  private:
   /** \brief ROS-handle for communication */
@@ -140,6 +146,9 @@ class Navigator : public PublisherInterface {
   /** \brief Calibration for the stereo rig */
   std::shared_ptr<vision::RigCalibration> rig_calibration_;
   lgmath::se3::TransformationWithCovariance T_camera_robot_;
+
+  /** \brief GPS odometry data subscriber */
+  rclcpp::Subscription<TdcpMsg>::SharedPtr gps_raw_sub_;
 
   /// temporary
   rclcpp::Publisher<ResultMsg>::SharedPtr result_pub_;

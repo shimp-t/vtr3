@@ -137,6 +137,8 @@ Navigator::Navigator(const rclcpp::Node::SharedPtr node) : node_(node) {
   // stereo image subscription
   image_sub_ = node_->create_subscription<RigImagesMsg>("/xb3_images", 1, std::bind(&Navigator::imageCallback, this, std::placeholders::_1));
   rig_calibration_client_ = node_->create_client<RigCalibrationSrv>("/xb3_calibration");
+  // GPS odometry (TDCP) subscription
+  gps_raw_sub_ = node_->create_subscription<TdcpMsg>("/tdcp", 1, std::bind(&Navigator::tdcpCallback, this, std::placeholders::_1));
   // clang-format on
 
   /// launch the processing thread
@@ -320,6 +322,14 @@ void Navigator::fetchRigCalibration() {
       };
   auto response =
       rig_calibration_client_->async_send_request(request, response_callback);
+}
+
+void Navigator::tdcpCallback(const TdcpMsg::SharedPtr msg) {
+
+  std::cout << "found tdcp msg " << msg->t_a << std::endl;  // debugging
+  if (state_machine_->name() != "::Idle") {
+    tactic_->logGpsRaw(*msg);
+  }
 }
 
 void Navigator::publishPath(const tactic::LocalizationChain &chain) const {

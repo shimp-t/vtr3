@@ -21,6 +21,7 @@ find_package(PCL COMPONENTS common REQUIRED)
 find_package(pcl_conversions REQUIRED)
 
 find_package(sensor_msgs REQUIRED)
+find_package(cpo_interfaces REQUIRED)
 
 find_package(vtr_common REQUIRED)
 find_package(vtr_lidar REQUIRED)
@@ -37,6 +38,7 @@ ament_target_dependencies(${PROJECT_NAME}_navigator
   rclcpp
   tf2 tf2_ros
   PCL pcl_conversions sensor_msgs  # for visualization only
+  cpo_interfaces
   vtr_lidar vtr_logging vtr_tactic vtr_pose_graph vtr_common
 )
 target_include_directories(${PROJECT_NAME}_navigator
@@ -45,12 +47,13 @@ target_include_directories(${PROJECT_NAME}_navigator
     $<INSTALL_INTERFACE:include>)
 
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
-ament_export_dependencies(vtr_pose_graph vtr_tactic)
+ament_export_dependencies(vtr_pose_graph vtr_tactic cpo_interfaces)
 
 # main
 add_executable(${PROJECT_NAME} src/main.cpp)
 ament_target_dependencies(${PROJECT_NAME}
   rclcpp sensor_msgs
+  cpo_interfaces
   vtr_common
 )
 target_link_libraries(${PROJECT_NAME}
