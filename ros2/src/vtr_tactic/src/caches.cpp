@@ -50,5 +50,9 @@ template class cache_ptr<vtr_messages::msg::LocalizationStatus>;
 template class cache_ptr<tactic::MigrationMap>;
 template class cache_ptr<common::timing::SimpleTimer>;
 
+// gps related stuff
+template class cache_ptr<std::vector<cpo_interfaces::msg::TDCP::SharedPtr>>;
+template class cache_ptr<std::pair<pose_graph::VertexId, lgmath::se3::TransformationWithCovariance>>;
+
 }  // namespace common
 }  // namespace vtr

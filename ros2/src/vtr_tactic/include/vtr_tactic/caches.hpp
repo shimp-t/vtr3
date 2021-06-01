@@ -21,6 +21,9 @@
 #include <vtr_messages/msg/localization_status.hpp>
 #include <vtr_messages/msg/match.hpp>
 
+// gps stuff
+#include <cpo_interfaces/msg/tdcp.hpp>
+
 // common messages
 using TimeStampMsg = vtr_messages::msg::TimeStamp;
 
@@ -63,6 +66,9 @@ struct QueryCache : public common::CacheContainer {
         rig_calibrations("rig_calibrations", janitor_.get()),
         rig_features("rig_features", janitor_.get()),
         candidate_landmarks("candidate_landmarks", janitor_.get()),
+        // gps related stuff
+        tdcp_msgs("tdcp_msgs", janitor_.get()),
+        T_0g_prior("T_0g_prior", janitor_.get()),
         // extra image related stuff to be cleaned up
         success("success", janitor_.get()),
         T_r_m("T_r_m", janitor_.get()),
@@ -124,6 +130,10 @@ struct QueryCache : public common::CacheContainer {
   common::cache_ptr<std::list<vision::RigCalibration>> rig_calibrations;
   common::cache_ptr<std::vector<vision::RigFeatures>> rig_features;
   common::cache_ptr<std::vector<vision::RigLandmarks>> candidate_landmarks;
+
+  /// gps related stuff
+  common::cache_ptr<std::vector<cpo_interfaces::msg::TDCP::SharedPtr>> tdcp_msgs;
+  common::cache_ptr<std::pair<pose_graph::VertexId, lgmath::se3::TransformationWithCovariance>> T_0g_prior;
 
   /// extra image related stuff to be cleaned up
   common::cache_ptr<bool, true> success;
