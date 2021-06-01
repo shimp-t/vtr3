@@ -15,7 +15,7 @@
 
     ############ GPS-related parameters ############
     use_tdcp: true
-    tdcp_data_dir: "~/ASRL/dataset/feb_gps"
+    tdcp_data_dir: "~/ASRL/dataset/feb_gps/tdcp"
     tdcp_dataset: "feb15c"
 
     ############ tactic configuration ############
