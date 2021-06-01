@@ -5,8 +5,9 @@ import os.path as osp
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import axes3d
+import seaborn as sns
 
+sns.set_style("whitegrid")
 matplotlib.use("TkAgg")  # Can change to 'Agg' for non-interactive mode
 matplotlib.rcParams["pdf.fonttype"] = 42
 matplotlib.rcParams["ps.fonttype"] = 42
@@ -28,12 +29,6 @@ def main():
 
   # Flags
   results_dir = osp.expanduser("${VTRTEMP}/testing/stereo/results_run_000000")
-
-  entries = ["data_size", "read_time", "write_time"]
-  unit = ["(Mb)", "(ms)", "(ms)"]
-  header = None
-  result = {}
-
   with open(osp.join(results_dir, "vo.csv"), newline='') as resultfile:
     spamreader = csv.reader(resultfile, delimiter=',', quotechar='|')
     tmp = []

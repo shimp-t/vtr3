@@ -19,15 +19,9 @@ int main(int argc, char **argv) {
     log_filename = fs::path{common::utils::expand_user(output_dir)} / "logs" /
         (log_name + ".log");
   }
-  logging::configureLogging(log_filename, false);
+  logging::configureLogging(log_filename, true);
   LOG_IF(to_file, INFO) << "Logging to: " << log_filename;
   LOG_IF(!to_file, WARNING) << "NOT LOGGING TO A FILE.";
-
-  auto clear_data_dir = node->declare_parameter<bool>("clear_data_dir", false);
-  if (clear_data_dir) {
-    LOG(INFO) << "Clearing data directory.";
-    fs::remove_all(fs::path{common::utils::expand_user(output_dir)});
-  }
 
   LOG(INFO) << "Starting Odometry with GPS, beep beep beep";
   OdometryNavigator navigator{node, output_dir};
@@ -49,6 +43,7 @@ int main(int argc, char **argv) {
             ""));
     auto
         tdcp_dataset = node->declare_parameter<std::string>("tdcp_dataset", "");
+    std::cout << "tdcp_data_dir_str: " << tdcp_data_dir_str << std::endl;
     tdcp_stream = std::make_shared<storage::DataStreamReader<TdcpMsg>>(
         tdcp_data_dir_str,
         tdcp_dataset);
@@ -105,20 +100,19 @@ int main(int argc, char **argv) {
       rig_images.channels[0].cameras[0].stamp.nanoseconds_since_epoch;
   auto image_stamp = rig_images.vtr_header.sensor_time_stamp;
 
+  std::cout << "Grabbed first image " << 96 << std::endl;
+
   // get first GPS messages
   if (use_tdcp) {
-    // todo: this doesn't seek probably because standard rosbag2
     seek_success =
         tdcp_stream->seekByTimestamp(image_stamp.nanoseconds_since_epoch);
     if (!seek_success) {
       LOG(ERROR) << "TDCP seek failed!";
       return 0;
     }
-    // loop added because seek above doesn't work properly
-    do {
-      tdcp_msg = tdcp_stream->readNextFromSeek();
-    } while (tdcp_msg != nullptr && tdcp_msg->template get<TdcpMsg>().t_b
-        < image_stamp.nanoseconds_since_epoch);
+    std::cout << "TDCP seek success " << 106 << std::endl;
+    tdcp_msg = tdcp_stream->readNextFromSeek();
+    std::cout << "TDCP read success " << 108 << std::endl;
   }
 #if 0
   if (use_gpgga) {
