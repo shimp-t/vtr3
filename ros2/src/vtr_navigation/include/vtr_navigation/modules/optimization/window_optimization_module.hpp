@@ -133,6 +133,8 @@ class WindowOptimizationModule : public SteamModule {
 
   /** \brief Stores absolute orientation for use with GPS terms */
   steam::se3::TransformStateVar::Ptr T_0g_statevar_;
+
+  std::vector<std::vector<double>> ypr_estimates_;   // temporary
 };
 
 }  // namespace navigation

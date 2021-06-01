@@ -68,6 +68,119 @@ void WindowedRecallModule::run(QueryCache &qdata, MapCache &mdata,
   }
 }
 
+/*      bool vid_1_set = false;   // todo: better way to do this
+      VertexId vid_1;
+      // recall TDCP pseudo-measurements for each vertex in window
+      for (const auto &pose : poses) {
+
+        if (pose.second.tf_state_var->isLocked()) {
+          // locked poses are landmark dependent and not a part of the window proper
+          continue;
+        }
+        // pose before earliest unlocked pose will be start of window
+        if (!vid_1_set || pose.first < vid_1) {
+          vid_1 = pose.first;
+          vid_1_set = true;
+        }
+        auto v = graph->at(pose.first);
+        auto msg = v->retrieveKeyframeData<TdcpMsg>("tdcp", true);
+
+        // add cost terms if data available for this vertex
+        if (msg != nullptr) {
+          tdcp_msgs.push_back(msg);
+        }
+      }*/
+
+/*  if (!tdcp_msgs.empty() && vid_1_set) {
+    vid_0_ = VertexId(vid_1.majorId(), vid_1.minorId()-1);    // todo - hacky
+
+    // todo - attempt retrieval of gps_T0g from vid_0_ - 1 <== need to get this edge as well
+    bool prior_available = false;
+
+    auto v0 = graph->at(vid_0_);
+    if (v0->temporalNeighbours().size() == 2) {
+
+      auto v0_prev = graph->at(*v0->temporalNeighbours().begin());
+      std::cout << "DB v0_prev " << v0_prev->id() << std::endl;
+      auto msg = v0_prev->retrieveKeyframeData<vtr_messages::msg::LgTransform>("gps_T_0g", true);
+
+      // add cost terms if data available for this vertex
+      if (msg != nullptr) {
+        Eigen::Matrix<double, 6, 1> xi_vec;
+        xi_vec << msg->xi[0], msg->xi[1], msg->xi[2], msg->xi[3], msg->xi[4], msg->xi[5];
+        lgmath::se3::TransformationWithCovariance T_0g_prev(xi_vec);
+
+        std::cout << "Grabbing msg cov " << std::endl;
+        std::cout << "msg->cov.size() " << msg->cov.size() << std::endl;
+        Eigen::Matrix<double, 6, 6> cov_0g = Eigen::Matrix<double, 6, 6>::Zero();
+        for (int i = 0; i < 6; ++i) {
+          for (int j = 0; j < 6; ++j) {
+            cov_0g(i,j) = msg->cov[6*i + j];
+          }
+        }
+        std::cout << "Setting " << 397 << std::endl;
+//            cov_0g.diagonal() << msg->cov[0], msg->cov[1], msg->cov[2], msg->cov[3], msg->cov[4], msg->cov[5];    // todo: should probably grab full matrix
+        T_0g_prev.setCovariance(cov_0g);
+
+        auto e = graph->at(EdgeId(v0_prev->id(), v0->id(), pose_graph::Temporal));      // todo: not very safe
+
+        lgmath::se3::TransformationWithCovariance outgoing_T = e->T();
+
+        std::cout << "outgoing_T.covarianceSet() " << outgoing_T.covarianceSet() << std::endl;
+        if (outgoing_T.covarianceSet()) {
+          std::cout << "outgoing_T.cov() \n" << outgoing_T.cov()
+                    << std::endl;
+
+          T_0g_est_ = outgoing_T * T_0g_prev;
+
+          // don't care about position so resetting
+          T_0g_est_ = lgmath::se3::TransformationWithCovariance(T_0g_est_.C_ba(),Eigen::Vector3d::Zero(),T_0g_est_.cov()) ;
+          std::cout << "415 T_0g_est_.vec() " << T_0g_est_.vec().transpose() << std::endl;
+          prior_available = true;     ///todo:we should still set the prior during message gaps
+        }
+      }
+    }*/
+
+/*        lgmath::se3::Transformation curr_pose;    /// copied from windowed_recall
+        TemporalEvaluatorPtr tempeval(new TemporalEvaluator());
+        tempeval->setGraph((void *) graph.get());
+        using DirectionEvaluator =
+        pose_graph::eval::Mask::DirectionFromVertexDirect<Graph>;
+        auto direval = std::make_shared<DirectionEvaluator>(v0);
+        direval->setGraph((void *) graph.get());
+        auto evaluator = pose_graph::eval::And(tempeval, direval);
+        evaluator->setGraph((void *) graph.get());
+        auto itr = graph->begin(v0, 0, evaluator);
+        itr++;
+        for (; itr != graph->end(); ++itr) {
+          curr_pose = itr->e()->T() * curr_pose;
+          if (poses.find(itr->e()->to()) != poses.end()) {
+            poses[itr->e()->to()].setTransform(curr_pose);
+          } else {
+            // we have missed one,
+            poses[itr->e()->to()] = SteamPose(curr_pose, true);
+          }
+        }*/
+
+/*        // if no heading estimate from previous vertex, get rough estimate using
+        // displacement of code solutions from front and back of window
+        if (!prior_available) {   /// todo: should really only get here first frame
+          Eigen::Vector3d r_k0_ing =
+              Eigen::Vector3d(tdcp_msgs.back()->enu_pos.x,      // todo: move to Recall
+                              tdcp_msgs.back()->enu_pos.y,
+                              tdcp_msgs.back()->enu_pos.z)
+                  - Eigen::Vector3d(tdcp_msgs.front()->enu_pos.x,
+                                    tdcp_msgs.front()->enu_pos.y,
+                                    tdcp_msgs.front()->enu_pos.z);
+          double theta = atan2(r_k0_ing.y(), r_k0_ing.x());
+
+          Eigen::Matrix<double, 6, 1> init_pose_vec;
+          init_pose_vec << 0, 0, 0, 0, 0, -theta;
+
+          T_0g_est_ = lgmath::se3::Transformation(init_pose_vec);
+          T_0g_est_.setCovariance(config_->T_0g_prior);
+        }*/
+
 void WindowedRecallModule::loadVertexData(
     LandmarkMap &lm_map, SteamPoseMap &poses,
     SensorVehicleTransformMap &transforms,

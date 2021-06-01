@@ -16,8 +16,8 @@ navigator:
     # The control frame from the urdf
     control_frame: base_link
 
-    start_index: 1       # *** currently indexes need to be 1 > VTR2.1 indices for regression testing
-    stop_index: 15001
+    start_index: 2000       # *** currently indexes need to be 1 > VTR2.1 indices for regression testing
+    stop_index: 4880
 
     ############ GPS-related parameters ############
     use_tdcp: true
@@ -178,7 +178,7 @@ navigator:
         type: windowed_recall
         window_size: 5
         tdcp_enable: true             # todo (Ben): also add these new params to default params
-        default_T_0g_cov_diag: [1.0, 1.0, 1.0, 0.01, 0.01, 1.0]
+        default_T_0g_cov_diag: [0.0001, 0.0001, 0.0001, 0.0001, 0.0001, 10.0]
 
       steam:
         trajectory_smoothing: true
@@ -200,6 +200,6 @@ navigator:
         ang_acc_std_dev_y: 0.01
         ang_acc_std_dev_z: 0.03
 
-        tdcp_cov: 0.01
+        tdcp_cov: 0.001
         min_tdcp_terms: 3
         stereo_cov_multiplier: 10.0

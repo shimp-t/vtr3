@@ -157,6 +157,12 @@ def main():
   plt.ylabel("y [m]")
   plt.axis('equal')
 
+  tmp = []
+  for i in range(len(r_rot) - 2):
+    yaw = math.atan2(r_rot[i + 2, 4] - r_rot[i, 4], r_rot[i + 2, 3] - r_rot[i, 3])
+    tmp.append(yaw)
+  vo_yaws = np.array(tmp)
+
   if gt_available:
     ax.plot(r_rot[:, 3] - r_rot[0, 3], r_rot[:, 4] - r_rot[0, 4], c='r', label='Rotated Estimates')
     ax.plot(gt[:, 1] - gt[0, 1], gt[:, 2] - gt[0, 2], c='g', label='RTK Ground Truth')
@@ -181,11 +187,12 @@ def main():
 
     gt_interp = np.array(tmp)
 
-    assert (len(gt_interp) == len(r_rot) - 2)
+    last_r_idx = len(gt_interp) - len(r_rot) + 1      # hacky
+    assert (last_r_idx <= -1)
 
-    e_x = (gt_interp[:, 3] - gt_interp[0, 3]) - (r_rot[1:-1, 3] - r_rot[1, 3])
-    e_y = (gt_interp[:, 4] - gt_interp[0, 4]) - (r_rot[1:-1, 4] - r_rot[1, 4])
-    e_z = (gt_interp[:, 5] - gt_interp[0, 5]) - (r_rot[1:-1, 5] - r_rot[1, 5])
+    e_x = (gt_interp[:, 3] - gt_interp[0, 3]) - (r_rot[1:last_r_idx, 3] - r_rot[1, 3])
+    e_y = (gt_interp[:, 4] - gt_interp[0, 4]) - (r_rot[1:last_r_idx, 4] - r_rot[1, 4])
+    e_z = (gt_interp[:, 5] - gt_interp[0, 5]) - (r_rot[1:last_r_idx, 5] - r_rot[1, 5])
     e_planar = np.sqrt(np.square(e_x) + np.square(e_y))
 
     fig2, ax2 = plt.subplots(nrows=3, ncols=1, figsize=[8, 8])
@@ -202,6 +209,22 @@ def main():
     ax2[1].set_ylim([-3, 3])
     ax2[2].set_ylabel('2D Position Error (m)')
     ax2[2].set_ylim([0, 4])
+
+  plt.figure(3)   # temporary
+  plt.title("VTR3 with TDCP")
+  yprs = np.genfromtxt("/home/ben/Desktop/yprs.csv", delimiter=',')
+  if len(yprs) > 2:
+  #   plt.plot(yprs[:, 4] - yprs[0, 4], -yprs[:, 0], label='Yaw')
+  #   plt.plot(yprs[:, 4] - yprs[0, 4], -yprs[:, 1], label='Pitch')
+  #   plt.plot(yprs[:, 4] - yprs[0, 4], -yprs[:, 2], label='Roll')
+  # plt.plot(yprs[:480, 4] - yprs[0, 4], vo_yaws[:480], label='Yaw from integrated VO', c='C3')   # messy
+    plt.plot(yprs[:, 3] + 1, -yprs[:, 0], label='Yaw')
+    plt.plot(yprs[:, 3] + 1, -yprs[:, 1], label='Pitch')
+    plt.plot(yprs[:, 3] + 1, -yprs[:, 2], label='Roll')
+  plt.plot(vo_yaws[:490], label='Yaw from integrated VO', c='C3')   # messy
+  plt.xlabel("Vertex")
+  plt.ylabel("Estimated Angle (rad)")
+  plt.legend()
 
   plt.show()
 

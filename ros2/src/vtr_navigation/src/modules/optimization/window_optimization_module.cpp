@@ -347,13 +347,24 @@ WindowOptimizationModule::generateOptimizationProblem(
     // Set up TDCP factors. We require a trajectory to interpolate so it happens in this if block
     T_0g_statevar_.reset(new steam::se3::TransformStateVar(lgmath::se3::Transformation()));
     if (qdata.tdcp_msgs.is_valid() && !qdata.tdcp_msgs->empty()
-        && qdata.T_0g_prior.is_valid() && qdata.T_0g_prior->second.covarianceSet()) {
+        && qdata.T_0g_prior.is_valid() && qdata.T_0g_prior->second.covarianceSet()
+        && qdata.T_0g_prior->first.minorId() > 10) {     // quick workaround for poseInterp bug
 
       T_0g_statevar_->setValue(qdata.T_0g_prior->second);
+#if 0
+      T_0g_statevar_->setValue(lgmath::se3::Transformation());                                  // testing something (b)
+#endif
       steam::se3::TransformEvaluator::ConstPtr
           T_0g(new steam::se3::TransformStateEvaluator(T_0g_statevar_));
 
       for (const auto &msg : *qdata.tdcp_msgs) {
+        auto prec = std::cout.precision();
+#if 0
+        std::cout << "t_a " << std::setprecision(12) << steam::Time((int64_t)msg->t_a).seconds() << std::endl;
+        std::cout << "t_0 " << graph->at(qdata.T_0g_prior->first)->keyFrameTime().nanoseconds_since_epoch * 1e-9 << std::endl;
+        std::cout << "t_i " << graph->at(poses.begin()->first)->keyFrameTime().nanoseconds_since_epoch * 1e-9 << std::setprecision(prec) << std::endl;
+#endif
+
         addTdcpCost(msg, T_0g, poses[qdata.T_0g_prior->first].tf_state_eval);
       }
       LOG(DEBUG) << "Found " << tdcp_cost_terms_->numCostTerms() << " TDCP terms.";
@@ -364,10 +375,18 @@ WindowOptimizationModule::generateOptimizationProblem(
 
         // add prior on global orientation at start of window
         Eigen::Matrix<double, 6, 6> temp_cov = qdata.T_0g_prior->second.cov();
+#if 0
+        Eigen::Matrix<double, 6, 6> temp_cov = Eigen::Matrix<double, 6, 6>::Identity();     // testing something (a)
+        temp_cov(3,3) = 0.001;     // testing something (a)-ii
+        temp_cov(4,4) = 0.001;     // testing something (a)-ii
+#endif
         steam::BaseNoiseModel<6>::Ptr
             prior_noise_model(new steam::StaticNoiseModel<6>(temp_cov));
         steam::TransformErrorEval::Ptr prior_error_func
             (new steam::TransformErrorEval(qdata.T_0g_prior->second, T_0g));
+#if 0
+            (new steam::TransformErrorEval(lgmath::se3::Transformation(), T_0g));             // testing something (c)
+#endif
         steam::LossFunctionBase::Ptr prior_loss_func(new steam::L2LossFunc());
         auto prior_factor = steam::WeightedLeastSqCostTerm<6, 6>::Ptr(
             new steam::WeightedLeastSqCostTerm<6, 6>(
@@ -402,7 +421,7 @@ void WindowOptimizationModule::resetProblem() {
   sharedLossFunc_.reset(new steam::DcsLossFunc(2.0));
 
   // make the TDCP loss function
-  sharedTdcpLossFunc_.reset(new steam::DcsLossFunc(2.0));
+  sharedTdcpLossFunc_.reset(new steam::L2LossFunc());
 
   // setup cost terms
   vision_cost_terms_.reset(new steam::ParallelizedCostTermCollection());
@@ -449,6 +468,18 @@ void WindowOptimizationModule::addTdcpCost(const TdcpMsg::SharedPtr& msg, const 
   steam::se3::PositionEvaluator::ConstPtr r_ba_ina(new steam::se3::PositionEvaluator(T_ba));
 
   steam::se3::TransformEvaluator::ConstPtr T_ag = steam::se3::compose(T_a0_s, T_0g);
+
+#if 0
+  std::cout << "T_ba vector:    " << T_ba->evaluate().vec().transpose() << std::endl;
+  std::cout << "T_bi_v vector:  " << T_bi_v->evaluate().vec().transpose() << std::endl;
+  std::cout << "T_ai_v vector:  " << T_ai_v->evaluate().vec().transpose() << std::endl;
+  std::cout << "T_0i vector:    " << T_0i->evaluate().vec().transpose() << std::endl;
+  std::cout << "T_0i^-1 vector: " << T_0i->evaluate().inverse().vec().transpose() << std::endl;
+  std::cout << "T_a0_v vector:  " << T_a0_v->evaluate().vec().transpose() << std::endl;
+  std::cout << "T_a0_s vector:  " << T_a0_s->evaluate().vec().transpose() << std::endl;
+  std::cout << "T_0g vector:    " << T_0g->evaluate().vec().transpose() << std::endl;
+  std::cout << "T_ag vector:    " << T_ag->evaluate().vec().transpose() << std::endl;
+#endif
 
   // using constant covariance here for now
   steam::BaseNoiseModel<1>::Ptr tdcp_noise_model(new steam::StaticNoiseModel<1>(Eigen::Matrix<double, 1, 1>(config_->tdcp_cov)));
@@ -952,11 +983,44 @@ void WindowOptimizationModule::updateGraph(QueryCache &qdata, MapCache &mdata,
     }
     T_0g_msg.cov_set = true;
 
+    std::cout << "phi_0g cov: \n" << qdata.T_0g_prior->second.cov().bottomRightCorner(3,3) << std::endl;
+
     std::string t0g_str = "gps_T_0g";
     graph->registerVertexStream<vtr_messages::msg::LgTransform>(qdata.T_0g_prior->first.majorId(),
                                                                 t0g_str);
     auto v = graph->at(qdata.T_0g_prior->first);
     v->insert(t0g_str, T_0g_msg, v->keyFrameTime());
+
+
+
+
+    // save off T_0g estimate to pose graph
+    Eigen::Matrix3d C_vg = qdata.T_0g_prior->second.C_ba();
+    Eigen::Matrix<double, 6, 1>
+        vec = qdata.T_0g_prior->second.vec();     // temporary stuff
+    double yaw = atan2(C_vg(1, 0), C_vg(0, 0));
+    double pitch = atan2(-C_vg(2, 0),
+                         sqrt(C_vg(2, 1) * C_vg(2, 1)
+                                  + C_vg(2, 2) * C_vg(2, 2)));
+    double roll = atan2(C_vg(2, 1), C_vg(2, 2));
+
+#if 0
+    std::cout << "YAW estimate:   " << yaw << std::endl;
+    std::cout << "PITCH estimate: " << pitch << std::endl;
+    std::cout << "ROLL estimate:  " << roll << std::endl;
+    std::cout << "vec: " << vec.transpose() << std::endl;
+#endif
+    ypr_estimates_.push_back(std::vector<double>{yaw, pitch,
+                                                 roll, (double)v->id().minorId(), (double)v->keyFrameTime().nanoseconds_since_epoch*1e-9});      // note index not the same as vid_0_
+
+  }
+
+  if (graph->numberOfVertices() == 499) {     // todo: very temporary
+    std::ofstream outstream;
+    outstream.open("/home/ben/Desktop/yprs.csv");
+    for (auto ypr : ypr_estimates_) {
+      outstream << ypr[0] << "," << ypr[1] << "," << ypr[2] << "," << ypr[3] << "," << std::setprecision(12) << ypr[4] << std::setprecision(6) << "\n";
+    }
   }
 
   // reset to remove any old data from the problem setup
