@@ -19,7 +19,7 @@ int main(int argc, char **argv) {
     log_filename = fs::path{common::utils::expand_user(output_dir)} / "logs" /
         (log_name + ".log");
   }
-  logging::configureLogging(log_filename, true);
+  logging::configureLogging(log_filename, false);
   LOG_IF(to_file, INFO) << "Logging to: " << log_filename;
   LOG_IF(!to_file, WARNING) << "NOT LOGGING TO A FILE.";
 
@@ -43,7 +43,6 @@ int main(int argc, char **argv) {
             ""));
     auto
         tdcp_dataset = node->declare_parameter<std::string>("tdcp_dataset", "");
-    std::cout << "tdcp_data_dir_str: " << tdcp_data_dir_str << std::endl;
     tdcp_stream = std::make_shared<storage::DataStreamReader<TdcpMsg>>(
         tdcp_data_dir_str,
         tdcp_dataset);
@@ -100,8 +99,6 @@ int main(int argc, char **argv) {
       rig_images.channels[0].cameras[0].stamp.nanoseconds_since_epoch;
   auto image_stamp = rig_images.vtr_header.sensor_time_stamp;
 
-  std::cout << "Grabbed first image " << 96 << std::endl;
-
   // get first GPS messages
   if (use_tdcp) {
     seek_success =
@@ -110,9 +107,7 @@ int main(int argc, char **argv) {
       LOG(ERROR) << "TDCP seek failed!";
       return 0;
     }
-    std::cout << "TDCP seek success " << 106 << std::endl;
     tdcp_msg = tdcp_stream->readNextFromSeek();
-    std::cout << "TDCP read success " << 108 << std::endl;
   }
 #if 0
   if (use_gpgga) {
