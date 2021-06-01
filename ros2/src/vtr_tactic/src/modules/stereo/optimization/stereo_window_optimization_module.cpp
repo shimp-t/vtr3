@@ -415,7 +415,7 @@ void StereoWindowOptimizationModule::resetProblem() {
   sharedLossFunc_.reset(new steam::DcsLossFunc(2.0));
 
   // make the TDCP loss function
-  sharedTdcpLossFunc_.reset(new steam::DcsLossFunc(2.0));
+  sharedTdcpLossFunc_.reset(new steam::L2LossFunc());
 
   // setup stereo cost terms
   vision_cost_terms_.reset(new steam::ParallelizedCostTermCollection());
