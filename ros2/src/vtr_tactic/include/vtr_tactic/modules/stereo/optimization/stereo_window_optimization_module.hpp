@@ -4,8 +4,12 @@
 #include <lgmath.hpp>
 #include <steam.hpp>
 
+#include <cpo_interfaces/msg/tdcp.hpp>
+
 #include <vtr_tactic/modules/base_module.hpp>
 #include <vtr_tactic/modules/stereo/optimization/steam_module.hpp>
+
+using TdcpMsg = cpo_interfaces::msg::TDCP;
 
 namespace vtr {
 namespace tactic {
@@ -20,6 +24,9 @@ class StereoWindowOptimizationModule : public SteamModule {
   struct Config : SteamModule::Config {
     bool depth_prior_enable;
     double depth_prior_weight;
+    int min_tdcp_terms;
+    double tdcp_cov;
+    double stereo_cov_multiplier;
   };
 
   StereoWindowOptimizationModule(const std::string &name = static_name)
@@ -63,6 +70,16 @@ class StereoWindowOptimizationModule : public SteamModule {
   void addDepthCost(steam::se3::LandmarkStateVar::Ptr landmark);
 
   /**
+   * \brief Adds a TDCP cost associated with this carrier phase measurement to
+   * the TDCP cost terms.
+   * \param msg The TDCP pseudo-measurement.
+   * \param T_0g_statevar Extra state variable required for TDCP, global pose.
+   */
+  void addTdcpCost(const TdcpMsg::SharedPtr &msg,
+                   const steam::se3::TransformEvaluator::ConstPtr &T_0g,
+                   const steam::se3::TransformEvaluator::ConstPtr &T_0i);
+
+  /**
    * \brief Verifies the input data being used in the optimization problem,
    * namely, the inlier matches and initial estimate.
    * \param qdata The query data.
@@ -86,22 +103,37 @@ class StereoWindowOptimizationModule : public SteamModule {
   bool isLandmarkValid(const Eigen::Vector3d &point, QueryCache &qdata);
 
   /** \brief the cost terms associated with landmark observations. */
-  steam::ParallelizedCostTermCollection::Ptr cost_terms_;
+  steam::ParallelizedCostTermCollection::Ptr vision_cost_terms_;
+
+  /** \brief the cost terms associated with white-noise-on-acceleration motion prior */
+  steam::ParallelizedCostTermCollection::Ptr smoothing_cost_terms_;
 
   /** \brief The cost terms associated with landmark depth. */
   steam::ParallelizedCostTermCollection::Ptr depth_cost_terms_;
 
+  /** \brief The cost terms associated with carrier phase measurements (TDCP) */
+  steam::ParallelizedCostTermCollection::Ptr tdcp_cost_terms_;
+
+  /** \brief The cost for prior on global orientation needed for TDCP  */
+  steam::ParallelizedCostTermCollection::Ptr global_prior_cost_term_;
+
   /** \brief The loss function used for the depth cost. */
   steam::LossFunctionBase::Ptr sharedDepthLossFunc_;
 
-  /** \brief the loss function assicated with observation cost. */
+  /** \brief the loss function associated with observation cost. */
   steam::LossFunctionBase::Ptr sharedLossFunc_;
+
+  /** \brief The loss function used for the TDCP cost. */
+  steam::LossFunctionBase::Ptr sharedTdcpLossFunc_;
 
   /** \brief The steam problem. */
   std::shared_ptr<steam::OptimizationProblem> problem_;
 
   /** \brief Module configuration. */
   std::shared_ptr<Config> config_;
+
+  /** \brief Stores absolute orientation for use with GPS terms */
+  steam::se3::TransformStateVar::Ptr T_0g_statevar_;
 };
 
 }  // namespace tactic

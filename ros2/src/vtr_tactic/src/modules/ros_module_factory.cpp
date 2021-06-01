@@ -404,6 +404,9 @@ void ROSModuleFactory::configureStereoWindowOptimization(
   config->depth_prior_enable = node_->declare_parameter<decltype(config->depth_prior_enable)>(param_prefix + ".depth_prior_enable", config->depth_prior_enable);
   config->depth_prior_weight = node_->declare_parameter<decltype(config->depth_prior_weight)>(param_prefix + ".depth_prior_weight", config->depth_prior_weight);
   // config->max_point_depth = node_->declare_parameter<decltype(config->max_point_depth)>(param_prefix + ".max_point_depth", config->max_point_depth);
+  config->tdcp_cov = node_->declare_parameter<decltype(config->tdcp_cov)>(param_prefix + ".tdcp_cov", 0.01);
+  config->min_tdcp_terms = node_->declare_parameter<decltype(config->min_tdcp_terms)>(param_prefix + ".min_tdcp_terms", 3);
+  config->stereo_cov_multiplier = node_->declare_parameter<decltype(config->stereo_cov_multiplier)>(param_prefix + ".stereo_cov_multiplier", 1.0);
   // clang-format on
   std::dynamic_pointer_cast<StereoWindowOptimizationModule>(module)->setConfig(
       config);

@@ -1,7 +1,8 @@
-
+#include <steam/trajectory/SteamTrajPoseInterpEval.hpp>
 #include <vtr_common/timing/simple_timer.hpp>
 #include <vtr_steam_extensions/evaluator/range_conditioning_eval.hpp>
 #include <vtr_steam_extensions/evaluator/scale_error_eval.hpp>
+#include <vtr_steam_extensions/evaluator/tdcp_error_eval.hpp>
 #include <vtr_tactic/modules/stereo/optimization/stereo_window_optimization_module.hpp>
 #include <vtr_vision/geometry/geometry_tools.hpp>
 #include <vtr_vision/messages/bridge.hpp>
@@ -185,8 +186,14 @@ StereoWindowOptimizationModule::generateOptimizationProblem(
         // add the measurement covariances from the stored memory
         unsigned idx = 0;
         for (auto &cov : obs.covariances) {
+#if false
           meas_cov(2 * idx, 2 * idx) = cov[0];
           meas_cov(2 * idx + 1, 2 * idx + 1) = cov[3];
+#else   // temporary way to easily scale vision costs while testing
+          meas_cov(2 * idx, 2 * idx) = config_->stereo_cov_multiplier * cov[0];
+          meas_cov(2 * idx + 1, 2 * idx + 1) =
+              config_->stereo_cov_multiplier * cov[3];
+#endif
           idx++;
         }
 
@@ -220,7 +227,7 @@ StereoWindowOptimizationModule::generateOptimizationProblem(
                                                   sharedLossFunc_));
 
           // finally, add the cost.
-          cost_terms_->add(cost);
+          vision_cost_terms_->add(cost);
 #endif
         } else {
           // Construct error function for the current camera
@@ -233,7 +240,7 @@ StereoWindowOptimizationModule::generateOptimizationProblem(
                                                        sharedLossFunc_));
 
           // finally, add the cost.
-          cost_terms_->add(cost);
+          vision_cost_terms_->add(cost);
         }
 
         // steam throws?
@@ -291,7 +298,7 @@ StereoWindowOptimizationModule::generateOptimizationProblem(
       steam::WeightedLeastSqCostTermX::Ptr scale_cost(
           new steam::WeightedLeastSqCostTermX(scale_error_func,
                                               scaleUncertainty, scaleLossFunc));
-      cost_terms_->add(scale_cost);
+      vision_cost_terms_->add(scale_cost);
     }
 #endif
   }
@@ -312,7 +319,7 @@ StereoWindowOptimizationModule::generateOptimizationProblem(
     }
   }
 
-  problem_->addCostTerm(cost_terms_);
+  problem_->addCostTerm(vision_cost_terms_);
   if (config_->depth_prior_enable) {
     problem_->addCostTerm(depth_cost_terms_);
   }
@@ -340,8 +347,16 @@ StereoWindowOptimizationModule::generateOptimizationProblem(
     }
 
     // Add smoothing terms
-    trajectory_->appendPriorCostTerms(cost_terms_);
+    trajectory_->appendPriorCostTerms(smoothing_cost_terms_);
+    problem_->addCostTerm(smoothing_cost_terms_);
+
+    // todo - port TDCP stuff from VTR3.0
+
+    std::cout << "Initial Smoothing Cost:         " << smoothing_cost_terms_->cost() << "        Terms:  "
+              << smoothing_cost_terms_->numCostTerms() << std::endl;
   }
+  std::cout << "Initial Vision Cost:            " << vision_cost_terms_->cost() << "        Terms:  "
+            << vision_cost_terms_->numCostTerms() << std::endl;   // debug
 
   return problem_;
 }
@@ -350,14 +365,24 @@ void StereoWindowOptimizationModule::resetProblem() {
   // make the depth loss function
   sharedDepthLossFunc_.reset(new steam::DcsLossFunc(2.0));
 
-  // make the loss function, TODO: make this configurable, move to member var.
+  // make the stereo loss function, TODO (old): make this configurable, move to member var.
   sharedLossFunc_.reset(new steam::DcsLossFunc(2.0));
 
-  // setup cost terms
-  cost_terms_.reset(new steam::ParallelizedCostTermCollection());
+  // make the TDCP loss function
+  sharedTdcpLossFunc_.reset(new steam::DcsLossFunc(2.0));
+
+  // setup stereo cost terms
+  vision_cost_terms_.reset(new steam::ParallelizedCostTermCollection());
+
+  // setup WNOA costs
+  smoothing_cost_terms_.reset(new steam::ParallelizedCostTermCollection());
 
   // setup cost terms for the depth
   depth_cost_terms_.reset(new steam::ParallelizedCostTermCollection());
+
+  // setup cost terms for the TDCP
+  tdcp_cost_terms_.reset(new steam::ParallelizedCostTermCollection());
+  global_prior_cost_term_.reset(new steam::ParallelizedCostTermCollection());
 
   // set up the steam problem_.
   problem_.reset(new steam::OptimizationProblem());
@@ -375,6 +400,62 @@ void StereoWindowOptimizationModule::addDepthCost(
       new steam::WeightedLeastSqCostTerm<1, 3>(errorfunc_range, rangeNoiseModel,
                                                sharedDepthLossFunc_));
   depth_cost_terms_->add(depth_cost);
+}
+
+void StereoWindowOptimizationModule::addTdcpCost(const TdcpMsg::SharedPtr &msg,
+                                                 const steam::se3::TransformEvaluator::ConstPtr &T_0g,
+                                                 const steam::se3::TransformEvaluator::ConstPtr &T_0i) {
+
+  // GPS measurement time vehicle pose wrt to start of trajectory
+  steam::se3::SteamTrajPoseInterpEval::ConstPtr
+      T_ai_v = trajectory_->getInterpPoseEval(steam::Time((int64_t) msg->t_a));
+  steam::se3::SteamTrajPoseInterpEval::ConstPtr
+      T_bi_v = trajectory_->getInterpPoseEval(steam::Time((int64_t) msg->t_b));
+  // GPS measurement time vehicle pose wrt to start of window
+  steam::se3::TransformEvaluator::ConstPtr
+      T_a0_v = steam::se3::composeInverse(T_ai_v, T_0i);
+  steam::se3::TransformEvaluator::ConstPtr
+      T_b0_v = steam::se3::composeInverse(T_bi_v, T_0i);
+  // GPS measurement time sensor pose wrt to start of window
+  steam::se3::TransformEvaluator::ConstPtr
+      T_a0_s = steam::se3::compose(tf_gps_vehicle_, T_a0_v);
+  steam::se3::TransformEvaluator::ConstPtr
+      T_b0_s = steam::se3::compose(tf_gps_vehicle_, T_b0_v);
+  // change in sensor pose between the two GPS measurement times
+  steam::se3::TransformEvaluator::ConstPtr
+      T_ba = steam::se3::composeInverse(T_b0_s, T_a0_s);
+  steam::se3::PositionEvaluator::ConstPtr
+      r_ba_ina(new steam::se3::PositionEvaluator(T_ba));
+
+  steam::se3::TransformEvaluator::ConstPtr
+      T_ag = steam::se3::compose(T_a0_s, T_0g);
+
+  // using constant covariance here for now
+  steam::BaseNoiseModel<1>::Ptr tdcp_noise_model
+      (new steam::StaticNoiseModel<1>(
+          Eigen::Matrix<double, 1, 1>(config_->tdcp_cov)));
+
+  // iterate through satellite pairs in msg and add TDCP costs
+  for (const auto &pair : msg->pairs) {
+    Eigen::Vector3d r_1a_ing_ata{pair.r_1a_a.x, pair.r_1a_a.y, pair.r_1a_a.z};
+    Eigen::Vector3d r_1a_ing_atb{pair.r_1a_b.x, pair.r_1a_b.y, pair.r_1a_b.z};
+    Eigen::Vector3d r_2a_ing_ata{pair.r_2a_a.x, pair.r_2a_a.y, pair.r_2a_a.z};
+    Eigen::Vector3d r_2a_ing_atb{pair.r_2a_b.x, pair.r_2a_b.y, pair.r_2a_b.z};
+
+    vtr::steam_extensions::TdcpErrorEval::Ptr tdcp_error
+        (new vtr::steam_extensions::TdcpErrorEval(pair.phi_measured,
+                                                  r_ba_ina,
+                                                  T_ag,
+                                                  r_1a_ing_ata,
+                                                  r_1a_ing_atb,
+                                                  r_2a_ing_ata,
+                                                  r_2a_ing_atb));
+    auto tdcp_factor = steam::WeightedLeastSqCostTerm<1,6>::Ptr(
+        new steam::WeightedLeastSqCostTerm<1, 6>(tdcp_error,
+                                                 tdcp_noise_model,
+                                                 sharedTdcpLossFunc_));
+    tdcp_cost_terms_->add(tdcp_factor);
+  }
 }
 
 bool StereoWindowOptimizationModule::verifyInputData(QueryCache &qdata,
@@ -640,6 +721,16 @@ void StereoWindowOptimizationModule::updateGraphImpl(QueryCache &qdata,
     return;
   }
 
+  // optimization debugging info
+  std::cout << "Final Carrier Phase Cost:     " << tdcp_cost_terms_->cost() << "        Terms:  "   // debugging
+            << tdcp_cost_terms_->numCostTerms() << std::endl;
+  std::cout << "Final Global Prior Cost:      " << global_prior_cost_term_->cost() << "        Terms:  "
+            << global_prior_cost_term_->numCostTerms() << std::endl;
+  std::cout << "Final Smoothing Cost:         " << smoothing_cost_terms_->cost() << "        Terms:  "
+            << smoothing_cost_terms_->numCostTerms() << std::endl;
+  std::cout << "Final Vision Cost:            " << vision_cost_terms_->cost() << "        Terms:  "
+            << vision_cost_terms_->numCostTerms() << std::endl;
+
   if (config_->save_trajectory) {
     throw std::runtime_error{
         "trajectory saving untested - windowed optimization"};
@@ -690,6 +781,8 @@ void StereoWindowOptimizationModule::updateGraphImpl(QueryCache &qdata,
         pose_a_itr->second.tf_state_var->getValue();
     lgmath::se3::Transformation T_b_0 =
         pose_b_itr->second.tf_state_var->getValue();
+    T_a_0.reproject(true);    // quick fix for lgmath orthonormal issue
+    T_b_0.reproject(true);
     if (pose_b_itr->second.isLocked() == false) {
       if (pose_a_itr->first.majorId() != qdata.live_id->majorId()) {
         continue;
