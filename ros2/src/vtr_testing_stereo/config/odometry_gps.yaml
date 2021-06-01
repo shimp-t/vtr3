@@ -173,6 +173,8 @@
       recall:
         type: stereo_windowed_recall
         window_size: 5
+        tdcp_enable: true             # todo (Ben): also add these new params to default params
+        default_T_0g_cov_diag: [ 1.0, 1.0, 1.0, 0.01, 0.01, 1.0 ]
 
       steam:
         trajectory_smoothing: true

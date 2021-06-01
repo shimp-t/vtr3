@@ -19,6 +19,8 @@ class StereoWindowedRecallModule : public BaseModule {
   /** \brief Collection of config parameters */
   struct Config {
     int window_size;
+    bool tdcp_enable;
+    Eigen::Matrix<double, 6, 6> default_T_0g_cov;
   };
 
   StereoWindowedRecallModule(const std::string &name = static_name)
@@ -99,6 +101,20 @@ class StereoWindowedRecallModule : public BaseModule {
                            SensorVehicleTransformMap &transforms,
                            const std::string &rig_name,
                            const Graph::ConstPtr &graph);
+
+  /**
+   * \brief Retrieve GPS-related measurements & prior on global orientation from
+   * pose graph and return to put in cache for use in optimization
+   * \param msgs The pseudo-measurements
+   * \param T_0g_prior The prior (we only care about the orientation part)
+   * \param graph The pose graph
+   * \param vertex_0 The vertex the prior is with respect to
+ */
+  void getTdcpMeas(std::vector<cpo_interfaces::msg::TDCP::SharedPtr> &msgs,
+                   std::pair<pose_graph::VertexId,
+                             lgmath::se3::TransformationWithCovariance> &T_0g_prior,
+                   const std::shared_ptr<const Graph> &graph,
+                   const pose_graph::RCVertex::Ptr &vertex_0);
 
   /**
    * \brief a map that keeps track of the pointers into the vertex landmark

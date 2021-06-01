@@ -38,11 +38,12 @@ void StereoWindowedRecallModule::runImpl(QueryCache &qdata, MapCache &mdata,
   // backwards matches. No more backwards matches before we get to the end of
   // the graph search means the map was re-initialised This causes singularities
   // in optimisation where there are no factors between two poses
+  pose_graph::RCVertex::Ptr current_vertex;
   for (; search_itr != graph->end() &&
          (poses.find(search_itr->v()->id()) != poses.end());
        ++search_itr) {
     // get current vertex.
-    auto current_vertex = search_itr->v();
+    current_vertex = search_itr->v();
     // iterate through each rig
     // TODO: We should probably get the rig name from somewhere else other than
     // the query features.
@@ -59,6 +60,12 @@ void StereoWindowedRecallModule::runImpl(QueryCache &qdata, MapCache &mdata,
 
   // Load all the stored velocities
   getTimesandVelocities(poses, graph);
+
+  if (config_->tdcp_enable) {
+    auto &msgs = *qdata.tdcp_msgs.fallback();
+    auto &T_0g_prior = *qdata.T_0g_prior.fallback();
+    getTdcpMeas(msgs, T_0g_prior, graph, current_vertex);
+  }
 }
 
 void StereoWindowedRecallModule::loadVertexData(
@@ -273,6 +280,7 @@ void StereoWindowedRecallModule::getTimesandVelocities(
         steam::Time(static_cast<int64_t>(stamp.nanoseconds_since_epoch));
     pose.second.setVelocity(velocity);
   }
+  // todo: above for loop doesn't set velocity for current vertex (causes higher initial smoothing costs)
 }
 
 void StereoWindowedRecallModule::loadSensorTransform(
@@ -308,6 +316,123 @@ void StereoWindowedRecallModule::updateGraphImpl(QueryCache &, MapCache &,
   /// auto future_eval = trajectory_->getInterpPoseEval(curr_time + 1e9);
   /// LOG(INFO) << "Pose + 1 second:" << "\n" << future_eval->evaluate() <<
   /// "\n";
+}
+
+void StereoWindowedRecallModule::getTdcpMeas(std::vector<cpo_interfaces::msg::TDCP::SharedPtr> &msgs,
+                                             std::pair<pose_graph::VertexId,
+                                                       lgmath::se3::TransformationWithCovariance> &T_0g_prior,
+                                             const std::shared_ptr<const Graph> &graph,
+                                             const pose_graph::RCVertex::Ptr &vertex_0) {
+
+  // get vertices in the window to retrieve TDCP measurements
+  TemporalEvaluator::Ptr tempeval(new TemporalEvaluator());
+  tempeval->setGraph((void *) graph.get());
+  // only search forwards
+  using DirectionEvaluator =
+  pose_graph::eval::Mask::DirectionFromVertexDirect<Graph>;
+  auto direval_forward =
+      std::make_shared<DirectionEvaluator>(vertex_0->id(), false);
+  direval_forward->setGraph((void *) graph.get());
+  // combine the temporal and forwards mask
+  auto evaluator_forward = pose_graph::eval::And(tempeval, direval_forward);
+  auto search_itr_forward =
+      graph->beginDfs(vertex_0->id(),
+                      config_->window_size - 1,
+                      evaluator_forward);
+
+  // loop through attempting to recall msgs, if available push_back to cache
+  for (; search_itr_forward != graph->end(); ++search_itr_forward) {
+
+    auto current_vertex = search_itr_forward->v();
+    auto msg = current_vertex->retrieveKeyframeData<cpo_interfaces::msg::TDCP>(
+        "tdcp",
+        true);
+
+    // add cost terms if data available for this vertex
+    if (msg != nullptr) {
+      msgs.push_back(msg);
+    }
+  }  // end for search_itr_forward
+
+  std::cout << "Recalled " << msgs.size() << " TDCP msgs. "
+            << std::endl;   // debug
+
+  // notify WindowedOpt which vertex we've defined as 0th
+  T_0g_prior.first = vertex_0->id();
+
+  // set up a search for the previous keyframe in the graph
+  auto direval_backward =
+      std::make_shared<DirectionEvaluator>(vertex_0->id(), true);
+  direval_backward->setGraph((void *) graph.get());
+  // combine the temporal and backwards mask
+  auto evaluator_backward = pose_graph::eval::And(tempeval, direval_backward);
+  auto search_itr_backward =
+      graph->beginDfs(vertex_0->id(), 1, evaluator_backward);
+  ++search_itr_backward;
+
+  if (search_itr_backward != graph->end()) {
+    // a vertex exists before window so try to get prior from it
+
+    auto prev_vertex = search_itr_backward->v();
+    auto T_m1g_msg =
+        prev_vertex->retrieveKeyframeData<vtr_messages::msg::LgTransform>(
+            "gps_T_0g", true);
+    if (T_m1g_msg != nullptr) {
+      Eigen::Matrix<double, 6, 1> xi_vec;
+      xi_vec << T_m1g_msg->xi[0], T_m1g_msg->xi[1], T_m1g_msg->xi[2],
+          T_m1g_msg->xi[3], T_m1g_msg->xi[4], T_m1g_msg->xi[5];
+      lgmath::se3::TransformationWithCovariance T_m1g_posterior(xi_vec);
+
+      Eigen::Matrix<double, 6, 6> cov_m1g = Eigen::Matrix<double, 6, 6>::Zero();
+      for (int i = 0; i < 6; ++i) {
+        for (int j = 0; j < 6; ++j) {
+          cov_m1g(i, j) = T_m1g_msg->cov[6 * i + j];
+        }
+      }
+      T_m1g_posterior.setCovariance(cov_m1g);
+
+      auto e = graph->at(EdgeId(prev_vertex->id(),
+                                vertex_0->id(), pose_graph::Temporal));
+      lgmath::se3::TransformationWithCovariance T_0m1 = e->T();
+
+      T_0g_prior.second = T_0m1 * T_m1g_posterior;
+      // don't care about position so resetting
+      T_0g_prior.second =
+          lgmath::se3::TransformationWithCovariance(T_0g_prior.second.C_ba(),
+                                                    Eigen::Vector3d::Zero(),
+                                                    T_0g_prior.second.cov());
+    }
+  } else {
+    // no previous vertex so likely 1st vertex of run is in window
+    // check if we have a prior from a previous partial window
+    auto T_0g_msg =
+        vertex_0->retrieveKeyframeData<vtr_messages::msg::LgTransform>(
+            "gps_T_0g", true);
+    if (T_0g_msg != nullptr) {
+      Eigen::Matrix<double, 6, 1> xi_vec;
+      xi_vec << T_0g_msg->xi[0], T_0g_msg->xi[1], T_0g_msg->xi[2],
+          T_0g_msg->xi[3], T_0g_msg->xi[4], T_0g_msg->xi[5];
+      T_0g_prior.second = lgmath::se3::TransformationWithCovariance(xi_vec);
+
+      Eigen::Matrix<double, 6, 6> cov_0g = Eigen::Matrix<double, 6, 6>::Zero();
+      for (int i = 0; i < 6; ++i) {
+        for (int j = 0; j < 6; ++j) {
+          cov_0g(i, j) = T_0g_msg->cov[6 * i + j];
+        }
+      }
+      T_0g_prior.second.setCovariance(cov_0g);
+    }
+  }
+
+  if (!T_0g_prior.second.covarianceSet() && !msgs.empty()) {
+    // likely the first time we've got TDCP measurements
+    // we'll use the code solutions to get a rough heading estimate as prior
+
+    // todo: use code solution to initialize
+
+    T_0g_prior.second.setCovariance(config_->default_T_0g_cov);
+  }
+  // if no previous prior and no TDCP, we just won't fill in T_0g_prior
 }
 
 }  // namespace tactic

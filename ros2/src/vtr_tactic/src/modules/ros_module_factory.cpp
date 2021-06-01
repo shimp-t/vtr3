@@ -485,6 +485,12 @@ void ROSModuleFactory::configureStereoWindowedRecallModule(
   auto config = std::make_shared<StereoWindowedRecallModule::Config>();
   // clang-format off
   config->window_size = node_->declare_parameter<decltype(config->window_size)>(param_prefix + ".window_size", config->window_size);
+  config->tdcp_enable = node_->declare_parameter<decltype(config->tdcp_enable)>(param_prefix + ".tdcp_enable", config->tdcp_enable);
+  std::vector<double> default_T_0g_cov_diag = node_->declare_parameter<std::vector<double>>(param_prefix + ".default_T_0g_cov_diag", std::vector<double>{1.0, 1.0, 1.0, 0.1, 0.1, 1.0});
+  config->default_T_0g_cov = Eigen::Matrix<double, 6, 6>::Identity();
+  if (default_T_0g_cov_diag.size() == 6) {
+    config->default_T_0g_cov.diagonal() << default_T_0g_cov_diag[0], default_T_0g_cov_diag[1], default_T_0g_cov_diag[2], default_T_0g_cov_diag[3], default_T_0g_cov_diag[4], default_T_0g_cov_diag[5];
+  }
   // clang-format on
   std::dynamic_pointer_cast<StereoWindowedRecallModule>(module)->setConfig(
       config);
