@@ -114,6 +114,10 @@ class OfflineNavigator {
     tactic_->runPipeline(query_data);
   }
 
+  void processTdcpData(const std::shared_ptr<TdcpMsg>& msg) {
+    tactic_->logGpsRaw(*msg);
+  }
+
   /** \brief Save VO estimates to CSV file as way to plot. */
   void saveVO() {
     tactic::EdgeTransform T_curr(true);
@@ -124,6 +128,7 @@ class OfflineNavigator {
 
     for (; path_itr != graph_->end(); ++path_itr) {
       T_curr = T_curr * path_itr->T();
+      T_curr.reproject(true);
       if (path_itr->from().isValid()) {
         LOG(INFO) << path_itr->e()->id();
       }

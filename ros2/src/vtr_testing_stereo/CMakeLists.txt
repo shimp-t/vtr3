@@ -20,6 +20,7 @@ find_package(PCL COMPONENTS common REQUIRED)
 find_package(pcl_conversions REQUIRED)
 
 find_package(sensor_msgs REQUIRED)
+find_package(cpo_interfaces REQUIRED)
 
 find_package(vtr_common REQUIRED)
 find_package(vtr_logging REQUIRED)
@@ -40,6 +41,17 @@ target_include_directories(${PROJECT_NAME}_odometry
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>)
+
+# odometry with GPS
+add_executable(${PROJECT_NAME}_odometry_gps src/odometry_gps.cpp)
+ament_target_dependencies(${PROJECT_NAME}_odometry_gps
+        rclcpp sensor_msgs cpo_interfaces
+        vtr_common vtr_navigation vtr_logging
+        )
+target_include_directories(${PROJECT_NAME}_odometry_gps
+        PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>)
 
 # localization
 add_executable(${PROJECT_NAME}_localization src/localization.cpp)
@@ -64,6 +76,7 @@ install(
 install(
   TARGETS
     ${PROJECT_NAME}_odometry
+    ${PROJECT_NAME}_odometry_gps
     ${PROJECT_NAME}_localization
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
