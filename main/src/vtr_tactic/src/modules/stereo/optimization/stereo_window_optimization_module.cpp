@@ -349,13 +349,59 @@ StereoWindowOptimizationModule::generateOptimizationProblem(
     trajectory_->appendPriorCostTerms(smoothing_cost_terms_);
     problem_->addCostTerm(smoothing_cost_terms_);
 
-    // todo - port TDCP stuff from VTR3.0
+    // Set up TDCP factors. We require a trajectory to interpolate so it happens in this if block
+    // Note: if we don't have or want GPS, we just won't find that info in cache
+    T_0g_statevar_.reset(new steam::se3::TransformStateVar(lgmath::se3::Transformation()));
+    if (qdata.tdcp_msgs.is_valid() && !qdata.tdcp_msgs->empty()
+        && qdata.T_0g_prior.is_valid()
+        && qdata.T_0g_prior->second.covarianceSet()) {
 
-    std::cout << "Initial Smoothing Cost:         " << smoothing_cost_terms_->cost() << "        Terms:  "
+      T_0g_statevar_->setValue(qdata.T_0g_prior->second);
+      steam::se3::TransformEvaluator::ConstPtr
+          T_0g(new steam::se3::TransformStateEvaluator(T_0g_statevar_));
+
+      for (const auto &msg : *qdata.tdcp_msgs) {
+        addTdcpCost(msg, T_0g, poses[qdata.T_0g_prior->first].tf_state_eval);
+      }
+      LOG(DEBUG) << "Found " << tdcp_cost_terms_->numCostTerms()
+                 << " TDCP terms.";
+
+      // if enough cost terms, add the costs and extra state to problem
+      if (tdcp_cost_terms_->numCostTerms() >= config_->min_tdcp_terms) {
+        problem_->addStateVariable(T_0g_statevar_);
+
+        // add prior on global orientation at start of window
+        Eigen::Matrix<double, 6, 6> temp_cov = qdata.T_0g_prior->second.cov();
+        steam::BaseNoiseModel<6>::Ptr
+            prior_noise_model(new steam::StaticNoiseModel<6>(temp_cov));
+        steam::TransformErrorEval::Ptr prior_error_func
+            (new steam::TransformErrorEval(qdata.T_0g_prior->second, T_0g));
+        steam::LossFunctionBase::Ptr prior_loss_func(new steam::L2LossFunc());
+        auto prior_factor = steam::WeightedLeastSqCostTerm<6, 6>::Ptr(
+            new steam::WeightedLeastSqCostTerm<6, 6>(
+                prior_error_func,
+                prior_noise_model,
+                prior_loss_func));
+
+        global_prior_cost_term_->add(prior_factor);
+        problem_->addCostTerm(global_prior_cost_term_);
+
+        problem_->addCostTerm(tdcp_cost_terms_);
+      }
+      std::cout << "Initial Carrier Phase Cost:     "
+                << tdcp_cost_terms_->cost() << "        Terms:  "   // debugging
+                << tdcp_cost_terms_->numCostTerms() << std::endl;
+      std::cout << "Initial Global Prior Cost:      "
+                << global_prior_cost_term_->cost() << "        Terms:  "
+                << global_prior_cost_term_->numCostTerms() << std::endl;
+    }
+    std::cout << "Initial Smoothing Cost:         "
+              << smoothing_cost_terms_->cost() << "        Terms:  "
               << smoothing_cost_terms_->numCostTerms() << std::endl;
   }
-  std::cout << "Initial Vision Cost:            " << vision_cost_terms_->cost() << "        Terms:  "
-            << vision_cost_terms_->numCostTerms() << std::endl;   // debug
+  std::cout << "Initial Vision Cost:            " << vision_cost_terms_->cost()
+            << "        Terms:  " << vision_cost_terms_->numCostTerms()
+            << std::endl;
 
   return problem_;
 }
@@ -721,14 +767,17 @@ void StereoWindowOptimizationModule::updateGraphImpl(QueryCache &qdata,
   }
 
   // optimization debugging info
-  std::cout << "Final Carrier Phase Cost:     " << tdcp_cost_terms_->cost() << "        Terms:  "   // debugging
-            << tdcp_cost_terms_->numCostTerms() << std::endl;
-  std::cout << "Final Global Prior Cost:      " << global_prior_cost_term_->cost() << "        Terms:  "
+  std::cout << "Final Carrier Phase Cost:     " << tdcp_cost_terms_->cost()
+            << "      Terms:  "<< tdcp_cost_terms_->numCostTerms() << std::endl;
+  std::cout << "Final Global Prior Cost:      "
+            << global_prior_cost_term_->cost() << "        Terms:  "
             << global_prior_cost_term_->numCostTerms() << std::endl;
-  std::cout << "Final Smoothing Cost:         " << smoothing_cost_terms_->cost() << "        Terms:  "
-            << smoothing_cost_terms_->numCostTerms() << std::endl;
-  std::cout << "Final Vision Cost:            " << vision_cost_terms_->cost() << "        Terms:  "
-            << vision_cost_terms_->numCostTerms() << std::endl;
+  std::cout << "Final Smoothing Cost:         " << smoothing_cost_terms_->cost()
+            << "      Terms:  " << smoothing_cost_terms_->numCostTerms()
+            << std::endl;
+  std::cout << "Final Vision Cost:            " << vision_cost_terms_->cost()
+            << "      Terms:  " << vision_cost_terms_->numCostTerms()
+            << std::endl;
 
   if (config_->save_trajectory) {
     throw std::runtime_error{
@@ -927,6 +976,36 @@ void StereoWindowOptimizationModule::updateGraphImpl(QueryCache &qdata,
     auto v = graph->at(msg.first);
     v->replace("front_xb3_landmarks", *(msg.second), v->keyFrameTime());
   }
+
+  // save estimated global orientation if we're using it
+  if (qdata.T_0g_prior.is_valid() && qdata.T_0g_prior->second.covarianceSet()) {
+
+    // if we have a global_prior_cost_term then TDCP terms were used
+    if (global_prior_cost_term_->numCostTerms() > 0) {
+      qdata.T_0g_prior->second = T_0g_statevar_->getValue();
+      qdata.T_0g_prior->second.setCovariance(gn_solver->queryCovariance(
+          T_0g_statevar_->getKey()));
+    }
+
+    // insert the global orientation estimate to pose graph
+    vtr_messages::msg::LgTransform T_0g_msg;
+    for (int i = 0; i < 6; ++i) {
+      T_0g_msg.xi.push_back(qdata.T_0g_prior->second.vec()(i));
+    }
+    for (int i = 0; i < 6; ++i) {
+      for (int j = 0; j < 6; ++j) {
+        T_0g_msg.cov.push_back(qdata.T_0g_prior->second.cov()(i, j));
+      }
+    }
+    T_0g_msg.cov_set = true;
+
+    std::string t0g_str = "gps_T_0g";
+    graph->registerVertexStream<vtr_messages::msg::LgTransform>(qdata.T_0g_prior->first.majorId(),
+                                                                t0g_str);
+    auto v = graph->at(qdata.T_0g_prior->first);
+    v->insert(t0g_str, T_0g_msg, v->keyFrameTime());
+  }
+
   // reset to remove any old data from the problem setup
   resetProblem();
 }
