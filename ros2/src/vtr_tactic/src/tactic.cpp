@@ -126,10 +126,12 @@ void Tactic::branch(QueryCache::Ptr qdata) {
     if (!first_frame_)
       updatePersistentLoc(*qdata->live_id, *qdata->T_r_m_odo, true);
 
+#if 0     // todo: will cause a crash in offline tools if publisher_ != nullptr. Not localizing here so probably don't need? (1/2)
     /// Publish odometry result on live robot localization
     if (publisher_)
       publisher_->publishRobot(persistent_loc_, chain_.trunkSequenceId(),
                                target_loc_);
+#endif
 
     /// Update the localization with respect to the privileged chain
     /// (target localization)
@@ -202,9 +204,12 @@ void Tactic::branch(QueryCache::Ptr qdata) {
       /// Reset the map to robot transform and new vertex flag
       updatePersistentLoc(current_vertex_id_, EdgeTransform(true), true);
       /// Update odometry result on live robot localization
+
+#if 0     // todo: will cause a crash in offline tools if publisher_ != nullptr. Not localizing here so probably don't need? (2/2)
       if (publisher_)
         publisher_->publishRobot(persistent_loc_, chain_.trunkSequenceId(),
                                  target_loc_);
+#endif
     }
   }
 
