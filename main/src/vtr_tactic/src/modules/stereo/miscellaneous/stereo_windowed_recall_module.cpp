@@ -425,11 +425,14 @@ void StereoWindowedRecallModule::getTdcpMeas(std::vector<cpo_interfaces::msg::TD
   }
 
   if (!T_0g_prior.second.covarianceSet() && !msgs.empty()) {
-    // likely the first time we've got TDCP measurements
-    // we'll use the code solutions to get a rough heading estimate as prior
+    // if we get here, likely the first time we've got TDCP measurements
 
-    // todo: use code solution to initialize
+    Eigen::Vector3d r_k0_ing = Eigen::Vector3d{msgs.back()->enu_pos.x - msgs.front()->prev_enu_pos.x, msgs.back()->enu_pos.y - msgs.front()->prev_enu_pos.y, msgs.back()->enu_pos.z - msgs.front()->prev_enu_pos.z};
+    double theta = atan2(r_k0_ing.y(), r_k0_ing.x());
 
+    Eigen::Matrix<double, 6, 1> init_pose_vec;
+    init_pose_vec << 0, 0, 0, 0, 0, -1 * theta;
+    T_0g_prior.second = lgmath::se3::TransformationWithCovariance(init_pose_vec);
     T_0g_prior.second.setCovariance(config_->default_T_0g_cov);
   }
   // if no previous prior and no TDCP, we just won't fill in T_0g_prior
