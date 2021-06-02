@@ -10,8 +10,8 @@
     # The control frame from the urdf
     control_frame: base_link
     # Start and stop index
-    start_index: 1 # TODO: index starts from 1 instead of 0?
-    stop_index: 15000
+    start_index: 2000
+    stop_index: 4880
 
     ############ GPS-related parameters ############
     use_tdcp: true
