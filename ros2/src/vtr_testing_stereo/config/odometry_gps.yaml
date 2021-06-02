@@ -5,6 +5,8 @@
     input_dir: "/mnt/tumblehome/home/benc/feb_stereo_collection/feb15c"
     # Result directory for odometry (including graph and odometry result)
     output_dir: "~/ASRL/vtr3_offline_test/new"
+    # Clears previous graphs in output_dir
+    clear_data_dir: true
     # The sensor frame from the urdf (also defines the rig name)
     sensor_frame: front_xb3
     # The control frame from the urdf

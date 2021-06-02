@@ -23,6 +23,12 @@ int main(int argc, char **argv) {
   LOG_IF(to_file, INFO) << "Logging to: " << log_filename;
   LOG_IF(!to_file, WARNING) << "NOT LOGGING TO A FILE.";
 
+  auto clear_data_dir = node->declare_parameter<bool>("clear_data_dir", false);
+  if (clear_data_dir) {
+    LOG(INFO) << "Clearing data directory.";
+    fs::remove_all(fs::path{common::utils::expand_user(output_dir)});
+  }
+
   LOG(INFO) << "Starting Odometry with GPS, beep beep beep";
   OdometryNavigator navigator{node, output_dir};
 
