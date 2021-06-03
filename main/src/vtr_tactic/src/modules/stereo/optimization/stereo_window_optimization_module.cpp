@@ -27,8 +27,7 @@ void StereoWindowOptimizationModule::setConfig(
 
 std::shared_ptr<steam::OptimizationProblem>
 StereoWindowOptimizationModule::generateOptimizationProblem(
-    QueryCache &qdata, MapCache &mdata,
-    const std::shared_ptr<const Graph> &graph) {
+    QueryCache &qdata, MapCache &, const std::shared_ptr<const Graph> &graph) {
   // get references to the relevent data.
   LandmarkMap &lm_map = *qdata.landmark_map;
   auto &poses = *qdata.pose_map;
@@ -505,7 +504,7 @@ void StereoWindowOptimizationModule::addTdcpCost(const TdcpMsg::SharedPtr &msg,
 }
 
 bool StereoWindowOptimizationModule::verifyInputData(QueryCache &qdata,
-                                                     MapCache &mdata) {
+                                                     MapCache &) {
   // make sure we have a landmark and pose map, and calibration.
   if (qdata.landmark_map.is_valid() == false ||
       qdata.pose_map.is_valid() == false ||
@@ -528,7 +527,7 @@ bool StereoWindowOptimizationModule::verifyInputData(QueryCache &qdata,
 }
 
 bool StereoWindowOptimizationModule::isLandmarkValid(
-    const Eigen::Vector3d &point, QueryCache &qdata) {
+    const Eigen::Vector3d &point, QueryCache &) {
   // check depth
   if (point(2) > config_->max_point_depth ||
       point(2) < config_->min_point_depth) {
@@ -558,7 +557,7 @@ bool StereoWindowOptimizationModule::isLandmarkValid(
 }
 
 bool StereoWindowOptimizationModule::verifyOutputData(QueryCache &qdata,
-                                                      MapCache &mdata) {
+                                                      MapCache &) {
   // attempt to fit a plane to the point cloud
   if (config_->perform_planarity_check) {
     throw std::runtime_error{
@@ -758,7 +757,7 @@ void StereoWindowOptimizationModule::saveTrajectory(
 #endif
 
 void StereoWindowOptimizationModule::updateGraphImpl(QueryCache &qdata,
-                                                     MapCache &mdata,
+                                                     MapCache &,
                                                      const Graph::Ptr &graph,
                                                      VertexId) {
   if (qdata.landmark_map.is_valid() == false ||
