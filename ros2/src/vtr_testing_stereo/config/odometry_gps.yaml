@@ -5,17 +5,20 @@
     input_dir: "/mnt/tumblehome/home/benc/feb_stereo_collection/feb15c"
     # Result directory for odometry (including graph and odometry result)
     output_dir: "~/ASRL/vtr3_offline_test/new"
+    # Clears previous graphs in output_dir
+    clear_data_dir: true
+    results_filename: "vo_gps.csv"
     # The sensor frame from the urdf (also defines the rig name)
     sensor_frame: front_xb3
     # The control frame from the urdf
     control_frame: base_link
     # Start and stop index
-    start_index: 1 # TODO: index starts from 1 instead of 0?
-    stop_index: 15000
+    start_index: 2000
+    stop_index: 4880
 
     ############ GPS-related parameters ############
     use_tdcp: true
-    tdcp_data_dir: "~/ASRL/dataset/feb_gps"
+    tdcp_data_dir: "~/ASRL/dataset/feb_gps/tdcp"
     tdcp_dataset: "feb15c"
 
     ############ tactic configuration ############
@@ -174,12 +177,12 @@
         type: stereo_windowed_recall
         window_size: 5
         tdcp_enable: true             # todo (Ben): also add these new params to default params
-        default_T_0g_cov_diag: [ 1.0, 1.0, 1.0, 0.01, 0.01, 1.0 ]
+        default_T_0g_cov_diag: [ 0.0001, 0.0001, 0.0001, 0.001, 0.001, 4.0 ]
 
       steam:
         trajectory_smoothing: true
         velocity_prior: false
-        verbose: false
+        verbose: true
         use_T_q_m_prior: false
         # solver_type: "LevenburgMarquardt"
         depth_prior_enable: true
