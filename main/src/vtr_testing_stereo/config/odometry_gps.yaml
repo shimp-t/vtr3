@@ -2,9 +2,9 @@
   ros__parameters:
     ############ system configuration ############
     # Dataset directory for odometry
-    input_dir: "/mnt/tumblehome/home/benc/feb_stereo_collection/feb15c"
+    input_dir: "/mnt/tumblehome/home/benc/feb_stereo_collection/feb15c"   # todo: move to data directory
     # Result directory for odometry (including graph and odometry result)
-    output_dir: "~/ASRL/vtr3_offline_test/new"
+    output_dir: "${VTRTEMP}/testing/stereo"
     # Clears previous graphs in output_dir
     clear_data_dir: true
     results_filename: "vo_gps.csv"
@@ -18,7 +18,7 @@
 
     ############ GPS-related parameters ############
     use_tdcp: true
-    tdcp_data_dir: "~/ASRL/dataset/feb_gps/tdcp"
+    tdcp_data_dir: "${VTRDATA}/feb_gps/tdcp"
     tdcp_dataset: "feb15c"
 
     ############ tactic configuration ############

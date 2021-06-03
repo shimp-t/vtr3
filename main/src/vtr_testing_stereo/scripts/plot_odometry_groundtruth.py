@@ -83,15 +83,15 @@ def read_gpgga(gga_path, gps_day, start_time=0.0, end_time=4999999999.9):
 def main():
     parser = argparse.ArgumentParser(description='Plot integrated VO from odometry_gps')
     parser.add_argument('--results_path', '-r', type=str, help='Parent directory containing run files.',
-                        default='~/ASRL/vtr3_offline_test/new/results_run_000000')
+                        default='${VTRTEMP}/testing/stereo/results_run_000000')
     parser.add_argument('--groundtruth_dir', '-g', type=str, help='Path to directory with RTK ground truth (optional)',
-                        default='~/ASRL/dataset/feb_gps/groundtruth/')
+                        default='${VTRDATA}/feb_gps/groundtruth/')
     parser.add_argument('--groundtruth_file', '-f', type=str, help='File name of RTK ground truth (optional)',
                         default='feb15c_gga.ASC')
     args = parser.parse_args()
 
-    results_path = osp.expanduser(args.results_path)
-    gt_path = osp.join(osp.expanduser(args.groundtruth_dir), args.groundtruth_file)
+    results_path = osp.expanduser(osp.expandvars(args.results_path))
+    gt_path = osp.join(osp.expanduser(osp.expandvars(args.groundtruth_dir)), args.groundtruth_file)
     gt_available = osp.exists(gt_path)
     dataset = args.groundtruth_file[:6]
 
