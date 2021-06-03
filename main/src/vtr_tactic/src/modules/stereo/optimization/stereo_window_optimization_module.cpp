@@ -980,7 +980,7 @@ void StereoWindowOptimizationModule::updateGraphImpl(QueryCache &qdata,
   // save estimated global orientation if we're using it
   if (qdata.T_0g_prior.is_valid() && qdata.T_0g_prior->second.covarianceSet()) {
 
-    // if we have a global_prior_cost_term then TDCP terms were used
+    // if we have a global_prior_cost_term then TDCP terms were used  // todo: this assumption is not necessarily correct ***
     if (global_prior_cost_term_->numCostTerms() > 0) {
       qdata.T_0g_prior->second = T_0g_statevar_->getValue();
       qdata.T_0g_prior->second.setCovariance(gn_solver->queryCovariance(
@@ -998,12 +998,48 @@ void StereoWindowOptimizationModule::updateGraphImpl(QueryCache &qdata,
       }
     }
     T_0g_msg.cov_set = true;
+    std::cout << "phi_0g cov: \n"
+              << qdata.T_0g_prior->second.cov().bottomRightCorner(3, 3)
+              << std::endl;
 
     std::string t0g_str = "gps_T_0g";
     graph->registerVertexStream<vtr_messages::msg::LgTransform>(qdata.T_0g_prior->first.majorId(),
                                                                 t0g_str);
     auto v = graph->at(qdata.T_0g_prior->first);
     v->insert(t0g_str, T_0g_msg, v->keyFrameTime());
+
+    std::cout << "Saved prior on global orientation at "
+              << qdata.T_0g_prior->first << std::endl;
+
+
+
+    // save off T_0g estimate to CSV for simple plotting  // todo: temporary
+    Eigen::Matrix3d C_vg = qdata.T_0g_prior->second.C_ba();
+    Eigen::Matrix<double, 6, 1>
+        vec = qdata.T_0g_prior->second.vec();     // temporary stuff
+    double yaw = atan2(C_vg(1, 0), C_vg(0, 0));
+    double pitch = atan2(-C_vg(2, 0),
+                         sqrt(C_vg(2, 1) * C_vg(2, 1)
+                                  + C_vg(2, 2) * C_vg(2, 2)));
+    double roll = atan2(C_vg(2, 1), C_vg(2, 2));
+#if 1
+    std::cout << "YAW:  " << yaw;
+    std::cout << "  PITCH: " << pitch;
+    std::cout << "  ROLL: " << roll << std::endl;
+//    std::cout << "vec: " << vec.transpose() << std::endl;
+#endif
+    ypr_estimates_.push_back(std::vector<double>{yaw, pitch, roll,
+                                                 (double) v->id().minorId(),
+                                                 (double) v->keyFrameTime().nanoseconds_since_epoch
+                                                     * 1e-9});
+  }
+
+  if (graph->numberOfVertices() == 488) {     // todo: very temporary
+    std::ofstream outstream;
+    outstream.open("/home/ben/Desktop/yprs.csv");
+    for (auto ypr : ypr_estimates_) {
+      outstream << ypr[0] << "," << ypr[1] << "," << ypr[2] << "," << ypr[3] << "," << std::setprecision(12) << ypr[4] << std::setprecision(6) << "\n";
+    }
   }
 
   // reset to remove any old data from the problem setup
