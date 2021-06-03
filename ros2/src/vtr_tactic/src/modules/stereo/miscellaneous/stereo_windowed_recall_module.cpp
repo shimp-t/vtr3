@@ -281,6 +281,13 @@ void StereoWindowedRecallModule::getTimesandVelocities(
     pose.second.setVelocity(velocity);
   }
   // todo: above for loop doesn't set velocity for current vertex (causes higher initial smoothing costs)
+  //  below is quick fix
+  if (!poses.empty()) {
+    auto latest_pose = poses.rbegin();
+    Eigen::Matrix<double, 6, 1> constant_velocity;
+    constant_velocity << -0.9, 0.0, 0.0, 0.0, 0.0, 0.0; // grizz full speed ~0.9
+    latest_pose->second.setVelocity(constant_velocity);
+  }
 }
 
 void StereoWindowedRecallModule::loadSensorTransform(
@@ -427,12 +434,16 @@ void StereoWindowedRecallModule::getTdcpMeas(std::vector<cpo_interfaces::msg::TD
   if (!T_0g_prior.second.covarianceSet() && !msgs.empty()) {
     // if we get here, likely the first time we've got TDCP measurements
 
-    Eigen::Vector3d r_k0_ing = Eigen::Vector3d{msgs.back()->enu_pos.x - msgs.front()->prev_enu_pos.x, msgs.back()->enu_pos.y - msgs.front()->prev_enu_pos.y, msgs.back()->enu_pos.z - msgs.front()->prev_enu_pos.z};
+    Eigen::Vector3d r_k0_ing =
+        Eigen::Vector3d{msgs.back()->enu_pos.x - msgs.front()->prev_enu_pos.x,
+                        msgs.back()->enu_pos.y - msgs.front()->prev_enu_pos.y,
+                        msgs.back()->enu_pos.z - msgs.front()->prev_enu_pos.z};
     double theta = atan2(r_k0_ing.y(), r_k0_ing.x());
 
     Eigen::Matrix<double, 6, 1> init_pose_vec;
     init_pose_vec << 0, 0, 0, 0, 0, -1 * theta;
-    T_0g_prior.second = lgmath::se3::TransformationWithCovariance(init_pose_vec);
+    T_0g_prior.second =
+        lgmath::se3::TransformationWithCovariance(init_pose_vec);
     T_0g_prior.second.setCovariance(config_->default_T_0g_cov);
   }
   // if no previous prior and no TDCP, we just won't fill in T_0g_prior
