@@ -416,10 +416,6 @@ StereoWindowOptimizationModule::generateOptimizationProblem(
       }
     }
 
-    // Add smoothing terms
-    trajectory_->appendPriorCostTerms(smoothing_cost_terms_);
-    problem_->addCostTerm(smoothing_cost_terms_);
-
     // Set up TDCP factors. We require a trajectory to interpolate so it happens in this if block
 
 #if CASCADE   // get tdcp info from cpo_estimates_
@@ -550,6 +546,9 @@ StereoWindowOptimizationModule::generateOptimizationProblem(
                 << global_prior_cost_term_->cost() << "        Terms:  "
                 << global_prior_cost_term_->numCostTerms() << std::endl;
     }
+    // Add smoothing terms
+    trajectory_->appendPriorCostTerms(smoothing_cost_terms_);
+    problem_->addCostTerm(smoothing_cost_terms_);
     std::cout << "Initial Smoothing Cost:         "
               << smoothing_cost_terms_->cost() << "        Terms:  "
               << smoothing_cost_terms_->numCostTerms() << std::endl;
