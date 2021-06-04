@@ -7,7 +7,7 @@
     output_dir: "${VTRTEMP}/testing/stereo"
     # Clears previous graphs in output_dir
     clear_data_dir: true
-    results_filename: "vo_gps.csv"
+    results_filename: "vo_gps_c.csv"
     # The sensor frame from the urdf (also defines the rig name)
     sensor_frame: front_xb3
     # The control frame from the urdf
