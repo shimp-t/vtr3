@@ -279,6 +279,10 @@ void StereoWindowedRecallModule::getTimesandVelocities(
     pose.second.time =
         steam::Time(static_cast<int64_t>(stamp.nanoseconds_since_epoch));
     pose.second.setVelocity(velocity);
+
+    if (pose.first.minorId() == 0 && poses.size() < config_->window_size) {      // quick fix for "bug" locking first velocity to zero
+      pose.second.velocity->setLock(false);
+    }
   }
   // todo: above for loop doesn't set velocity for current vertex (causes higher initial smoothing costs)
   //  below is quick fix

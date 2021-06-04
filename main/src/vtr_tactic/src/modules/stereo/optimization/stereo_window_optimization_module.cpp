@@ -874,7 +874,7 @@ void StereoWindowOptimizationModule::updateGraphImpl(QueryCache &qdata,
   bool found_first_unlocked = false;
   // update the velocities in the graph
   for (auto &pose : poses) {
-    if (pose.second.isLocked() == false) {
+    if (pose.second.velocity->isLocked() == false) {
       auto v = graph->at(pose.first);
       auto v_vel =
           v->retrieveKeyframeData<vtr_messages::msg::Velocity>("_velocities");
@@ -889,7 +889,7 @@ void StereoWindowOptimizationModule::updateGraphImpl(QueryCache &qdata,
 
       v->replace("_velocities", *v_vel, v->keyFrameTime());
 
-      if (!found_first_unlocked) {
+      if (!found_first_unlocked && !pose.second.isLocked()) {
         first_unlocked = pose.first;
         found_first_unlocked = true;
       }
