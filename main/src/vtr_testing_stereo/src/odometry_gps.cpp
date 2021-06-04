@@ -101,13 +101,18 @@ int main(int argc, char **argv) {
 
   // get first GPS messages
   if (use_tdcp) {
+    // todo: this doesn't seek probably because standard rosbag2
     seek_success =
         tdcp_stream->seekByTimestamp(image_stamp.nanoseconds_since_epoch);
     if (!seek_success) {
       LOG(ERROR) << "TDCP seek failed!";
       return 0;
     }
-    tdcp_msg = tdcp_stream->readNextFromSeek();
+    // loop added because seek above doesn't work properly
+    do {
+      tdcp_msg = tdcp_stream->readNextFromSeek();
+    } while (tdcp_msg != nullptr && tdcp_msg->template get<TdcpMsg>().t_b
+        < image_stamp.nanoseconds_since_epoch);
   }
 #if 0
   if (use_gpgga) {
