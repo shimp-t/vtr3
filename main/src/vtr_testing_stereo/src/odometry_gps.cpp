@@ -16,7 +16,7 @@ int main(int argc, char **argv) {
   std::string log_filename;
   if (to_file) {
     auto log_name = common::timing::toIsoFilename(common::timing::clock::now());
-    log_filename = fs::path{common::utils::expand_user(output_dir)} / "logs" /
+    log_filename = fs::path{common::utils::expand_user(common::utils::expand_env(output_dir))} / "logs" /
         (log_name + ".log");
   }
   logging::configureLogging(log_filename, false);
@@ -37,10 +37,9 @@ int main(int argc, char **argv) {
   std::shared_ptr<storage::DataStreamReader<TdcpMsg>> tdcp_stream;
   if (use_tdcp) {
     LOG(INFO) << "Using time-differenced carrier phase measurements.";
-    auto tdcp_data_dir_str =
-        common::utils::expand_user(node->declare_parameter<std::string>(
-            "tdcp_data_dir",
-            ""));
+    auto tdcp_data_dir_str = common::utils::expand_user(
+        common::utils::expand_env(
+            node->declare_parameter<std::string>("tdcp_data_dir", "")));
     auto
         tdcp_dataset = node->declare_parameter<std::string>("tdcp_dataset", "");
     tdcp_stream = std::make_shared<storage::DataStreamReader<TdcpMsg>>(
@@ -58,7 +57,8 @@ int main(int argc, char **argv) {
   // image parameters and setup
   auto input_dir = node->declare_parameter<std::string>("input_dir", "");
   storage::DataStreamReader<RigImagesMsg, RigCalibrationMsg> stereo_stream(
-      common::utils::expand_user(input_dir), "front_xb3");
+      common::utils::expand_user(common::utils::expand_env(input_dir)),
+      "front_xb3");
   // fetch calibration
   auto calibration_msg =
       stereo_stream.fetchCalibration()->get<RigCalibrationMsg>();
