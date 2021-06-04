@@ -2,8 +2,8 @@
   ros__parameters:
     ############ system configuration ############
     # Dataset directory for odometry
-    input_dir: "${VTRDATA}/utias_20210412"
-    # input_dir: "${VTRDATA}/utias_2016_inthedark/run_000003"
+    # input_dir: "${VTRDATA}/utias_20210412"
+    input_dir: "${VTRDATA}/utias_2016_inthedark/run_000003"
     # Result directory for odometry (including graph and odometry result)
     output_dir: "${VTRTEMP}/testing/stereo"
     # The sensor frame from the urdf (also defines the rig name)
