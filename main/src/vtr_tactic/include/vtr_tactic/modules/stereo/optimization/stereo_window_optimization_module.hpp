@@ -9,6 +9,8 @@
 #include <vtr_tactic/modules/base_module.hpp>
 #include <vtr_tactic/modules/stereo/optimization/steam_module.hpp>
 
+#define CASCADE 1
+
 using TdcpMsg = cpo_interfaces::msg::TDCP;
 
 namespace vtr {
@@ -138,6 +140,10 @@ class StereoWindowOptimizationModule : public SteamModule {
   steam::se3::TransformStateVar::Ptr T_0g_statevar_;
 
   std::vector<std::vector<double>> ypr_estimates_;   // temporary
+
+#if CASCADE
+  std::vector<std::vector<double>> cpo_estimates_;
+#endif
 };
 
 }  // namespace stereo

@@ -96,9 +96,9 @@ def main():
     dataset = args.groundtruth_file[:6]
     plot_xy_errors = False  # whether we want 3 subplots in error plot or just overall error
 
-    result_files = ["vo_vis_c.csv", "vo_gps_c.csv"]
-    run_colours = {result_files[0]: 'C3', result_files[1]: 'C0'}
-    run_labels = {result_files[0]: 'Only Vision', result_files[1]: 'With GPS'}
+    result_files = ["vo_vis_c.csv", "vo_gps_c.csv", "cascade_c.csv"]
+    run_colours = {result_files[0]: 'C3', result_files[1]: 'C0', result_files[2]: 'C4'}
+    run_labels = {result_files[0]: 'Only Vision', result_files[1]: 'With GPS', result_files[2]: 'Cascaded'}
     rs = {}  # position estimates from each result/run                  # todo: better var names
     rs_rot = {}  # position estimates rotated to align with ground truth
     rs_rot_interp = {}  # rotated position estimates interpolated to ground truth times

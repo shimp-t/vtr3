@@ -7,7 +7,7 @@
     output_dir: "${VTRTEMP}/testing/stereo"
     # Clears previous graphs in output_dir
     clear_data_dir: true
-    results_filename: "vo_gps_c.csv"
+    results_filename: "cascade_c.csv"
     # The sensor frame from the urdf (also defines the rig name)
     sensor_frame: front_xb3
     # The control frame from the urdf
@@ -192,14 +192,20 @@
         perform_planarity_check: false
         plane_distance: 20.0
 
-        lin_acc_std_dev_x: 2.5    # 10x Grizzly default
-        lin_acc_std_dev_y: 0.01
-        lin_acc_std_dev_z: 0.1
-        ang_acc_std_dev_x: 0.01
-        ang_acc_std_dev_y: 0.01
-        ang_acc_std_dev_z: 0.03
+        lin_acc_std_dev_x: 0.05    # strongish
+        lin_acc_std_dev_y: 0.001
+        lin_acc_std_dev_z: 0.01
+        ang_acc_std_dev_x: 0.001
+        ang_acc_std_dev_y: 0.001
+        ang_acc_std_dev_z: 0.003
+#        lin_acc_std_dev_x: 2.5    # 10x Grizzly default
+#        lin_acc_std_dev_y: 0.01
+#        lin_acc_std_dev_z: 0.1
+#        ang_acc_std_dev_x: 0.01
+#        ang_acc_std_dev_y: 0.01
+#        ang_acc_std_dev_z: 0.03
 
-        tdcp_cov: 0.01
+        tdcp_cov: 0.001
         min_tdcp_terms: 3
         stereo_cov_multiplier: 10.0
 

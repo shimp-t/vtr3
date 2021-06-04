@@ -13,6 +13,40 @@
 #include <asrl/messages/lgmath_conversions.hpp>
 #endif
 
+#if CASCADE
+class CSVRow {
+ public:
+  std::string_view operator[](std::size_t index) const {
+    return std::string_view(&m_line[m_data[index] + 1], m_data[index + 1] -  (m_data[index] + 1));
+  }
+  std::size_t size() const {
+    return m_data.size() - 1;
+  }
+  void readNextRow(std::istream& str) {
+    std::getline(str, m_line);
+
+    m_data.clear();
+    m_data.emplace_back(-1);
+    std::string::size_type pos = 0;
+    while((pos = m_line.find(',', pos)) != std::string::npos) {
+      m_data.emplace_back(pos);
+      ++pos;
+    }
+    // This checks for a trailing comma with no data after it.
+    pos   = m_line.size();
+    m_data.emplace_back(pos);
+  }
+ private:
+  std::string         m_line;
+  std::vector<int>    m_data;
+};
+
+std::istream& operator>>(std::istream& str, CSVRow& data) {
+  data.readNextRow(str);
+  return str;
+}
+#endif
+
 namespace vtr {
 namespace tactic {
 namespace stereo {
@@ -31,6 +65,27 @@ void StereoWindowOptimizationModule::configFromROS(
   window_config_->min_tdcp_terms = node->declare_parameter<int>(param_prefix + ".min_tdcp_terms", 3);
   window_config_->stereo_cov_multiplier = node->declare_parameter<double>(param_prefix + ".stereo_cov_multiplier", 1.0);
   // clang-format on
+
+#if CASCADE
+  //  read CSV file into data structure
+  std::ifstream file("/home/ben/Desktop/cpo.csv");
+  CSVRow row;
+  bool first_row = true;
+  while(file >> row) {
+    if (first_row) {
+      first_row = false;
+      continue;
+    }
+    std::vector<double> row_vec;
+    for (uint i = 0; i < row.size(); ++i) {
+      std::string el_str = std::string(row[i]);
+      if (!el_str.empty()) {
+        row_vec.push_back(std::stod(el_str));
+      }
+    }
+    cpo_estimates_.push_back(row_vec);
+  }
+#endif
 }
 
 std::shared_ptr<steam::OptimizationProblem>
@@ -312,10 +367,18 @@ StereoWindowOptimizationModule::generateOptimizationProblem(
 
   // add pose variables
   int jj = 0;
+
+  double traj_start_time = 999999999999999.9;
+
   for (auto &pose : poses) {
     auto &steam_pose = pose.second;
     problem_->addStateVariable(steam_pose.tf_state_var);
+    std::cout << "Added pose at t " << std::setprecision(12) << steam_pose.time.seconds() << std::setprecision(6) << " with current vel " << steam_pose.velocity->getValue().transpose();
+    std::cout << "  Vel locked? " << steam_pose.velocity->isLocked() << std::endl;
     jj++;
+
+    if (steam_pose.time.seconds() < traj_start_time)
+      traj_start_time = steam_pose.time.seconds();
   }
 
   // Add landmark variables
@@ -358,6 +421,89 @@ StereoWindowOptimizationModule::generateOptimizationProblem(
     problem_->addCostTerm(smoothing_cost_terms_);
 
     // Set up TDCP factors. We require a trajectory to interpolate so it happens in this if block
+
+#if CASCADE   // get tdcp info from cpo_estimates_
+    std::cout << "Live V " << *qdata.live_id << std::endl;
+
+    if (qdata.tdcp_msgs.is_valid() && !qdata.tdcp_msgs->empty()) {    // will keep this condition so we can use tdcp_enable param still
+
+      auto new_v = graph->at(*qdata.live_id);
+      double curr_secs = new_v->keyFrameTime().nanoseconds_since_epoch * 1e-9;
+      std::cout << "curr_secs: " << std::setprecision(12) << curr_secs << std::setprecision(6) << std::endl;
+      for (uint i = 1; i < cpo_estimates_.size(); ++i) {
+        // find time(s) corresponding to just before curr_sec
+        const auto &row = cpo_estimates_[i];
+        if (row[0] > curr_secs - 3.0 && row[0] < curr_secs) {
+          // make transformation matrices out of it and previous row
+          const auto &prev_row = cpo_estimates_[i - 1];
+
+          if (prev_row[0] < traj_start_time) {
+            std::cout << "Time a before trajectory start so not adding in. " << std::endl;
+            continue;
+          }
+
+//          if (row[0] - prev_row[0] > 1.1)
+//            continue;       // todo: do we want this to avoid large edges?
+
+          Eigen::Matrix4d T_curr, T_prev;
+          T_curr << row[8], row[12], row[16], row[20],
+                    row[9], row[13], row[17], row[21],
+                    row[10], row[14], row[18], row[22],
+                    row[11], row[15], row[19], row[23];
+          T_prev << prev_row[8], prev_row[12], prev_row[16], prev_row[20],
+                    prev_row[9], prev_row[13], prev_row[17], prev_row[21],
+                    prev_row[10], prev_row[14], prev_row[18], prev_row[22],
+                    prev_row[11], prev_row[15], prev_row[19], prev_row[23];
+          lgmath::se3::Transformation T_b0_meas(T_curr);
+          lgmath::se3::Transformation T_a0_meas(T_prev);
+          // compose to get relative transform -> measurement
+          lgmath::se3::Transformation T_ba_meas = T_b0_meas * T_a0_meas.inverse();
+
+          std::cout << "t_a: " << std::setprecision(12) << prev_row[0] << "  t_b: " << row[0] << std::setprecision(6) << std::endl;
+          std::cout << "T_ba_meas " << T_ba_meas << std::endl;
+
+          // get poseInterp at two times and compose -> TransformEval
+          steam::se3::SteamTrajPoseInterpEval::ConstPtr
+              T_b = trajectory_->getInterpPoseEval(steam::Time(row[0]));
+          steam::se3::SteamTrajPoseInterpEval::ConstPtr
+              T_a = trajectory_->getInterpPoseEval(steam::Time(prev_row[0]));
+          steam::se3::TransformEvaluator::ConstPtr T_ba_state = steam::se3::composeInverse(T_b, T_a);
+
+          std::cout << "T_ba_state " << T_ba_state->evaluate() << std::endl;
+
+#if 1
+          // add PoseError (TransformErrorEval)
+          Eigen::Matrix<double, 6, 6> temp_cov = window_config_->tdcp_cov* Eigen::Matrix<double,6,6>::Identity();   // reusing tdcp_cov param in different way here
+          steam::BaseNoiseModel<6>::Ptr
+              cpo_noise_model(new steam::StaticNoiseModel<6>(temp_cov));
+          steam::TransformErrorEval::Ptr cpo_error_func
+              (new steam::TransformErrorEval(T_ba_meas, T_ba_state));
+          steam::LossFunctionBase::Ptr cpo_loss_func(new steam::L2LossFunc());
+          auto cpo_factor = steam::WeightedLeastSqCostTerm<6, 6>::Ptr(
+              new steam::WeightedLeastSqCostTerm<6, 6>(
+                  cpo_error_func,
+                  cpo_noise_model,
+                  cpo_loss_func));
+#else
+          // add PoseError (PositionErrorEval)
+          Eigen::Matrix<double, 3, 3> temp_cov = config_->tdcp_cov* Eigen::Matrix<double,3,3>::Identity();   // reusing tdcp_cov param in different way here
+          steam::BaseNoiseModel<3>::Ptr
+              cpo_noise_model(new steam::StaticNoiseModel<3>(temp_cov));
+          steam::PositionErrorEval::Ptr cpo_error_func
+              (new steam::PositionErrorEval(T_ba_meas.r_ba_ina(), T_ba_state));
+          steam::LossFunctionBase::Ptr cpo_loss_func(new steam::L2LossFunc());
+          auto cpo_factor = steam::WeightedLeastSqCostTerm<3, 6>::Ptr(
+              new steam::WeightedLeastSqCostTerm<3, 6>(
+                  cpo_error_func,
+                  cpo_noise_model,
+                  cpo_loss_func));
+#endif
+          tdcp_cost_terms_->add(cpo_factor);
+      }
+    }
+
+      problem_->addCostTerm(tdcp_cost_terms_);
+#else
     // Note: if we don't have or want GPS, we just won't find that info in cache
     T_0g_statevar_.reset(new steam::se3::TransformStateVar(lgmath::se3::Transformation()));
     if (qdata.tdcp_msgs.is_valid() && !qdata.tdcp_msgs->empty()
@@ -396,6 +542,7 @@ StereoWindowOptimizationModule::generateOptimizationProblem(
 
         problem_->addCostTerm(tdcp_cost_terms_);
       }
+#endif
       std::cout << "Initial Carrier Phase Cost:     "
                 << tdcp_cost_terms_->cost() << "        Terms:  "   // debugging
                 << tdcp_cost_terms_->numCostTerms() << std::endl;
@@ -1006,9 +1153,11 @@ void StereoWindowOptimizationModule::updateGraphImpl(QueryCache &qdata,
       }
     }
     T_0g_msg.cov_set = true;
+#if 0
     std::cout << "phi_0g cov: \n"
               << qdata.T_0g_prior->second.cov().bottomRightCorner(3, 3)
               << std::endl;
+#endif
 
     std::string t0g_str = "gps_T_0g";
     graph->registerVertexStream<vtr_messages::msg::LgTransform>(qdata.T_0g_prior->first.majorId(),
@@ -1016,6 +1165,7 @@ void StereoWindowOptimizationModule::updateGraphImpl(QueryCache &qdata,
     auto v = graph->at(qdata.T_0g_prior->first);
     v->insert(t0g_str, T_0g_msg, v->keyFrameTime());
 
+#if !CASCADE
     std::cout << "Saved prior on global orientation at "
               << qdata.T_0g_prior->first << std::endl;
 
@@ -1040,6 +1190,7 @@ void StereoWindowOptimizationModule::updateGraphImpl(QueryCache &qdata,
                                                  (double) v->id().minorId(),
                                                  (double) v->keyFrameTime().nanoseconds_since_epoch
                                                      * 1e-9});
+#endif
   }
 
   if (graph->numberOfVertices() == 488) {     // todo: very temporary
