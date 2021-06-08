@@ -15,6 +15,7 @@
 
 namespace vtr {
 namespace tactic {
+namespace stereo {
 
 void StereoWindowOptimizationModule::configFromROS(
     const rclcpp::Node::SharedPtr &node, const std::string param_prefix) {
@@ -26,6 +27,9 @@ void StereoWindowOptimizationModule::configFromROS(
   // clang-format off
   window_config_->depth_prior_enable = node->declare_parameter<bool>(param_prefix + ".depth_prior_enable", window_config_->depth_prior_enable);
   window_config_->depth_prior_weight = node->declare_parameter<double>(param_prefix + ".depth_prior_weight", window_config_->depth_prior_weight);
+  window_config_->tdcp_cov = node->declare_parameter<double>(param_prefix + ".tdcp_cov", 0.01);
+  window_config_->min_tdcp_terms = node->declare_parameter<int>(param_prefix + ".min_tdcp_terms", 3);
+  window_config_->stereo_cov_multiplier = node->declare_parameter<double>(param_prefix + ".stereo_cov_multiplier", 1.0);
   // clang-format on
 }
 
@@ -193,9 +197,9 @@ StereoWindowOptimizationModule::generateOptimizationProblem(
           meas_cov(2 * idx, 2 * idx) = cov[0];
           meas_cov(2 * idx + 1, 2 * idx + 1) = cov[3];
 #else   // temporary way to easily scale vision costs while testing
-          meas_cov(2 * idx, 2 * idx) = config_->stereo_cov_multiplier * cov[0];
+          meas_cov(2 * idx, 2 * idx) = window_config_->stereo_cov_multiplier * cov[0];
           meas_cov(2 * idx + 1, 2 * idx + 1) =
-              config_->stereo_cov_multiplier * cov[3];
+              window_config_->stereo_cov_multiplier * cov[3];
 #endif
           idx++;
         }
@@ -371,7 +375,7 @@ StereoWindowOptimizationModule::generateOptimizationProblem(
                  << " TDCP terms.";
 
       // if enough cost terms, add the costs and extra state to problem
-      if (tdcp_cost_terms_->numCostTerms() >= config_->min_tdcp_terms) {
+      if (tdcp_cost_terms_->numCostTerms() >= window_config_->min_tdcp_terms) {
         problem_->addStateVariable(T_0g_statevar_);
 
         // add prior on global orientation at start of window
@@ -482,7 +486,7 @@ void StereoWindowOptimizationModule::addTdcpCost(const TdcpMsg::SharedPtr &msg,
   // using constant covariance here for now
   steam::BaseNoiseModel<1>::Ptr tdcp_noise_model
       (new steam::StaticNoiseModel<1>(
-          Eigen::Matrix<double, 1, 1>(config_->tdcp_cov)));
+          Eigen::Matrix<double, 1, 1>(window_config_->tdcp_cov)));
 
   // iterate through satellite pairs in msg and add TDCP costs
   for (const auto &pair : msg->pairs) {

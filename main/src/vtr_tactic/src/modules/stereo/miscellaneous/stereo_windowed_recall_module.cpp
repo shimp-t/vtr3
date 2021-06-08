@@ -10,6 +10,12 @@ void StereoWindowedRecallModule::configFromROS(const rclcpp::Node::SharedPtr &no
   config_ = std::make_shared<Config>();
   // clang-format off
   config_->window_size = node->declare_parameter<int>(param_prefix + ".window_size", config_->window_size);
+  config_->tdcp_enable = node->declare_parameter<decltype(config_->tdcp_enable)>(param_prefix + ".tdcp_enable", config_->tdcp_enable);
+  std::vector<double> default_T_0g_cov_diag = node->declare_parameter<std::vector<double>>(param_prefix + ".default_T_0g_cov_diag", std::vector<double>{1.0, 1.0, 1.0, 0.1, 0.1, 1.0});
+  config_->default_T_0g_cov = Eigen::Matrix<double, 6, 6>::Identity();
+  if (default_T_0g_cov_diag.size() == 6) {
+    config_->default_T_0g_cov.diagonal() << default_T_0g_cov_diag[0], default_T_0g_cov_diag[1], default_T_0g_cov_diag[2], default_T_0g_cov_diag[3], default_T_0g_cov_diag[4], default_T_0g_cov_diag[5];
+  }
   // clang-format on
 }
 
