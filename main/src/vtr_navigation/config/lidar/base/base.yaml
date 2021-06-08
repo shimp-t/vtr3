@@ -8,6 +8,7 @@
 
     ############ tactic configuration ############
     tactic:
+      visualize: true
       extrapolate_odometry: true # path tracker
       default_loc_cov: [1.0, 0.5, 0.5, 0.25, 0.25, 0.5]
       chain:
@@ -34,8 +35,10 @@
 
     preprocessing:
       preprocessing:
-        type: "pcl_preprocessing"
-        lidar_n_lines: 64
+        type: "lidar.preprocessing"
+        num_threads: 8
+        num_channels: 64
+        vertical_angle_res: 0.00745
         polar_r_scale: 1.5
         r_scale: 4.0
         h_scale: 0.5
@@ -44,37 +47,43 @@
 
     odometry:
       recall:
-        type: "lidar_recall"
+        type: "lidar.map_recall"
         map_voxel_size: 0.2
         visualize: true
       icp:
-        type: "icp"
+        type: "lidar.icp"
         source: "live"
+        use_prior: false
+        num_threads: 8
         n_samples: 1000
         max_pairing_dist: 2.0
         max_planar_dist: 0.3
         avg_steps: 5
         max_iter: 100
       mapping:
-        type: "map_maintenance"
+        type: "lidar.map_maintenance"
         map_voxel_size: 0.2
         visualize: true
       keyframe_test:
-        type: "keyframe_test"
+        type: "lidar.keyframe_test"
         min_translation: 10.0
         min_rotation: 30.0
+        min_matched_points_ratio: 0.5
 
     localization:
       recall:
-        type: "lidar_windowed_recall"
+        type: "lidar.windowed_map_recall"
         map_voxel_size: 0.2
         depth: 1
         visualize: true
       icp:
-        type: "icp"
+        type: "lidar.icp"
         source: "map"
+        use_prior: true
+        num_threads: 8
         n_samples: 1000
         max_pairing_dist: 2.0
         max_planar_dist: 0.3
         avg_steps: 5
         max_iter: 100
+        verbose: true

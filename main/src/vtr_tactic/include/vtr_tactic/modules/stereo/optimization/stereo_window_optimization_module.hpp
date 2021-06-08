@@ -13,6 +13,7 @@ using TdcpMsg = cpo_interfaces::msg::TDCP;
 
 namespace vtr {
 namespace tactic {
+namespace stereo {
 
 /** \brief A module that runs STEAM on multiple graph vertices. */
 class StereoWindowOptimizationModule : public SteamModule {
@@ -32,7 +33,8 @@ class StereoWindowOptimizationModule : public SteamModule {
   StereoWindowOptimizationModule(const std::string &name = static_name)
       : SteamModule(name) {}
 
-  void setConfig(std::shared_ptr<Config> &config);
+  void configFromROS(const rclcpp::Node::SharedPtr &node,
+                     const std::string param_prefix) override;
 
  protected:
   /** \brief Update the graph with optimized transforms */
@@ -130,7 +132,7 @@ class StereoWindowOptimizationModule : public SteamModule {
   std::shared_ptr<steam::OptimizationProblem> problem_;
 
   /** \brief Module configuration. */
-  std::shared_ptr<Config> config_;
+  std::shared_ptr<Config> window_config_;
 
   /** \brief Stores absolute orientation for use with GPS terms */
   steam::se3::TransformStateVar::Ptr T_0g_statevar_;
@@ -138,5 +140,6 @@ class StereoWindowOptimizationModule : public SteamModule {
   std::vector<std::vector<double>> ypr_estimates_;   // temporary
 };
 
+}  // namespace stereo
 }  // namespace tactic
 }  // namespace vtr

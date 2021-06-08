@@ -53,20 +53,21 @@ class StereoPipeline : public BasePipeline {
 
   virtual ~StereoPipeline() {}
 
-  void setConfig(std::shared_ptr<Config> &config) { config_ = config; }
+  void configFromROS(const rclcpp::Node::SharedPtr &node,
+                     const std::string &param_prefix) override;
 
   void initialize(const Graph::Ptr &graph) override;
 
   void preprocess(QueryCache::Ptr &qdata, const Graph::Ptr &graph) override;
+  void visualizePreprocess(QueryCache::Ptr &qdata,
+                           const Graph::Ptr &graph) override;
 
   void runOdometry(QueryCache::Ptr &qdata, const Graph::Ptr &graph) override;
-
   void visualizeOdometry(QueryCache::Ptr &qdata,
                          const Graph::Ptr &graph) override;
 
   void runLocalization(QueryCache::Ptr &qdata,
                        const Graph::Ptr &graph) override;
-
   void visualizeLocalization(QueryCache::Ptr &qdata,
                              const Graph::Ptr &graph) override;
 

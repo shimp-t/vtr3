@@ -2,36 +2,36 @@
 
 #include <pcl_conversions/pcl_conversions.h>
 
-#include <vtr_lidar/polar_processing/polar_processing.h>
 #include <vtr_tactic/modules/base_module.hpp>
-
 // temp
 #include <sensor_msgs/msg/point_cloud2.hpp>
+#include <vtr_messages_lidar/msg/pointcloud_map.hpp>
 using PointCloudMsg = sensor_msgs::msg::PointCloud2;
+using PointXYZMsg = vtr_messages_lidar::msg::PointXYZ;
+using PointCloudMapMsg = vtr_messages_lidar::msg::PointcloudMap;
 
 namespace vtr {
 namespace tactic {
+namespace lidar {
 
 /** \brief Preprocess raw pointcloud points and compute normals */
-class PCLPreprocessingModule : public BaseModule {
+class WindowedMapRecallModule : public BaseModule {
  public:
   /** \brief Static module identifier. */
-  static constexpr auto static_name = "pcl_preprocessing";
+  static constexpr auto static_name = "lidar.windowed_map_recall";
 
   /** \brief Collection of config parameters */
   struct Config {
-    int lidar_n_lines = 64;
-    float polar_r_scale = 1.5;
-    float r_scale = 4.0;
-    float h_scale = 0.5;
-    float frame_voxel_size = 0.1;
+    float map_voxel_size = 0.03;
+    int depth = 1;
     bool visualize = false;
   };
 
-  PCLPreprocessingModule(const std::string &name = static_name)
+  WindowedMapRecallModule(const std::string &name = static_name)
       : BaseModule{name}, config_(std::make_shared<Config>()){};
 
-  void setConfig(std::shared_ptr<Config> &config) { config_ = config; }
+  void configFromROS(const rclcpp::Node::SharedPtr &node,
+                     const std::string param_prefix) override;
 
  private:
   void runImpl(QueryCache &qdata, MapCache &mdata,
@@ -45,8 +45,9 @@ class PCLPreprocessingModule : public BaseModule {
   std::shared_ptr<Config> config_;
 
   /** \brief for visualization only */
-  rclcpp::Publisher<PointCloudMsg>::SharedPtr pc_pub_;
+  rclcpp::Publisher<PointCloudMsg>::SharedPtr map_pub_;
 };
 
+}  // namespace lidar
 }  // namespace tactic
 }  // namespace vtr
