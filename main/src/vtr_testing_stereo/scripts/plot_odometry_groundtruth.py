@@ -36,6 +36,16 @@ def safe_int(field):
         return 0
 
 
+def read_cpo(cpo_path, start_time=0.0, end_time=4999999999.9):
+    estimates = np.genfromtxt(cpo_path, delimiter=',', skip_header=1)
+    print("Found {0} rows.".format(len(estimates)))
+    estimates = estimates[estimates[:, 0] >= start_time, :]
+    print("{0} rows after start".format(len(estimates)))
+    estimates = estimates[estimates[:, 0] <= end_time, :]
+    print("{0} rows after start and before end".format(len(estimates)))
+    return estimates
+
+
 def read_gpgga(gga_path, gps_day, start_time=0.0, end_time=4999999999.9):
     """Read file of ASCII GPGGA messages and return measurements as array in UTM coordinates"""
 
@@ -81,6 +91,7 @@ def read_gpgga(gga_path, gps_day, start_time=0.0, end_time=4999999999.9):
 
 
 def main():
+    # ARGUMENT PARSING
     parser = argparse.ArgumentParser(description='Plot integrated VO from odometry_gps')
     parser.add_argument('--results_path', '-r', type=str, help='Parent directory containing run files.',
                         default='${VTRTEMP}/testing/stereo/results_run_000000')
@@ -92,19 +103,29 @@ def main():
 
     results_path = osp.expanduser(osp.expandvars(args.results_path))
     gt_path = osp.join(osp.expanduser(osp.expandvars(args.groundtruth_dir)), args.groundtruth_file)
-    gt_available = osp.exists(gt_path)
+    assert (osp.exists(gt_path))
     dataset = args.groundtruth_file[:6]
-    plot_xy_errors = False  # whether we want 3 subplots in error plot or just overall error
 
-    result_files = ["vo_vis_c.csv", "vo_gps_c.csv", "cascade_c.csv"]
+    # OPTIONS
+    plot_xy_errors = True  # whether we want 3 subplots in error plot or just overall error
+    plot_vehicle_frame_errors = True
+
+    cpo_path = osp.expanduser("~/Desktop/cpo_c.csv")
+    cpo_available = osp.exists(cpo_path)
+
+    result_files = ["vo_vis_c.csv", "vo_gps_c.csv", "cascade_c_str.csv"]
     run_colours = {result_files[0]: 'C3', result_files[1]: 'C0', result_files[2]: 'C4'}
     run_labels = {result_files[0]: 'Only Vision', result_files[1]: 'With GPS', result_files[2]: 'Cascaded'}
-    rs = {}  # position estimates from each result/run                  # todo: better var names
-    rs_rot = {}  # position estimates rotated to align with ground truth
-    rs_rot_interp = {}  # rotated position estimates interpolated to ground truth times
-    vo_yaws = {}  # approximate yaw at each point in rotated vo
-    r_idxs = {}  # where in the position estimates the rotation point is
+    # result_files = ["vo_vis_c_full.csv", "cascade_c_str_full.csv"]
+    # run_colours = {result_files[0]: 'C3', result_files[1]: 'C4'}
+    # run_labels = {result_files[0]: 'Only Vision', result_files[1]: 'Cascaded'}
 
+    rs = {}  # position estimates from each result/run                  # todo: better var names
+    rs_interp = {}  # position estimates interpolated to ground truth times
+    rs_rot_interp = {}  # interpolated position estimates rotated to align with ground truth frame
+    r_idxs = {}  # where in the position estimates the align point is
+
+    # READ IN TRANSFORMS FROM VO
     for run in result_files:
         with open(osp.join(results_path, run), newline='') as result_file:
             reader = csv.reader(result_file, delimiter=',', quotechar='|')
@@ -131,133 +152,223 @@ def main():
             tmp.append([row[0], row[1], row[2], T_0s[0, 3], T_0s[1, 3], T_0s[2, 3]])
         rs[run] = np.array(tmp)
 
-    if gt_available:
+    # GET TIME INTERVAL WE WANT TO WORK WITH
+    start_trim = 18  # seconds to trim off start
+    first_time = math.ceil(rs[result_files[0]][0, 0]) + start_trim
+    last_time = math.floor(rs[result_files[0]][-1, 0])
 
-        if dataset[:5] == "feb15":
-            day = 2145 * 7 + 1  # Feb.15/21
-        else:
-            raise Exception("Unknown dataset - {0}".format(dataset))
+    # READ GROUND TRUTH
+    if dataset[:5] == "feb15":
+        day = 2145 * 7 + 1  # Feb.15/21
+    else:
+        raise Exception("Unknown dataset - {0}".format(dataset))
+    gt = read_gpgga(gt_path, day, start_time=first_time, end_time=last_time)
 
-        # read ground truth into array (grabbing arbitrary result to get time interval)
-        gt = read_gpgga(gt_path, day, start_time=(list(rs.values())[0])[0, 0], end_time=(list(rs.values())[0])[-1, 0])
+    # INTERPOLATE ESTIMATES AT KEYFRAME TIMES TO GROUND TRUTH TIMES
+    for run, r in rs.items():
+        tmp = []
+        for i, row in enumerate(gt):
+            if row[0] < r[0, 0] or row[0] > r[-1, 0]:  # check that time in range we have ground truth
+                continue
 
-        # rotate VO
-        align_distance = 10.0
-        gt_idx = np.argmax(gt[:, 7] > align_distance)  # find first time we've travelled at least align_distance
-        align_time = gt[gt_idx, 0]
+            idx = np.argmax(r[:, 0] > row[0])
+            time_fraction = (row[0] - r[idx - 1, 0]) / (r[idx, 0] - r[idx - 1, 0])
+            interp_x = r[idx - 1, 3] + time_fraction * (r[idx, 3] - r[idx - 1, 3])
+            interp_y = r[idx - 1, 4] + time_fraction * (r[idx, 4] - r[idx - 1, 4])
+            interp_z = r[idx - 1, 5] + time_fraction * (r[idx, 5] - r[idx - 1, 5])
+            d = row[7]
 
-        for run, r in rs.items():
-            r_idx = np.argmax(r[:, 0] > align_time)
-            if r[r_idx, 0] - align_time > align_time - r[r_idx - 1, 0]:
-                r_idx -= 1
-            r_idxs[run] = r_idx
+            tmp.append([row[0], interp_x, interp_y, interp_z, d, 0])  # time, x, y, z, dist_along_path, yaw(TBD)
 
-            theta_gt = math.atan2(gt[gt_idx, 2] - gt[0, 2], gt[gt_idx, 1] - gt[0, 1])
-            theta_r = math.atan2(r[r_idx, 4] - r[0, 4], r[r_idx, 3] - r[0, 3])
-            theta = theta_r - theta_gt
-            c = math.cos(theta)
-            s = math.sin(theta)
+        rs_interp[run] = np.array(tmp)
 
-            rs_rot[run] = np.copy(r)  # copy estimates into new rotated array
-            rs_rot[run][:, 3] = c * r[:, 3] + s * r[:, 4]
-            rs_rot[run][:, 4] = -s * r[:, 3] + c * r[:, 4]
+    # USE GROUND TRUTH TO ALIGN/ROTATE EACH VO RUN
+    align_distance = 10.0
+    gt_idx = np.argmax(gt[:, 7] > align_distance)  # find first time we've travelled at least align_distance
+    align_time = gt[gt_idx, 0]
 
+    for run, r in rs_interp.items():
+        r_idx = np.argmax(r[:, 0] > align_time)
+        if r[r_idx, 0] - align_time > align_time - r[r_idx - 1, 0]:
+            r_idx -= 1
+        r_idxs[run] = r_idx
+
+        theta_gt = math.atan2(gt[gt_idx, 2] - gt[0, 2], gt[gt_idx, 1] - gt[0, 1])
+        theta_r = math.atan2(r[r_idx, 2] - r[0, 2], r[r_idx, 1] - r[0, 1])
+        theta = theta_r - theta_gt
+        c = math.cos(theta)
+        s = math.sin(theta)
+
+        rs_rot_interp[run] = np.copy(r)  # copy estimates into new rotated array
+        rs_rot_interp[run][:, 1] = c * r[:, 1] + s * r[:, 2]
+        rs_rot_interp[run][:, 2] = -s * r[:, 1] + c * r[:, 2]
+
+    # OVERHEAD PLOT GROUND TRUTH
     fig = plt.figure(1, figsize=[9, 5])
     ax = fig.add_subplot(111)
-    if not gt_available:
-        for run, r in rs.items():
-            ax.plot(r[:, 3], r[:, 4], c=run_colours[run])
     plt.title("Integrated VO - {0} Run".format(dataset))
     plt.xlabel("x [m]")
     plt.ylabel("y [m]")
     plt.axis('equal')
 
-    for run, r_rot in rs_rot.items():
+    # READ AND OVERHEAD PLOT CPO ESTIMATES FROM CSV
+    if cpo_available:
+        cpo_estimates = read_cpo(cpo_path, start_time=first_time, end_time=last_time)
+        if cpo_estimates[0, 0] > first_time:
+            print("Warning: CPO estimates start after ground truth and VO start time. Consider increasing start_trim.")
+
+        rotate_cpo = False
+        if rotate_cpo:
+            cpo_r_idx = np.argmax(cpo_estimates[:, 0] > align_time)
+            if cpo_estimates[cpo_r_idx, 0] - align_time > align_time - cpo_estimates[cpo_r_idx - 1, 0]:
+                cpo_r_idx -= 1
+
+            theta_gt = math.atan2(gt[gt_idx, 2] - gt[0, 2], gt[gt_idx, 1] - gt[0, 1])
+            theta_r = math.atan2(cpo_estimates[cpo_r_idx, 3] - cpo_estimates[0, 3],
+                                 cpo_estimates[cpo_r_idx, 2] - cpo_estimates[0, 2])
+            theta = theta_r - theta_gt
+            c = math.cos(theta)
+            s = math.sin(theta)
+
+            cpo_estimates_rot = np.copy(cpo_estimates)  # copy estimates into new rotated array
+            cpo_estimates_rot[:, 2] = c * cpo_estimates[:, 2] + s * cpo_estimates[:, 3]
+            cpo_estimates_rot[:, 3] = -s * cpo_estimates[:, 2] + c * cpo_estimates[:, 3]
+
+            plt.plot(cpo_estimates_rot[:, 2] - cpo_estimates_rot[0, 2],
+                     cpo_estimates_rot[:, 3] - cpo_estimates_rot[0, 3], label='GPS Odometry - Rotated', c='C6')
+            ax.scatter(cpo_estimates_rot[cpo_r_idx, 2] - cpo_estimates_rot[0, 2],
+                       cpo_estimates_rot[cpo_r_idx, 3] - cpo_estimates_rot[0, 3], c='C6')
+        else:
+            plt.plot(cpo_estimates[:, 2] - cpo_estimates[0, 2], cpo_estimates[:, 3] - cpo_estimates[0, 3],
+                     label='GPS Odometry', c='C1')
+
+    # ESTIMATE YAW AT EACH VERTEX OF VO RUNS USING BEFORE/AFTER VERTEX
+    for run, r_rot_int in rs_rot_interp.items():
+        for i in range(len(r_rot_int) - 2):
+            yaw = math.atan2(r_rot_int[i + 2, 2] - r_rot_int[i, 2], r_rot_int[i + 2, 1] - r_rot_int[i, 1])
+            r_rot_int[i + 1, 5] = yaw
+        r_rot_int[0, 5] = r_rot_int[1, 5]  # use neighbouring yaw estimate for endpoints
+        r_rot_int[-1, 5] = r_rot_int[-2, 5]
+
+    # OVERHEAD PLOT THE ROTATED ESTIMATES
+    for run, r_rot_int in rs_rot_interp.items():
+        ax.plot(r_rot_int[:, 1] - r_rot_int[0, 1], r_rot_int[:, 2] - r_rot_int[0, 2], c=run_colours[run],
+                label='Rotated Estimates - {0}'.format(run_labels[run]))
+        ax.scatter(r_rot_int[r_idxs[run], 1] - r_rot_int[0, 1], r_rot_int[r_idxs[run], 2] - r_rot_int[0, 2],
+                   c=run_colours[run])
+    ax.plot(gt[:, 1] - gt[0, 1], gt[:, 2] - gt[0, 2], c='C2', label='RTK Ground Truth')
+    ax.scatter(gt[gt_idx, 1] - gt[0, 1], gt[gt_idx, 2] - gt[0, 2], c='C2')
+    plt.legend()
+
+    # SETUP ERROR PLOTS
+    if plot_xy_errors or plot_vehicle_frame_errors:
+        fig2, ax2 = plt.subplots(nrows=3, ncols=1, figsize=[8, 8])
+        fig2.subplots_adjust(left=0.10, bottom=0.06, right=0.96, top=0.93)
+    else:
+        fig2, ax2 = plt.subplots(nrows=1, ncols=1, figsize=[8, 3])
+        fig2.subplots_adjust(left=0.08, bottom=0.14, right=0.98, top=0.90)
+
+    # CALCULATE AND PLOT ERRORS
+    for run, r_rot_interp in rs_rot_interp.items():
+        assert (len(r_rot_interp) == len(gt))
+
+        e_x = (r_rot_interp[:, 1] - r_rot_interp[0, 1]) - (gt[:, 1] - gt[0, 1])
+        e_y = (r_rot_interp[:, 2] - r_rot_interp[0, 2]) - (gt[:, 2] - gt[0, 2])
+        e_z = (r_rot_interp[:, 3] - r_rot_interp[0, 3]) - (gt[:, 3] - gt[0, 3])
+        e_planar = np.sqrt(np.square(e_x) + np.square(e_y))
+
+        if plot_xy_errors:
+            ax2[0].plot(r_rot_interp[:, 4] - r_rot_interp[0, 4], e_x, c=run_colours[run])  # x errors
+            ax2[1].plot(r_rot_interp[:, 4] - r_rot_interp[0, 4], e_y, c=run_colours[run])  # y errors
+            ax2[2].plot(r_rot_interp[:, 4] - r_rot_interp[0, 4], e_planar, c=run_colours[run],
+                        label=run_labels[run])  # planar errors
+        elif plot_vehicle_frame_errors:
+            # USE ESTIMATED YAWS TO CONVERT ERRORS TO VEHICLE FRAME (LONGITUDINAL/LATERAL)
+            e_long = []
+            e_lat = []
+            for i, row in enumerate(r_rot_interp):
+                yaw = r_rot_interp[i, 5]
+                e_long.append(e_x[i] * math.cos(yaw) + e_y[i] * math.sin(yaw))
+                e_lat.append(e_x[i] * -math.sin(yaw) + e_y[i] * math.cos(yaw))
+            ax2[0].plot(r_rot_interp[:, 4] - r_rot_interp[0, 4], e_long, c=run_colours[run])  # x errors
+            ax2[1].plot(r_rot_interp[:, 4] - r_rot_interp[0, 4], e_lat, c=run_colours[run])  # y errors
+            ax2[2].plot(r_rot_interp[:, 4] - r_rot_interp[0, 4], e_planar, c=run_colours[run],
+                        label=run_labels[run])  # planar errors
+        else:
+            ax2.plot(r_rot_interp[:, 4] - r_rot_interp[0, 4], e_planar, c=run_colours[run],
+                     label=run_labels[run])  # planar errors
+
+    if plot_xy_errors:
+        ax2[0].set_title('Position Errors wrt Ground Truth - {0}'.format(dataset))
+        ax2[2].set_xlabel('Distance Along Path (m)')
+        ax2[0].set_ylabel('x Error (m)')
+        ax2[0].set_ylim([-3, 3])
+        ax2[1].set_ylabel('y Error (m)')
+        ax2[1].set_ylim([-3, 3])
+        ax2[2].set_ylabel('2D Position Error (m)')
+        ax2[2].set_ylim([0, 3])
+    elif plot_vehicle_frame_errors:
+        ax2[0].set_title('Position Errors wrt Ground Truth - {0}'.format(dataset))
+        ax2[2].set_xlabel('Distance Along Path (m)')
+        ax2[0].set_ylabel('Longitudinal Error (m)')
+        ax2[0].set_ylim([-3, 3])
+        ax2[1].set_ylabel('Lateral Error (m)')
+        ax2[1].set_ylim([-3, 3])
+        ax2[2].set_ylabel('2D Position Error (m)')
+        ax2[2].set_ylim([0, 3])
+    else:
+        ax2.set_title('Position Errors wrt Ground Truth - {0}'.format(dataset))
+        ax2.set_xlabel('Distance Along Path (m)')
+        ax2.set_ylabel('2D Position Error (m)')
+        ax2.set_ylim([0, 3])
+
+    if cpo_available:
+        if rotate_cpo:
+            cpo_estimates = cpo_estimates_rot  # todo: note - didn't bother copying code to plot both. switch here
+
         tmp = []
-        for i in range(len(r_rot) - 2):
-            yaw = math.atan2(r_rot[i + 2, 4] - r_rot[i, 4], r_rot[i + 2, 3] - r_rot[i, 3])
-            tmp.append(yaw)
-        vo_yaws[run] = np.array(tmp)
-
-    if gt_available:
-        for run, r_rot in rs_rot.items():
-            ax.plot(r_rot[:, 3] - r_rot[0, 3], r_rot[:, 4] - r_rot[0, 4], c=run_colours[run],
-                    label='Rotated Estimates - {0}'.format(run_labels[run]))
-            ax.scatter(r_rot[r_idxs[run], 3] - r_rot[0, 3], r_rot[r_idxs[run], 4] - r_rot[0, 4], c=run_colours[run])
-        ax.plot(gt[:, 1] - gt[0, 1], gt[:, 2] - gt[0, 2], c='C2', label='RTK Ground Truth')
-        ax.scatter(gt[gt_idx, 1] - gt[0, 1], gt[gt_idx, 2] - gt[0, 2], c='C2')
-        plt.legend()
-
-        for run, r_rot in rs_rot.items():
-            # interpolate ground truth to keyframe times
-            tmp = []
-            for i, row in enumerate(gt):
-                if row[0] < r_rot[0, 0] or row[0] > r_rot[-1, 0]:  # check that time in range we have ground truth
-                    continue
-
-                idx = np.argmax(r_rot[:, 0] > row[0])
-                time_fraction = (row[0] - r_rot[idx - 1, 0]) / (r_rot[idx, 0] - r_rot[idx - 1, 0])
-                interp_x = r_rot[idx - 1, 3] + time_fraction * (r_rot[idx, 3] - r_rot[idx - 1, 3])
-                interp_y = r_rot[idx - 1, 4] + time_fraction * (r_rot[idx, 4] - r_rot[idx - 1, 4])
-                interp_z = r_rot[idx - 1, 5] + time_fraction * (r_rot[idx, 5] - r_rot[idx - 1, 5])
-                d = row[7]
-
-                tmp.append([row[0], row[1], row[2], interp_x, interp_y, interp_z, d])  # first 3 elements unused
-
-            rs_rot_interp[run] = np.array(tmp)
-
+        for row in gt:
+            idx_np = np.where(cpo_estimates[:, 0] == row[0])
+            if idx_np[0].size != 0:
+                idx = safe_int(idx_np[0][0])
+                tmp.append([cpo_estimates[idx, 0],  # GPS ref. timestamp
+                            row[1],  # ground truth x (down-sampled)
+                            row[2],  # "" y
+                            row[3],  # "" z
+                            (cpo_estimates[idx, 2] - cpo_estimates[0, 2]) - (row[1] - gt[0, 1]),  # estimate error x
+                            (cpo_estimates[idx, 3] - cpo_estimates[0, 3]) - (row[2] - gt[0, 2]),  # "" y
+                            (cpo_estimates[idx, 4] - cpo_estimates[0, 4]) - (row[3] - gt[0, 3]),  # "" z
+                            row[7],  # distance along path
+                            ])
+        cpo_errors = np.array(tmp)
         if plot_xy_errors:
-            fig2, ax2 = plt.subplots(nrows=3, ncols=1, figsize=[8, 8])
-            fig2.subplots_adjust(left=0.10, bottom=0.06, right=0.96, top=0.93)
+            ax2[0].plot(cpo_errors[:, 7] - cpo_errors[0, 7], cpo_errors[:, 4], c='C1')  # x errors
+            ax2[1].plot(cpo_errors[:, 7] - cpo_errors[0, 7], cpo_errors[:, 5], c='C1')  # y errors
+            ax2[2].plot(cpo_errors[:, 7] - cpo_errors[0, 7],
+                        np.sqrt(cpo_errors[:, 4] ** 2 + cpo_errors[:, 5] ** 2), c='C1',
+                        label="GPS Odometry")  # planar errors
+        elif plot_vehicle_frame_errors:
+            print("TODO")  # todo: use yaws to get these?
         else:
-            fig2, ax2 = plt.subplots(nrows=1, ncols=1, figsize=[8, 3])
-            fig2.subplots_adjust(left=0.08, bottom=0.14, right=0.98, top=0.90)
-        for run, r_rot_interp in rs_rot_interp.items():
-            assert (len(r_rot_interp) == len(gt))
+            ax2.plot(cpo_errors[:, 7] - cpo_errors[0, 7], np.sqrt(cpo_errors[:, 4] ** 2 + cpo_errors[:, 5] ** 2),
+                     c='C1', label="GPS Odometry")  # planar errors
+    plt.legend()
 
-            e_x = (r_rot_interp[:, 3] - r_rot_interp[0, 3]) - (gt[:, 1] - gt[0, 1])
-            e_y = (r_rot_interp[:, 4] - r_rot_interp[0, 4]) - (gt[:, 2] - gt[0, 2])
-            e_z = (r_rot_interp[:, 5] - r_rot_interp[0, 5]) - (gt[:, 3] - gt[0, 3])
-            e_planar = np.sqrt(np.square(e_x) + np.square(e_y))
-
-            if plot_xy_errors:
-                ax2[0].plot(r_rot_interp[:, 6] - r_rot_interp[0, 6], e_x, c=run_colours[run])  # x errors
-                ax2[1].plot(r_rot_interp[:, 6] - r_rot_interp[0, 6], e_y, c=run_colours[run])  # y errors
-            else:
-                ax2.plot(r_rot_interp[:, 6] - r_rot_interp[0, 6], e_planar, c=run_colours[run],
-                         label=run_labels[run])  # planar errors
-
-        if plot_xy_errors:
-            ax2[0].set_title('Position Errors wrt Ground Truth - {0}'.format(dataset))
-            ax2[2].set_xlabel('Distance Along Path (m)')
-            ax2[0].set_ylabel('x Error (m)')
-            ax2[0].set_ylim([-3, 3])
-            ax2[1].set_ylabel('y Error (m)')
-            ax2[1].set_ylim([-3, 3])
-            ax2[2].set_ylabel('2D Position Error (m)')
-            ax2[2].set_ylim([0, 3])
-        else:
-            ax2.set_title('Position Errors wrt Ground Truth - {0}'.format(dataset))
-            ax2.set_xlabel('Distance Along Path (m)')
-            ax2.set_ylabel('2D Position Error (m)')
-            ax2.set_ylim([0, 3])
-        plt.legend()
-
-        plt.figure(3, figsize=[8, 4])  # temporary
-        plt.title("VTR3 with TDCP")
-        yprs = []
-        try:
-            yprs = np.genfromtxt("/home/ben/Desktop/yprs.csv", delimiter=',')
-        except IOError:
-            print("No angle estimates found.")
-        if len(yprs) > 2:
-            plt.plot(yprs[:, 3] + 1, -yprs[:, 0], label='Yaw Estimated', c='C4')
-            plt.plot(yprs[:, 3] + 1, -yprs[:, 1], label='Pitch Estimated', c='C1')
-            plt.plot(yprs[:, 3] + 1, -yprs[:, 2], label='Roll Estimated', c='C2')
-        plt.plot(vo_yaws[result_files[0]][:490], label='Yaw from integrated VO', c='C5')  # todo: messy
-        plt.xlabel("Vertex")
-        plt.ylabel("Estimated Angle (rad)")
-        plt.legend()
+    plt.figure(3, figsize=[8, 4])  # temporary
+    plt.title("VTR3 with TDCP")
+    yprs = []
+    try:
+        yprs = np.genfromtxt("/home/ben/Desktop/yprs.csv", delimiter=',')
+    except IOError:
+        print("No angle estimates found.")
+    if len(yprs) > 2:
+        plt.plot(yprs[:, 3] + 1, -yprs[:, 0], label='Yaw Estimated', c='C4')
+        plt.plot(yprs[:, 3] + 1, -yprs[:, 1], label='Pitch Estimated', c='C1')
+        plt.plot(yprs[:, 3] + 1, -yprs[:, 2], label='Roll Estimated', c='C2')
+    plt.plot(rs_rot_interp[result_files[0]][:490, 5], label='Yaw from integrated VO', c='C5')  # todo: messy
+    plt.xlabel("Vertex")
+    plt.ylabel("Estimated Angle (rad)")
+    plt.legend()
 
     plt.show()
 
