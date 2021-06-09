@@ -113,12 +113,15 @@ def main():
     cpo_path = osp.expanduser("~/Desktop/cpo_c.csv")
     cpo_available = osp.exists(cpo_path)
 
-    result_files = ["vo_vis_c.csv", "vo_gps_c.csv", "cascade_c_str.csv"]
-    run_colours = {result_files[0]: 'C3', result_files[1]: 'C0', result_files[2]: 'C4'}
-    run_labels = {result_files[0]: 'Only Vision', result_files[1]: 'With GPS', result_files[2]: 'Cascaded'}
+    # result_files = ["vo_vis_a.csv", "vo_gps_a.csv", "cascade_a_new.csv"]
+    result_files = ["vo_vis_c.csv", "vo_gps_c.csv", "cascade_c_new.csv"]
+    run_colours = {result_files[0]: 'C3', result_files[1]: 'C0', result_files[2]: 'C4', "cpo": 'C1'}
+    run_labels = {result_files[0]: 'Only Vision', result_files[1]: 'With GPS', result_files[2]: 'Cascaded', "cpo": 'GPS Odometry'}
+    # result_files = ["vo_vis_e.csv", "cascade_e_new.csv"]
+    # result_files = ["vo_vis_f.csv", "cascade_f_new_gapfill.csv"]
     # result_files = ["vo_vis_c_full.csv", "cascade_c_str_full.csv"]
-    # run_colours = {result_files[0]: 'C3', result_files[1]: 'C4'}
-    # run_labels = {result_files[0]: 'Only Vision', result_files[1]: 'Cascaded'}
+    # run_colours = {result_files[0]: 'C3', result_files[1]: 'C4', "cpo": 'C1'}
+    # run_labels = {result_files[0]: 'Only Vision', result_files[1]: 'Cascaded', "cpo": 'GPS Odometry'}
 
     rs = {}  # position estimates from each result/run                  # todo: better var names
     rs_interp = {}  # position estimates interpolated to ground truth times
@@ -240,7 +243,7 @@ def main():
                        cpo_estimates_rot[cpo_r_idx, 3] - cpo_estimates_rot[0, 3], c='C6')
         else:
             plt.plot(cpo_estimates[:, 2] - cpo_estimates[0, 2], cpo_estimates[:, 3] - cpo_estimates[0, 3],
-                     label='GPS Odometry', c='C1')
+                     label=run_labels["cpo"], c=run_colours["cpo"])
 
     # ESTIMATE YAW AT EACH VERTEX OF VO RUNS USING BEFORE/AFTER VERTEX
     for run, r_rot_int in rs_rot_interp.items():
@@ -342,33 +345,100 @@ def main():
                             ])
         cpo_errors = np.array(tmp)
         if plot_xy_errors:
-            ax2[0].plot(cpo_errors[:, 7] - cpo_errors[0, 7], cpo_errors[:, 4], c='C1')  # x errors
-            ax2[1].plot(cpo_errors[:, 7] - cpo_errors[0, 7], cpo_errors[:, 5], c='C1')  # y errors
+            ax2[0].plot(cpo_errors[:, 7] - cpo_errors[0, 7], cpo_errors[:, 4], c=run_colours["cpo"])  # x errors
+            ax2[1].plot(cpo_errors[:, 7] - cpo_errors[0, 7], cpo_errors[:, 5], c=run_colours["cpo"])  # y errors
             ax2[2].plot(cpo_errors[:, 7] - cpo_errors[0, 7],
-                        np.sqrt(cpo_errors[:, 4] ** 2 + cpo_errors[:, 5] ** 2), c='C1',
-                        label="GPS Odometry")  # planar errors
+                        np.sqrt(cpo_errors[:, 4] ** 2 + cpo_errors[:, 5] ** 2), c=run_colours["cpo"],
+                        label=run_labels["cpo"])  # planar errors
         elif plot_vehicle_frame_errors:
             print("TODO")  # todo: use yaws to get these?
         else:
             ax2.plot(cpo_errors[:, 7] - cpo_errors[0, 7], np.sqrt(cpo_errors[:, 4] ** 2 + cpo_errors[:, 5] ** 2),
-                     c='C1', label="GPS Odometry")  # planar errors
+                     c=run_colours["cpo"], label=run_labels["cpo"])  # planar errors
     plt.legend()
 
-    plt.figure(3, figsize=[8, 4])  # temporary
-    plt.title("VTR3 with TDCP")
-    yprs = []
-    try:
-        yprs = np.genfromtxt("/home/ben/Desktop/yprs.csv", delimiter=',')
-    except IOError:
-        print("No angle estimates found.")
-    if len(yprs) > 2:
-        plt.plot(yprs[:, 3] + 1, -yprs[:, 0], label='Yaw Estimated', c='C4')
-        plt.plot(yprs[:, 3] + 1, -yprs[:, 1], label='Pitch Estimated', c='C1')
-        plt.plot(yprs[:, 3] + 1, -yprs[:, 2], label='Roll Estimated', c='C2')
-    plt.plot(rs_rot_interp[result_files[0]][:490, 5], label='Yaw from integrated VO', c='C5')  # todo: messy
-    plt.xlabel("Vertex")
-    plt.ylabel("Estimated Angle (rad)")
-    plt.legend()
+    # BELOW IS EXTRA PLOTS FOR DEBUGGING
+    # plt.figure(3, figsize=[8, 4])  # temporary
+    # plt.title("VTR3 with TDCP")
+    # yprs = []
+    # try:
+    #     yprs = np.genfromtxt("/home/ben/Desktop/yprs.csv", delimiter=',')
+    # except IOError:
+    #     print("No angle estimates found.")
+    # if len(yprs) > 2:
+    #     plt.plot(yprs[:, 3] + 1, -yprs[:, 0], label='Yaw Estimated', c='C4')
+    #     plt.plot(yprs[:, 3] + 1, -yprs[:, 1], label='Pitch Estimated', c='C1')
+    #     plt.plot(yprs[:, 3] + 1, -yprs[:, 2], label='Roll Estimated', c='C2')
+    # plt.plot(rs_rot_interp[result_files[0]][:490, 5], label='Yaw from integrated VO', c='C5')  # todo: messy
+    # plt.xlabel("Vertex")
+    # plt.ylabel("Estimated Angle (rad)")
+    # plt.legend()
+    #
+    # # CALCULATE DISTANCE TRAVELLED EACH SECOND FOR VO RUNS
+    # run_dists = {}
+    # for run, r_rot_interp in rs_rot_interp.items():
+    #     tmp = []
+    #     for i, row in enumerate(r_rot_interp):
+    #         if i < 3 or i % 4 != 0:
+    #             continue
+    #         prev_row = r_rot_interp[i-4, :]
+    #         dx = row[1] - prev_row[1]
+    #         dy = row[2] - prev_row[2]
+    #         d_2d = math.sqrt(dx**2 + dy**2)
+    #         heading = math.atan2(dy, dx)        # note: not delta heading
+    #         tmp.append([prev_row[0], row[0], d_2d, heading])
+    #
+    #     run_dists[run] = np.array(tmp)
+    #
+    # # CALCULATE DISTANCE TRAVELLED EACH SECOND IN CPO (mind the gaps)
+    # if cpo_available:
+    #     tmp = []
+    #     for i, row in enumerate(cpo_estimates):
+    #         if i < 1:
+    #             continue
+    #         prev_row = cpo_estimates[i-1, :]
+    #         dx = row[2] - prev_row[2]
+    #         dy = row[3] - prev_row[3]
+    #         d_2d = math.sqrt(dx**2 + dy**2)
+    #         heading = math.atan2(dy, dx)        # note: not delta heading
+    #         tmp.append([prev_row[0], row[0], d_2d, heading])
+    #
+    #     run_dists["cpo"] = np.array(tmp)
+    #
+    # plt.figure(4)
+    # # PLOT/COMPARE DELTA DISTANCES
+    # for run, dists in run_dists.items():
+    #     plt.plot(dists[:, 1], dists[:, 2], c=run_colours[run], label=run_labels[run])
+    # plt.xlabel("Time (s)")
+    # plt.ylabel("Step Distance")
+    # plt.legend()
+    #
+    # plt.figure(5)
+    # # PLOT/COMPARE DELTA HEADINGS
+    # for run, dists in run_dists.items():
+    #     plt.plot(dists[1:, 1] - dists[0, 1], np.diff(dists[:, 3]), c=run_colours[run], label=run_labels[run])
+    # plt.xlabel("Time (s)")
+    # plt.ylabel("Delta Heading")
+    # plt.legend()
+    #
+    # plt.figure(6)
+    # # PLOT/COMPARE HEADINGS
+    # for run, dists in run_dists.items():
+    #     plt.plot(dists[:, 1] - dists[0, 1], dists[:, 3], c=run_colours[run], label=run_labels[run])
+    # plt.xlabel("Time (s)")
+    # plt.ylabel("Heading")
+    # plt.legend()
+    #
+    # # PLOT/COMPARE DISTANCES
+    # plt.figure(7)
+    # # plt.plot(r_rot_interp[:, 0], r_rot_interp[:, 4] - r_rot_interp[0, 4])
+    # # plt.xlabel("time (s)")
+    # # plt.ylabel("distance along path (m)")
+    # for run, dists in run_dists.items():
+    #     plt.plot(dists[:, 1], np.cumsum(dists[:, 2]), c=run_colours[run], label=run_labels[run])
+    # plt.xlabel("Time (s)")
+    # plt.ylabel("Distance Along Path")
+    # plt.legend()
 
     plt.show()
 
