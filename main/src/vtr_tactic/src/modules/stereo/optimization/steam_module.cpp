@@ -66,6 +66,13 @@ void SteamModule::configFromROS(const rclcpp::Node::SharedPtr &node,
   config_->ang_vel_std_dev_x = node->declare_parameter<double>(param_prefix + ".ang_vel_std_dev_x", config_->ang_vel_std_dev_x);
   config_->ang_vel_std_dev_y = node->declare_parameter<double>(param_prefix + ".ang_vel_std_dev_y", config_->ang_vel_std_dev_y);
   config_->ang_vel_std_dev_z = node->declare_parameter<double>(param_prefix + ".ang_vel_std_dev_z", config_->ang_vel_std_dev_z);
+
+  config_->tf_gv_x = node->declare_parameter<double>(param_prefix + ".tf_gv_x", -0.60);
+  config_->tf_gv_y = node->declare_parameter<double>(param_prefix+ ".tf_gv_y", 0.0);
+  config_->tf_gv_z = node->declare_parameter<double>(param_prefix + ".tf_gv_z", -0.52);
+  config_->tf_gv_phi1 = node->declare_parameter<double>(param_prefix + ".tf_gv_phi1", 0.0);
+  config_->tf_gv_phi2 = node->declare_parameter<double>(param_prefix + ".tf_gv_phi2", 0.0);
+  config_->tf_gv_phi3 = node->declare_parameter<double>(param_prefix + ".tf_gv_phi3", 0.0);
   // clang-format on
   setConfig();
 }

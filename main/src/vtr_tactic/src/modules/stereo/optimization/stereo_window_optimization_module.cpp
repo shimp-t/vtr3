@@ -442,7 +442,7 @@ StereoWindowOptimizationModule::generateOptimizationProblem(
 //            continue;       // todo: do we want this to avoid large edges?
 
           Eigen::Matrix4d T_curr, T_prev;
-          T_curr << row[8], row[12], row[16], row[20],
+          T_curr << row[8], row[12], row[16], row[20],  // these in gps frame
                     row[9], row[13], row[17], row[21],
                     row[10], row[14], row[18], row[22],
                     row[11], row[15], row[19], row[23];
@@ -450,13 +450,15 @@ StereoWindowOptimizationModule::generateOptimizationProblem(
                     prev_row[9], prev_row[13], prev_row[17], prev_row[21],
                     prev_row[10], prev_row[14], prev_row[18], prev_row[22],
                     prev_row[11], prev_row[15], prev_row[19], prev_row[23];
-          lgmath::se3::Transformation T_b0_meas(T_curr);
-          lgmath::se3::Transformation T_a0_meas(T_prev);
+          lgmath::se3::Transformation T_b0_meas_g(T_curr);
+          lgmath::se3::Transformation T_a0_meas_g(T_prev);
+          lgmath::se3::Transformation
+              T_b0_meas = tf_gps_vehicle_->evaluate().inverse() * T_b0_meas_g;
+          lgmath::se3::Transformation
+              T_a0_meas = tf_gps_vehicle_->evaluate().inverse() * T_a0_meas_g;
+
           // compose to get relative transform -> measurement
           lgmath::se3::Transformation T_ba_meas = T_b0_meas * T_a0_meas.inverse();
-
-          std::cout << "t_a: " << std::setprecision(12) << prev_row[0] << "  t_b: " << row[0] << std::setprecision(6) << std::endl;
-          std::cout << "T_ba_meas " << T_ba_meas << std::endl;
 
           // get poseInterp at two times and compose -> TransformEval
           steam::se3::SteamTrajPoseInterpEval::ConstPtr
@@ -464,8 +466,6 @@ StereoWindowOptimizationModule::generateOptimizationProblem(
           steam::se3::SteamTrajPoseInterpEval::ConstPtr
               T_a = trajectory_->getInterpPoseEval(steam::Time(prev_row[0]));
           steam::se3::TransformEvaluator::ConstPtr T_ba_state = steam::se3::composeInverse(T_b, T_a);
-
-          std::cout << "T_ba_state " << T_ba_state->evaluate() << std::endl;
 
 #if 1
           // add PoseError (TransformErrorEval)
