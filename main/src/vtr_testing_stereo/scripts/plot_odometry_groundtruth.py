@@ -107,8 +107,8 @@ def main():
     dataset = args.groundtruth_file[:6]
 
     # OPTIONS
-    plot_xy_errors = True  # whether we want 3 subplots in error plot or just overall error
-    plot_vehicle_frame_errors = True
+    plot_xy_errors = False  # whether we want 3 subplots in error plot or just overall error
+    plot_vehicle_frame_errors = False
 
     cpo_path = osp.expanduser("~/Desktop/cpo_c.csv")
     cpo_available = osp.exists(cpo_path)
@@ -188,12 +188,11 @@ def main():
     # USE GROUND TRUTH TO ALIGN/ROTATE EACH VO RUN
     align_distance = 10.0
     gt_idx = np.argmax(gt[:, 7] > align_distance)  # find first time we've travelled at least align_distance
-    align_time = gt[gt_idx, 0]
+    align_time = round(gt[gt_idx, 0])       # a little hacky (assumes we have ground truth at integer second times)
+    print("Align time: {0}".format(align_time))
 
     for run, r in rs_interp.items():
-        r_idx = np.argmax(r[:, 0] > align_time)
-        if r[r_idx, 0] - align_time > align_time - r[r_idx - 1, 0]:
-            r_idx -= 1
+        r_idx = np.argmax(r[:, 0] >= align_time)
         r_idxs[run] = r_idx
 
         theta_gt = math.atan2(gt[gt_idx, 2] - gt[0, 2], gt[gt_idx, 1] - gt[0, 1])
@@ -220,11 +219,9 @@ def main():
         if cpo_estimates[0, 0] > first_time:
             print("Warning: CPO estimates start after ground truth and VO start time. Consider increasing start_trim.")
 
-        rotate_cpo = False
+        rotate_cpo = True
         if rotate_cpo:
-            cpo_r_idx = np.argmax(cpo_estimates[:, 0] > align_time)
-            if cpo_estimates[cpo_r_idx, 0] - align_time > align_time - cpo_estimates[cpo_r_idx - 1, 0]:
-                cpo_r_idx -= 1
+            cpo_r_idx = np.argmax(cpo_estimates[:, 0] >= align_time)
 
             theta_gt = math.atan2(gt[gt_idx, 2] - gt[0, 2], gt[gt_idx, 1] - gt[0, 1])
             theta_r = math.atan2(cpo_estimates[cpo_r_idx, 3] - cpo_estimates[0, 3],
@@ -238,7 +235,7 @@ def main():
             cpo_estimates_rot[:, 3] = -s * cpo_estimates[:, 2] + c * cpo_estimates[:, 3]
 
             plt.plot(cpo_estimates_rot[:, 2] - cpo_estimates_rot[0, 2],
-                     cpo_estimates_rot[:, 3] - cpo_estimates_rot[0, 3], label='GPS Odometry - Rotated', c='C6')
+                     cpo_estimates_rot[:, 3] - cpo_estimates_rot[0, 3], label='GPS Odometry - Rotated', c='C1')
             ax.scatter(cpo_estimates_rot[cpo_r_idx, 2] - cpo_estimates_rot[0, 2],
                        cpo_estimates_rot[cpo_r_idx, 3] - cpo_estimates_rot[0, 3], c='C6')
         else:
