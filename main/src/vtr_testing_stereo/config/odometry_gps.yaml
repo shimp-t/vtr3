@@ -15,6 +15,8 @@
     # Start and stop index
     start_index: 2000
     stop_index: 4880
+#    start_index: 1
+#    stop_index: 10000
 
     ############ GPS-related parameters ############
     use_tdcp: true
@@ -193,7 +195,13 @@
         perform_planarity_check: false
         plane_distance: 20.0
 
-        lin_acc_std_dev_x: 0.05    # strongish
+#        lin_acc_std_dev_x: 0.001    # strong
+#        lin_acc_std_dev_y: 0.0001
+#        lin_acc_std_dev_z: 0.001
+#        ang_acc_std_dev_x: 0.0001
+#        ang_acc_std_dev_y: 0.0001
+#        ang_acc_std_dev_z: 0.0003
+        lin_acc_std_dev_x: 0.25    # Grizz default
         lin_acc_std_dev_y: 0.001
         lin_acc_std_dev_z: 0.01
         ang_acc_std_dev_x: 0.001
@@ -206,9 +214,9 @@
 #        ang_acc_std_dev_y: 0.01
 #        ang_acc_std_dev_z: 0.03
 
-        tdcp_cov: 0.001
+        tdcp_cov: 0.000001
         min_tdcp_terms: 3
-        stereo_cov_multiplier: 10.0
+        stereo_cov_multiplier: 1.0
 
     localization:
       recall:
