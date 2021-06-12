@@ -369,6 +369,7 @@ StereoWindowOptimizationModule::generateOptimizationProblem(
   int jj = 0;
 
   double traj_start_time = 999999999999999.9;
+  double win_start_time = 0.0;
 
   for (auto &pose : poses) {
     auto &steam_pose = pose.second;
@@ -381,6 +382,8 @@ StereoWindowOptimizationModule::generateOptimizationProblem(
 
     if (steam_pose.time.seconds() < traj_start_time)
       traj_start_time = steam_pose.time.seconds();
+    if (steam_pose.isLocked() && steam_pose.time.seconds() > win_start_time)
+      win_start_time = steam_pose.time.seconds();
   }
 
   // Add landmark variables
@@ -439,6 +442,10 @@ StereoWindowOptimizationModule::generateOptimizationProblem(
             std::cout << "Time a before trajectory start so not adding in. " << std::endl;
             continue;
           }
+//          if (prev_row[0] < win_start_time) {
+//            std::cout << "Time a before window start so not adding in TDCP factor. " << std::endl;
+//            continue;
+//          }
 
 //          if (row[0] - prev_row[0] > 1.1)
 //            continue;       // todo: do we want this to avoid large edges?
@@ -517,7 +524,17 @@ StereoWindowOptimizationModule::generateOptimizationProblem(
       std::cout << "T_0g prior " << qdata.T_0g_prior->second.matrix() << std::endl;
 #endif
       for (const auto &msg : *qdata.tdcp_msgs) {
-        addTdcpCost(msg, T_0g, poses[qdata.T_0g_prior->first].tf_state_eval);
+        if (msg->t_a * 1e-9 < traj_start_time) {
+          std::cout << "t_a is before trajectory start so not adding TDCP factor. " << std::endl;
+        }
+#if 0
+        else if ((msg->t_b - msg->t_a) * 1e-9 > 1.1) {    // todo: quick test. if works, need better, non-hard-coded solution
+          std::cout << "Gap of " << ((msg->t_b - msg->t_a) * 1e-9) << " seconds in GPS so not adding TDCP factor." << std::endl;
+        }
+#endif
+        else {
+          addTdcpCost(msg, T_0g, poses[qdata.T_0g_prior->first].tf_state_eval);
+        }
       }
       LOG(DEBUG) << "Found " << tdcp_cost_terms_->numCostTerms()
                  << " TDCP terms.";
@@ -1156,7 +1173,7 @@ void StereoWindowOptimizationModule::updateGraphImpl(QueryCache &qdata,
   // save estimated global orientation if we're using it
   if (qdata.T_0g_prior.is_valid() && qdata.T_0g_prior->second.covarianceSet()) {
 
-    // if we have a global_prior_cost_term then TDCP terms were used  // todo: this assumption is not necessarily correct ***
+    // if we have a global_prior_cost_term then TDCP terms were used
     if (global_prior_cost_term_->numCostTerms() > 0) {
       qdata.T_0g_prior->second = T_0g_statevar_->getValue();
       qdata.T_0g_prior->second.setCovariance(gn_solver->queryCovariance(

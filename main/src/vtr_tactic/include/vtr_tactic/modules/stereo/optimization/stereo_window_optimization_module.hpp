@@ -9,7 +9,7 @@
 #include <vtr_tactic/modules/base_module.hpp>
 #include <vtr_tactic/modules/stereo/optimization/steam_module.hpp>
 
-#define CASCADE 1
+#define CASCADE 0
 
 using TdcpMsg = cpo_interfaces::msg::TDCP;
 
