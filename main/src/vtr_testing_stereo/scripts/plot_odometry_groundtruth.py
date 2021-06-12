@@ -113,15 +113,19 @@ def main():
     cpo_path = osp.expanduser("~/Desktop/cpo_c.csv")
     cpo_available = osp.exists(cpo_path)
 
-    # result_files = ["vo_vis_a.csv", "vo_gps_a.csv", "cascade_a_new.csv"]
-    result_files = ["vo_vis_c.csv", "vo_gps_c.csv", "cascade_c_new.csv"]
-    run_colours = {result_files[0]: 'C3', result_files[1]: 'C0', result_files[2]: 'C4', "cpo": 'C1'}
-    run_labels = {result_files[0]: 'Only Vision', result_files[1]: 'With GPS', result_files[2]: 'Cascaded', "cpo": 'GPS Odometry'}
-    # result_files = ["vo_vis_e.csv", "cascade_e_new.csv"]
-    # result_files = ["vo_vis_f.csv", "cascade_f_new_gapfill.csv"]
-    # result_files = ["vo_vis_c_full.csv", "cascade_c_str_full.csv"]
+    # result_files = ["vo_vis_a.csv", "gps_a_2.csv"]
+    result_files = ["vo_vis_c.csv", "gps_c_3min_15.csv"]
+    # result_files = ["vo_vis_e.csv", "gps_e_def.csv"]
+    # result_files = ["vo_vis_f.csv", "gps_f_def.csv"]
+    # result_files = ["vo_vis_c_full.csv", "gps_c_full_casc_win.csv", "gps_c_full_casc_10win.csv"]
+    run_colours = {result_files[0]: 'C3', result_files[1]: 'C0', "cpo": 'C1'}
+    run_labels = {result_files[0]: 'Only Vision', result_files[1]: 'With GPS', "cpo": 'GPS Odometry'}
+    # run_colours = {result_files[0]: 'C3', result_files[1]: 'C0', result_files[2]: 'C4', "cpo": 'C1'}
+    # run_labels = {result_files[0]: 'Only Vision', result_files[1]: 'With GPS', result_files[2]: 'Cascaded', "cpo": 'GPS Odometry'}
     # run_colours = {result_files[0]: 'C3', result_files[1]: 'C4', "cpo": 'C1'}
     # run_labels = {result_files[0]: 'Only Vision', result_files[1]: 'Cascaded', "cpo": 'GPS Odometry'}
+
+    win_size_v = 15
 
     rs = {}  # position estimates from each result/run                  # todo: better var names
     rs_interp = {}  # position estimates interpolated to ground truth times
@@ -156,9 +160,9 @@ def main():
         rs[run] = np.array(tmp)
 
     # GET TIME INTERVAL WE WANT TO WORK WITH
-    start_trim = 18  # seconds to trim off start
-    first_time = math.ceil(rs[result_files[0]][0, 0]) + start_trim
-    last_time = math.floor(rs[result_files[0]][-1, 0])
+    start_trim = 10  # seconds to trim off start
+    first_time = math.ceil(rs[result_files[1]][0, 0]) + start_trim
+    last_time = math.floor(rs[result_files[1]][-1, 0])
 
     # READ GROUND TRUTH
     if dataset[:5] == "feb15":
@@ -176,12 +180,13 @@ def main():
 
             idx = np.argmax(r[:, 0] > row[0])
             time_fraction = (row[0] - r[idx - 1, 0]) / (r[idx, 0] - r[idx - 1, 0])
+            interp_vertex = r[idx - 1, 2] + time_fraction * (r[idx, 2] - r[idx - 1, 2])
             interp_x = r[idx - 1, 3] + time_fraction * (r[idx, 3] - r[idx - 1, 3])
             interp_y = r[idx - 1, 4] + time_fraction * (r[idx, 4] - r[idx - 1, 4])
             interp_z = r[idx - 1, 5] + time_fraction * (r[idx, 5] - r[idx - 1, 5])
             d = row[7]
 
-            tmp.append([row[0], interp_x, interp_y, interp_z, d, 0])  # time, x, y, z, dist_along_path, yaw(TBD)
+            tmp.append([row[0], interp_x, interp_y, interp_z, d, 0, interp_vertex])  # time, x, y, z, dist_along_path, yaw(TBD), ~vertex
 
         rs_interp[run] = np.array(tmp)
 
@@ -356,18 +361,34 @@ def main():
 
     # BELOW IS EXTRA PLOTS FOR DEBUGGING
     # plt.figure(3, figsize=[8, 4])  # temporary
-    # plt.title("VTR3 with TDCP")
+    # plt.title("VTR3 with TDCP - Estimated Orientation - {0}".format(dataset))
     # yprs = []
     # try:
     #     yprs = np.genfromtxt("/home/ben/Desktop/yprs.csv", delimiter=',')
     # except IOError:
     #     print("No angle estimates found.")
     # if len(yprs) > 2:
-    #     plt.plot(yprs[:, 3] + 1, -yprs[:, 0], label='Yaw Estimated', c='C4')
-    #     plt.plot(yprs[:, 3] + 1, -yprs[:, 1], label='Pitch Estimated', c='C1')
-    #     plt.plot(yprs[:, 3] + 1, -yprs[:, 2], label='Roll Estimated', c='C2')
-    # plt.plot(rs_rot_interp[result_files[0]][:490, 5], label='Yaw from integrated VO', c='C5')  # todo: messy
-    # plt.xlabel("Vertex")
+    #     tmp = []
+    #     for i, row in enumerate(gt):
+    #         if row[0] < yprs[0, 4] or row[0] > yprs[-1, 4]:  # check that time in range we have ground truth
+    #             continue
+    #
+    #         idx = np.argmax(yprs[:, 4] > row[0])
+    #         time_fraction = (row[0] - yprs[idx - 1, 4]) / (yprs[idx, 4] - yprs[idx - 1, 4])
+    #         interp_yaw = yprs[idx - 1, 0] + time_fraction * (yprs[idx, 0] - yprs[idx - 1, 0])
+    #         interp_pitch = yprs[idx - 1, 1] + time_fraction * (yprs[idx, 1] - yprs[idx - 1, 1])
+    #         interp_roll = yprs[idx - 1, 2] + time_fraction * (yprs[idx, 2] - yprs[idx - 1, 2])
+    #         d = row[7]
+    #
+    #         tmp.append([interp_yaw, interp_pitch, interp_roll, d, row[0]])  # yaw, pitch, roll, dist_along_path, time
+    #
+    #     yprs_interp = np.array(tmp)
+    #
+    #     plt.plot(yprs_interp[:, 3], -yprs_interp[:, 0], label='Yaw Estimated', c='b')
+    #     plt.plot(yprs_interp[:, 3], -yprs_interp[:, 1], label='Pitch Estimated', c='k')
+    #     plt.plot(yprs_interp[:, 3], -yprs_interp[:, 2], label='Roll Estimated', c='g')
+    # plt.plot(rs_rot_interp[result_files[0]][:, 4], rs_rot_interp[result_files[0]][:, 5], label='Yaw from Rotated {0}'.format(run_labels[result_files[0]]), c=run_colours[result_files[0]])
+    # plt.xlabel("Distance Along Path (m)")
     # plt.ylabel("Estimated Angle (rad)")
     # plt.legend()
     #
@@ -383,7 +404,8 @@ def main():
     #         dy = row[2] - prev_row[2]
     #         d_2d = math.sqrt(dx**2 + dy**2)
     #         heading = math.atan2(dy, dx)        # note: not delta heading
-    #         tmp.append([prev_row[0], row[0], d_2d, heading])
+    #         gt_dist = row[4]
+    #         tmp.append([prev_row[0], row[0], d_2d, heading, gt_dist])
     #
     #     run_dists[run] = np.array(tmp)
     #
@@ -398,31 +420,32 @@ def main():
     #         dy = row[3] - prev_row[3]
     #         d_2d = math.sqrt(dx**2 + dy**2)
     #         heading = math.atan2(dy, dx)        # note: not delta heading
-    #         tmp.append([prev_row[0], row[0], d_2d, heading])
+    #         gt_dist = gt[np.argmax(gt[:, 0] >= row[0]), 7]
+    #         tmp.append([prev_row[0], row[0], d_2d, heading, gt_dist])
     #
     #     run_dists["cpo"] = np.array(tmp)
     #
     # plt.figure(4)
     # # PLOT/COMPARE DELTA DISTANCES
     # for run, dists in run_dists.items():
-    #     plt.plot(dists[:, 1], dists[:, 2], c=run_colours[run], label=run_labels[run])
-    # plt.xlabel("Time (s)")
+    #     plt.plot(dists[:, 4], dists[:, 2], c=run_colours[run], label=run_labels[run])
+    # plt.xlabel("Distance Along Path (m)")
     # plt.ylabel("Step Distance")
     # plt.legend()
     #
     # plt.figure(5)
     # # PLOT/COMPARE DELTA HEADINGS
     # for run, dists in run_dists.items():
-    #     plt.plot(dists[1:, 1] - dists[0, 1], np.diff(dists[:, 3]), c=run_colours[run], label=run_labels[run])
-    # plt.xlabel("Time (s)")
+    #     plt.plot(dists[1:, 4], np.diff(dists[:, 3]), c=run_colours[run], label=run_labels[run])
+    # plt.xlabel("Distance Along Path (m)")
     # plt.ylabel("Delta Heading")
     # plt.legend()
     #
     # plt.figure(6)
     # # PLOT/COMPARE HEADINGS
     # for run, dists in run_dists.items():
-    #     plt.plot(dists[:, 1] - dists[0, 1], dists[:, 3], c=run_colours[run], label=run_labels[run])
-    # plt.xlabel("Time (s)")
+    #     plt.plot(dists[:, 4], dists[:, 3], c=run_colours[run], label=run_labels[run])
+    # plt.xlabel("Distance Along Path (m)")
     # plt.ylabel("Heading")
     # plt.legend()
     #
@@ -432,9 +455,24 @@ def main():
     # # plt.xlabel("time (s)")
     # # plt.ylabel("distance along path (m)")
     # for run, dists in run_dists.items():
-    #     plt.plot(dists[:, 1], np.cumsum(dists[:, 2]), c=run_colours[run], label=run_labels[run])
+    #     plt.plot(dists[:, 1], dists[:, 4], c='k')
     # plt.xlabel("Time (s)")
-    # plt.ylabel("Distance Along Path")
+    # plt.ylabel("Distance Along Path (m)")
+    # plt.legend()
+    #
+    # PLOT EDGE TIMES
+    # plt.figure(8, figsize=[10, 3.5])
+    # framerate = 16
+    # for run, r in rs.items():
+    #     edge_lengths = np.diff(r[:, 0])
+    #     win_sizes = []
+    #     for i in range(win_size_v, len(edge_lengths)):
+    #         win_sizes.append(np.sum(edge_lengths[i-win_size_v:i]))
+    #     plt.plot(r[win_size_v:-1, 2], win_sizes, c=run_colours[run], label=run_labels[run])
+    # plt.ylim([0, 5])
+    # plt.xlabel("Start Vertex")
+    # plt.ylabel("Window Interval Length (s)")
+    # plt.title("Window Sizes - {0}".format(dataset))
     # plt.legend()
 
     plt.show()
