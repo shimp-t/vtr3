@@ -380,8 +380,7 @@ void StereoWindowedRecallModule::getTdcpMeas(std::vector<cpo_interfaces::msg::TD
     }
   }  // end for search_itr_forward
 
-  std::cout << "Recalled " << msgs.size() << " TDCP msgs. "
-            << std::endl;   // debug
+  LOG(INFO) << "Recalled " << msgs.size() << " TDCP msgs. ";
 
   // notify WindowedOpt which vertex we've defined as 0th
   T_0g_prior.first = vertex_0->id();
@@ -421,6 +420,11 @@ void StereoWindowedRecallModule::getTdcpMeas(std::vector<cpo_interfaces::msg::TD
                                 vertex_0->id(), pose_graph::Temporal));
       lgmath::se3::TransformationWithCovariance T_0m1 = e->T();
 
+#if 0
+      std::cout << "T_0m1           " << T_0m1 << std::endl;
+      std::cout << "T_m1g_posterior " << T_m1g_posterior << std::endl;
+#endif
+
       T_0g_prior.second = T_0m1 * T_m1g_posterior;
       // don't care about position so resetting
       T_0g_prior.second =
@@ -458,6 +462,8 @@ void StereoWindowedRecallModule::getTdcpMeas(std::vector<cpo_interfaces::msg::TD
                         msgs.back()->enu_pos.y - msgs.front()->prev_enu_pos.y,
                         msgs.back()->enu_pos.z - msgs.front()->prev_enu_pos.z};
     double theta = atan2(r_k0_ing.y(), r_k0_ing.x());
+
+    std::cout << "Code solution estimated theta to be " << theta << ". r_k0_ing = " << r_k0_ing.transpose() << std::endl;
 
     Eigen::Matrix<double, 6, 1> init_pose_vec;
     init_pose_vec << 0, 0, 0, 0, 0, -1 * theta;

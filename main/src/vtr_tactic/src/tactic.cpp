@@ -161,7 +161,9 @@ void Tactic::branch(QueryCache::Ptr qdata) {
     else
       addConnectedVertex(*(qdata->stamp), *(qdata->T_r_m_odo));
 
-    LOG(INFO) << "[Tactic] Creating a new keyframe with id " << current_vertex_id_;
+    LOG(INFO) << "[Tactic] Creating a new keyframe with id "
+              << current_vertex_id_ << " at time 16134"
+              << (qdata->stamp->nanoseconds_since_epoch * 1e-9 - 1613400000);  // hacky way to print timestamp because don't know how to set precision in easylogging
 
     /// Now we should have the live id
     qdata->live_id.fallback(current_vertex_id_);

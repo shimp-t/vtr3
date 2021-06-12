@@ -373,8 +373,10 @@ StereoWindowOptimizationModule::generateOptimizationProblem(
   for (auto &pose : poses) {
     auto &steam_pose = pose.second;
     problem_->addStateVariable(steam_pose.tf_state_var);
-    std::cout << "Added pose at t " << std::setprecision(12) << steam_pose.time.seconds() << std::setprecision(6) << " with current vel " << steam_pose.velocity->getValue().transpose();
-    std::cout << "  Vel locked? " << steam_pose.velocity->isLocked() << std::endl;
+#if 1
+    std::cout << "Added pose at t " << std::setprecision(12) << steam_pose.time.seconds() << std::setprecision(6) << " with curr vel " << steam_pose.velocity->getValue().transpose();
+    std::cout << "  Vel locked? " << steam_pose.velocity->isLocked() << " Pose locked? " << !(steam_pose.tf_state_eval->isActive()) <<  std::endl;
+#endif
     jj++;
 
     if (steam_pose.time.seconds() < traj_start_time)
@@ -419,13 +421,13 @@ StereoWindowOptimizationModule::generateOptimizationProblem(
     // Set up TDCP factors. We require a trajectory to interpolate so it happens in this if block
 
 #if CASCADE   // get tdcp info from cpo_estimates_
-    std::cout << "Live V " << *qdata.live_id << std::endl;
 
     if (qdata.tdcp_msgs.is_valid() && !qdata.tdcp_msgs->empty()) {    // will keep this condition so we can use tdcp_enable param still
 
       auto new_v = graph->at(*qdata.live_id);
       double curr_secs = new_v->keyFrameTime().nanoseconds_since_epoch * 1e-9;
-      std::cout << "curr_secs: " << std::setprecision(12) << curr_secs << std::setprecision(6) << std::endl;
+      std::cout << "curr_secs: " << std::setprecision(12) << curr_secs <<
+      "  win_start: " << win_start_time << "  traj_start: " << traj_start_time << std::setprecision(6) << std::endl;
       for (uint i = 1; i < cpo_estimates_.size(); ++i) {
         // find time(s) corresponding to just before curr_sec
         const auto &row = cpo_estimates_[i];
@@ -510,6 +512,10 @@ StereoWindowOptimizationModule::generateOptimizationProblem(
       steam::se3::TransformEvaluator::ConstPtr
           T_0g(new steam::se3::TransformStateEvaluator(T_0g_statevar_));
 
+#if 0
+      std::cout << "Prior vertex: " << qdata.T_0g_prior->first << "  time: " << std::setprecision(12) << poses[qdata.T_0g_prior->first].time.seconds() << std::setprecision(12) << std::endl;
+      std::cout << "T_0g prior " << qdata.T_0g_prior->second.matrix() << std::endl;
+#endif
       for (const auto &msg : *qdata.tdcp_msgs) {
         addTdcpCost(msg, T_0g, poses[qdata.T_0g_prior->first].tf_state_eval);
       }
@@ -628,6 +634,22 @@ void StereoWindowOptimizationModule::addTdcpCost(const TdcpMsg::SharedPtr &msg,
 
   steam::se3::TransformEvaluator::ConstPtr
       T_ag = steam::se3::compose(T_a0_s, T_0g);
+
+#if 0
+  steam::se3::TransformEvaluator::ConstPtr
+      T_ba_VEH = steam::se3::composeInverse(T_b0_v, T_a0_v);    // DEBUGging
+  std::cout << "t_a " << std::setprecision(12) << msg->t_a * 1e-9 << " t_b " << msg->t_b * 1e-9 <<std::setprecision(6) <<  std::endl;
+//  std::cout << "T_ai_v " << T_ai_v->evaluate() << std::endl;
+//  std::cout << "tf_gps_vehicle_ " << tf_gps_vehicle_->evaluate() << std::endl;
+  std::cout << "T_ag " << T_ag->evaluate() << std::endl;
+//  std::cout << "T_ba " << T_ba->evaluate() << std::endl;
+//  std::cout << "T_ba_VEH " << T_ba_VEH->evaluate() << std::endl;
+  std::cout << "r_ai_i_v         " << T_ai_v->evaluate().r_ba_ina().transpose() << std::endl;
+  std::cout << "r_gpsvehicle_veh " << tf_gps_vehicle_->evaluate().r_ba_ina().transpose() << std::endl;
+  std::cout << "r_ag_g           " << T_ag->evaluate().r_ba_ina().transpose() << std::endl;
+  std::cout << "r_ba_a           " << T_ba->evaluate().r_ba_ina().transpose() << std::endl;
+  std::cout << "r_ba_a_VEH       " << T_ba_VEH->evaluate().r_ba_ina().transpose() << std::endl;
+#endif
 
   // using constant covariance here for now
   steam::BaseNoiseModel<1>::Ptr tdcp_noise_model
@@ -1168,22 +1190,18 @@ void StereoWindowOptimizationModule::updateGraphImpl(QueryCache &qdata,
     std::cout << "Saved prior on global orientation at "
               << qdata.T_0g_prior->first << std::endl;
 
-
-
     // save off T_0g estimate to CSV for simple plotting  // todo: temporary
     Eigen::Matrix3d C_vg = qdata.T_0g_prior->second.C_ba();
-    Eigen::Matrix<double, 6, 1>
-        vec = qdata.T_0g_prior->second.vec();     // temporary stuff
     double yaw = atan2(C_vg(1, 0), C_vg(0, 0));
     double pitch = atan2(-C_vg(2, 0),
                          sqrt(C_vg(2, 1) * C_vg(2, 1)
                                   + C_vg(2, 2) * C_vg(2, 2)));
     double roll = atan2(C_vg(2, 1), C_vg(2, 2));
-#if 1
+#if 0
     std::cout << "YAW:  " << yaw;
     std::cout << "  PITCH: " << pitch;
     std::cout << "  ROLL: " << roll << std::endl;
-//    std::cout << "vec: " << vec.transpose() << std::endl;
+    std::cout << " t " << std::setprecision(12) << (double) v->keyFrameTime().nanoseconds_since_epoch * 1e-9 << std::setprecision(6) << std::endl;
 #endif
     ypr_estimates_.push_back(std::vector<double>{yaw, pitch, roll,
                                                  (double) v->id().minorId(),
