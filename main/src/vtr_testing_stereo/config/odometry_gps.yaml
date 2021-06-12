@@ -180,6 +180,7 @@
         default_T_0g_cov_diag: [ 0.0001, 0.0001, 0.0001, 0.001, 0.001, 4.0 ]
 
       steam:
+        iterations: 10
         trajectory_smoothing: true
         velocity_prior: false
         verbose: true
