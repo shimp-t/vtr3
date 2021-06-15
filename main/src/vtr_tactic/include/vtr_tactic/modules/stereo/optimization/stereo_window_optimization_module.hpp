@@ -9,7 +9,8 @@
 #include <vtr_tactic/modules/base_module.hpp>
 #include <vtr_tactic/modules/stereo/optimization/steam_module.hpp>
 
-#define CASCADE 0
+#define CASCADE 1
+#define GIVE_ORIENTATION 0
 
 using TdcpMsg = cpo_interfaces::msg::TDCP;
 
@@ -83,6 +84,11 @@ class StereoWindowOptimizationModule : public SteamModule {
                    const steam::se3::TransformEvaluator::ConstPtr &T_0g,
                    const steam::se3::TransformEvaluator::ConstPtr &T_0i);
 
+#if GIVE_ORIENTATION
+  void addTdcpCostLockedC(const TdcpMsg::SharedPtr &msg,
+                   const lgmath::se3::Transformation &T_ag);
+#endif
+
   /**
    * \brief Verifies the input data being used in the optimization problem,
    * namely, the inlier matches and initial estimate.
@@ -141,7 +147,7 @@ class StereoWindowOptimizationModule : public SteamModule {
 
   std::vector<std::vector<double>> ypr_estimates_;   // temporary
 
-#if CASCADE
+#if CASCADE || GIVE_ORIENTATION
   std::vector<std::vector<double>> cpo_estimates_;
 #endif
 };

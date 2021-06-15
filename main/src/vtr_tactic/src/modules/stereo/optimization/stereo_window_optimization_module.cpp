@@ -13,7 +13,7 @@
 #include <asrl/messages/lgmath_conversions.hpp>
 #endif
 
-#if CASCADE
+#if CASCADE || GIVE_ORIENTATION
 class CSVRow {
  public:
   std::string_view operator[](std::size_t index) const {
@@ -66,7 +66,7 @@ void StereoWindowOptimizationModule::configFromROS(
   window_config_->stereo_cov_multiplier = node->declare_parameter<double>(param_prefix + ".stereo_cov_multiplier", 1.0);
   // clang-format on
 
-#if CASCADE
+#if CASCADE || GIVE_ORIENTATION
   //  read CSV file into data structure
   std::ifstream file("/home/ben/Desktop/cpo.csv");
   CSVRow row;
@@ -508,6 +508,51 @@ StereoWindowOptimizationModule::generateOptimizationProblem(
     }
 
       problem_->addCostTerm(tdcp_cost_terms_);
+#elif GIVE_ORIENTATION
+    if (qdata.tdcp_msgs.is_valid() && !qdata.tdcp_msgs->empty()) {    // will keep this condition so we can use tdcp_enable param still
+
+      double first_t_a = qdata.tdcp_msgs->front()->t_a * 1e-9;
+      double last_t_a = qdata.tdcp_msgs->back()->t_a * 1e-9;
+      std::cout << "Number of tdcp msgs " << qdata.tdcp_msgs->size() << std::endl;
+
+      std::cout << std::setprecision(12) << "  win_start: " << win_start_time << "  traj_start: " << traj_start_time << std::setprecision(6) << std::endl;
+      for (uint i = 0; i < cpo_estimates_.size(); ++i) {
+        // find time(s) corresponding to just before curr_sec
+        const auto &row = cpo_estimates_[i];
+
+        if (row[0] < first_t_a || row[0] > last_t_a)      // read through until in window
+          continue;
+
+        if (row[0] < traj_start_time) {
+          std::cout << "Time a before trajectory start so not adding in. " << std::endl;
+          continue;
+        }
+//          if (row[0] < win_start_time) {
+//            std::cout << "Time a before window start so not adding in TDCP factor. " << std::endl;
+//            continue;
+//          }
+
+        for (const auto msg : *qdata.tdcp_msgs) {      // inefficient but oh well
+
+          if ((msg->t_a * 1e-9) == row[0]) {
+            Eigen::Matrix4d T_ag_eig;
+            T_ag_eig << row[8], row[12], row[16], row[20],  // these in receiver frame
+                row[9], row[13], row[17], row[21],
+                row[10], row[14], row[18], row[22],
+                row[11], row[15], row[19], row[23];
+
+            lgmath::se3::Transformation T_ag(T_ag_eig);
+            /// note: sloppy but ignoring vehicle receiver transform on T_ag because only using C which is identity
+
+            std::cout << "Adding TDCP term with locked C at t_a = " << std::setprecision(12) << (msg->t_a * 1e-9) << std::setprecision(6) << std::endl;
+
+            addTdcpCostLockedC(msg, T_ag);
+          }
+        }
+      }
+
+      problem_->addCostTerm(tdcp_cost_terms_);
+
 #else
     // Note: if we don't have or want GPS, we just won't find that info in cache
     T_0g_statevar_.reset(new steam::se3::TransformStateVar(lgmath::se3::Transformation()));
@@ -696,6 +741,74 @@ void StereoWindowOptimizationModule::addTdcpCost(const TdcpMsg::SharedPtr &msg,
   }
 }
 
+
+#if GIVE_ORIENTATION
+void StereoWindowOptimizationModule::addTdcpCostLockedC(const TdcpMsg::SharedPtr &msg,
+                                                 const lgmath::se3::Transformation &T_ag) {
+
+  // GPS measurement time vehicle pose wrt to start of trajectory
+  steam::se3::SteamTrajPoseInterpEval::ConstPtr
+      T_ai_v = trajectory_->getInterpPoseEval(steam::Time((int64_t) msg->t_a));
+  steam::se3::SteamTrajPoseInterpEval::ConstPtr
+      T_bi_v = trajectory_->getInterpPoseEval(steam::Time((int64_t) msg->t_b));
+  // GPS measurement time vehicle pose wrt to start of window
+  // GPS measurement time sensor pose wrt to start of window
+  steam::se3::TransformEvaluator::ConstPtr
+      T_ai_s = steam::se3::compose(tf_gps_vehicle_, T_ai_v);
+  steam::se3::TransformEvaluator::ConstPtr
+      T_bi_s = steam::se3::compose(tf_gps_vehicle_, T_bi_v);
+  // change in sensor pose between the two GPS measurement times
+  steam::se3::TransformEvaluator::ConstPtr
+      T_ba = steam::se3::composeInverse(T_bi_s, T_ai_s);
+  steam::se3::PositionEvaluator::ConstPtr
+      r_ba_ina(new steam::se3::PositionEvaluator(T_ba));
+
+  steam::se3::TransformEvaluator::ConstPtr T_ag_eval = steam::se3::FixedTransformEvaluator::MakeShared(T_ag);
+
+#if 0
+  steam::se3::TransformEvaluator::ConstPtr
+      T_ba_VEH = steam::se3::composeInverse(T_b0_v, T_a0_v);    // DEBUGging
+  std::cout << "t_a " << std::setprecision(12) << msg->t_a * 1e-9 << " t_b " << msg->t_b * 1e-9 <<std::setprecision(6) <<  std::endl;
+//  std::cout << "T_ai_v " << T_ai_v->evaluate() << std::endl;
+//  std::cout << "tf_gps_vehicle_ " << tf_gps_vehicle_->evaluate() << std::endl;
+  std::cout << "T_ag " << T_ag->evaluate() << std::endl;
+//  std::cout << "T_ba " << T_ba->evaluate() << std::endl;
+//  std::cout << "T_ba_VEH " << T_ba_VEH->evaluate() << std::endl;
+  std::cout << "r_ai_i_v         " << T_ai_v->evaluate().r_ba_ina().transpose() << std::endl;
+  std::cout << "r_gpsvehicle_veh " << tf_gps_vehicle_->evaluate().r_ba_ina().transpose() << std::endl;
+  std::cout << "r_ag_g           " << T_ag->evaluate().r_ba_ina().transpose() << std::endl;
+  std::cout << "r_ba_a           " << T_ba->evaluate().r_ba_ina().transpose() << std::endl;
+  std::cout << "r_ba_a_VEH       " << T_ba_VEH->evaluate().r_ba_ina().transpose() << std::endl;
+#endif
+
+  // using constant covariance here for now
+  steam::BaseNoiseModel<1>::Ptr tdcp_noise_model
+      (new steam::StaticNoiseModel<1>(
+          Eigen::Matrix<double, 1, 1>(window_config_->tdcp_cov)));
+
+  // iterate through satellite pairs in msg and add TDCP costs
+  for (const auto &pair : msg->pairs) {
+    Eigen::Vector3d r_1a_ing_ata{pair.r_1a_a.x, pair.r_1a_a.y, pair.r_1a_a.z};
+    Eigen::Vector3d r_1a_ing_atb{pair.r_1a_b.x, pair.r_1a_b.y, pair.r_1a_b.z};
+    Eigen::Vector3d r_2a_ing_ata{pair.r_2a_a.x, pair.r_2a_a.y, pair.r_2a_a.z};
+    Eigen::Vector3d r_2a_ing_atb{pair.r_2a_b.x, pair.r_2a_b.y, pair.r_2a_b.z};
+
+    vtr::steam_extensions::TdcpErrorEval::Ptr tdcp_error
+        (new vtr::steam_extensions::TdcpErrorEval(pair.phi_measured,
+                                                  r_ba_ina,
+                                                  T_ag_eval,
+                                                  r_1a_ing_ata,
+                                                  r_1a_ing_atb,
+                                                  r_2a_ing_ata,
+                                                  r_2a_ing_atb));
+    auto tdcp_factor = steam::WeightedLeastSqCostTerm<1,6>::Ptr(
+        new steam::WeightedLeastSqCostTerm<1, 6>(tdcp_error,
+                                                 tdcp_noise_model,
+                                                 sharedTdcpLossFunc_));
+    tdcp_cost_terms_->add(tdcp_factor);
+  }
+}
+#endif
 bool StereoWindowOptimizationModule::verifyInputData(QueryCache &qdata,
                                                      MapCache &) {
   // make sure we have a landmark and pose map, and calibration.
