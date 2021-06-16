@@ -125,7 +125,7 @@ def main():
     # run_colours = {result_files[0]: 'C3', result_files[1]: 'C4', "cpo": 'C1'}
     # run_labels = {result_files[0]: 'Only Vision', result_files[1]: 'Cascaded', "cpo": 'GPS Odometry'}
 
-    win_size_v = 15
+    win_size_v = 5
 
     rs = {}  # position estimates from each result/run                  # todo: better var names
     rs_interp = {}  # position estimates interpolated to ground truth times
@@ -352,11 +352,24 @@ def main():
             ax2[2].plot(cpo_errors[:, 7] - cpo_errors[0, 7],
                         np.sqrt(cpo_errors[:, 4] ** 2 + cpo_errors[:, 5] ** 2), c=run_colours["cpo"],
                         label=run_labels["cpo"])  # planar errors
+            for i, row in enumerate(cpo_errors):  # GPS availability
+                if i < 1:
+                    continue
+                if cpo_errors[i, 0] - cpo_errors[i - 1, 0] > 1.1:
+                    ax2[0].plot([cpo_errors[i - 1, 7], cpo_errors[i, 7]], [0, 0], c='k')
+                    ax2[1].plot([cpo_errors[i - 1, 7], cpo_errors[i, 7]], [0, 0], c='k')
+                    ax2[2].plot([cpo_errors[i - 1, 7], cpo_errors[i, 7]], [0, 0], c='k')
         elif plot_vehicle_frame_errors:
             print("TODO")  # todo: use yaws to get these?
         else:
             ax2.plot(cpo_errors[:, 7] - cpo_errors[0, 7], np.sqrt(cpo_errors[:, 4] ** 2 + cpo_errors[:, 5] ** 2),
                      c=run_colours["cpo"], label=run_labels["cpo"])  # planar errors
+            for i, row in enumerate(cpo_errors):  # GPS availability
+                if i < 1:
+                    continue
+                if cpo_errors[i, 0] - cpo_errors[i - 1, 0] > 1.1:
+                    ax2.plot([cpo_errors[i - 1, 7], cpo_errors[i, 7]], [0, 0], c='k')
+
     plt.legend()
 
     # BELOW IS EXTRA PLOTS FOR DEBUGGING
@@ -460,7 +473,7 @@ def main():
     # plt.ylabel("Distance Along Path (m)")
     # plt.legend()
     #
-    # PLOT EDGE TIMES
+    # # PLOT EDGE TIMES
     # plt.figure(8, figsize=[10, 3.5])
     # framerate = 16
     # for run, r in rs.items():
