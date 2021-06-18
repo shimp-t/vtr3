@@ -10,3 +10,6 @@
 	path = main/src/deps/lgmath
 	url = git@github.com:utiasASRL/lgmath.git
 	branch = ros2-dev
+[submodule "main/src/deps/cpo"]
+	path = main/src/deps/cpo
+	url = https://github.com/ben-congram/cpo
