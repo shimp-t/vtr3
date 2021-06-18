@@ -152,10 +152,12 @@ void Tactic::branch(QueryCache::Ptr qdata) {
     updateTargetLoc(chain_.trunkVertexId(), chain_.T_leaf_trunk(),
                     chain_.isLocalized());
 
+#if 0     // todo: will cause a crash in offline tools if publisher_ != nullptr. Not localizing here so probably don't need? (1/2)
     /// Publish odometry result on live robot localization
     if (publisher_)
       publisher_->publishRobot(persistent_loc_, chain_.trunkSequenceId(),
                                target_loc_);
+#endif
   }
 
   /// Check if we should create a new vertex
@@ -226,10 +228,12 @@ void Tactic::branch(QueryCache::Ptr qdata) {
       chain_.updatePetioleToLeafTransform(EdgeTransform(true), true);
       /// Reset the map to robot transform and new vertex flag
       updatePersistentLoc(current_vertex_id_, EdgeTransform(true), true);
+#if 0     // todo: will cause a crash in offline tools if publisher_ != nullptr. Not localizing here so probably don't need? (2/2)
       /// Update odometry result on live robot localization
       if (publisher_)
         publisher_->publishRobot(persistent_loc_, chain_.trunkSequenceId(),
                                  target_loc_);
+#endif
     }
   }
 }
