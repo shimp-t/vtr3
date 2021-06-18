@@ -19,7 +19,12 @@ int main(int argc, char** argv) {
   auto to_file = node->declare_parameter<bool>("log_to_file", false);
   auto log_debug = node->declare_parameter<bool>("log_debug", false);
   auto clear_output_dir = node->declare_parameter<bool>("clear_output_dir", false);
-  if (clear_output_dir) fs::remove_all(fs::path{common::utils::expand_user(common::utils::expand_env(output_dir + "/graph.index"))});
+  if (clear_output_dir) {
+    LOG(INFO) << "Clearing data directory.";
+    fs::remove_all(fs::path{
+        common::utils::expand_user(common::utils::expand_env(output_dir))
+            + "/graph.index"});
+  }
   std::string log_filename;
   if (to_file) {
     auto log_name = common::timing::toIsoFilename(common::timing::clock::now());
@@ -35,7 +40,7 @@ int main(int argc, char** argv) {
   LOG(INFO) << "Starting the Navigator node. Hello!";
   OdometryNavigator navigator{node, output_dir};
 
-  /// Playback images
+  // image parameters and setup
   auto input_dir = node->declare_parameter<std::string>("input_dir", "");
   storage::DataStreamReader<RigImagesMsg, RigCalibrationMsg> stereo_stream(
       common::utils::expand_user(common::utils::expand_env(input_dir)),
@@ -53,7 +58,7 @@ int main(int argc, char** argv) {
   bool seek_success =
       stereo_stream.seekByIndex(static_cast<int32_t>(start_index));
   if (!seek_success) {
-    LOG(ERROR) << "Seek failed!";
+    LOG(ERROR) << "Image seek failed!";
     return 0;
   }
 

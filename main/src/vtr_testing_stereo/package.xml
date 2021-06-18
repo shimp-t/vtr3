@@ -15,6 +15,7 @@
   <depend>rclcpp</depend>
   <depend>rclpy</depend>
   <depend>sensor_msgs</depend>
+  <depend>cpo_interfaces</depend>
 
   <depend>vtr_lidar</depend>
   <depend>vtr_logging</depend>
