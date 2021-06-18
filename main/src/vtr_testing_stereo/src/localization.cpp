@@ -17,6 +17,9 @@ int main(int argc, char** argv) {
   /// Log into a subfolder of the data directory (if requested to log)
   auto output_dir = node->declare_parameter<std::string>("output_dir", "/tmp");
   auto to_file = node->declare_parameter<bool>("log_to_file", false);
+  auto log_debug = node->declare_parameter<bool>("log_debug", false);
+  auto clear_output_dir = node->declare_parameter<bool>("clear_output_dir", false);
+  if (clear_output_dir) fs::remove_all(fs::path{common::utils::expand_user(common::utils::expand_env(output_dir))});
   std::string log_filename;
   if (to_file) {
     auto log_name = common::timing::toIsoFilename(common::timing::clock::now());
@@ -24,7 +27,7 @@ int main(int argc, char** argv) {
                        common::utils::expand_env(output_dir))} /
                    "logs" / (log_name + ".log");
   }
-  logging::configureLogging(log_filename, true);
+  logging::configureLogging(log_filename, log_debug);
   LOG_IF(to_file, INFO) << "Logging to: " << log_filename;
   LOG_IF(!to_file, WARNING) << "NOT LOGGING TO A FILE.";
 

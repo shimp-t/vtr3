@@ -1,10 +1,14 @@
 /**:
   ros__parameters:
     ############ system configuration ############
+    # Data logging
+    log_to_file: true
+    log_debug: false
     # Dataset directory for odometry
     input_dir: "${VTRDATA}/utias_20201104/nov4_b"
     # Result directory for odometry (including graph and odometry result)
     output_dir: "${VTRTEMP}/testing/stereo"
+    clear_output_dir: false
     # The sensor frame from the urdf (also defines the rig name)
     sensor_frame: front_xb3
     # The control frame from the urdf
@@ -15,6 +19,7 @@
 
     ############ tactic configuration ############
     tactic:
+      visualize: false
       default_loc_cov: [1.0, 0.5, 0.5, 0.25, 0.25, 0.5]
       chain:
         min_cusp_distance: 1.5
