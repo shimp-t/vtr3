@@ -2,26 +2,30 @@
   ros__parameters:
     ############ system configuration ############
     # Dataset directory for odometry
-    input_dir: "/mnt/tumblehome/home/benc/feb_stereo_collection/feb15c"   # todo: move to data directory
+#    input_dir: "/mnt/tumblehome/home/benc/feb_stereo_collection/feb15c"   # todo: move to data directory
+    input_dir: "${VTRDATA}/june16-images/june16b"   # todo: move to data directory
     # Result directory for odometry (including graph and odometry result)
     output_dir: "${VTRTEMP}/testing/stereo"
     # Clears previous graphs in output_dir
     clear_data_dir: true
-    results_filename: "cascade_c.csv"
+    results_filename: "casc_16b_most.csv"
     # The sensor frame from the urdf (also defines the rig name)
     sensor_frame: front_xb3
     # The control frame from the urdf
     control_frame: base_link
     # Start and stop index
-    start_index: 2000
-    stop_index: 4880
+#    start_index: 2000
+#    stop_index: 4880
 #    start_index: 1
-#    stop_index: 10000
+    start_index: 400
+    stop_index: 10000
 
     ############ GPS-related parameters ############
     use_tdcp: true
-    tdcp_data_dir: "${VTRDATA}/feb_gps/tdcp"
-    tdcp_dataset: "feb15c"
+#    tdcp_data_dir: "${VTRDATA}/feb_gps/tdcp"
+#    tdcp_dataset: "feb15c"
+    tdcp_data_dir: "${VTRDATA}/june16-tdcp"
+    tdcp_dataset: "june16b"
 
     ############ tactic configuration ############
     tactic:

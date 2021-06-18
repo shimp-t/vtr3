@@ -62,30 +62,47 @@ def read_gpgga(gga_path, gps_day, start_time=0.0, end_time=4999999999.9):
         tmp = []
         distance_along_path = 0
         for i, row in enumerate(reader):
-            if row[0] != "$GPGGA":
-                continue
+            if row[0] == "$GPGGA":
+                lat_tmp = row[2]
+                lat = safe_float(lat_tmp[0:2]) + safe_float(lat_tmp[2:]) / 60.0
+                long_tmp = row[4]
+                long = safe_float(long_tmp[0:3]) + safe_float(long_tmp[3:]) / 60.0
+                if row[5] == 'W':
+                    long = -long
+                z = safe_float(row[9])
+                x, y = projection(long, lat)
+                fix_type = safe_int(row[6])
+                time_of_day = row[1]
+                timestamp = day_seconds + safe_float(time_of_day[0:2]) * 3600.0 + safe_float(
+                    time_of_day[2:4]) * 60.0 + safe_float(time_of_day[4:])
 
-            lat_tmp = row[2]
-            lat = safe_float(lat_tmp[0:2]) + safe_float(lat_tmp[2:]) / 60.0
-            long_tmp = row[4]
-            long = safe_float(long_tmp[0:3]) + safe_float(long_tmp[3:]) / 60.0
-            if row[5] == 'W':
-                long = -long
-            z = safe_float(row[9])
-            x, y = projection(long, lat)
-            fix_type = safe_int(row[6])
-            time_of_day = row[1]
-            timestamp = day_seconds + safe_float(time_of_day[0:2]) * 3600.0 + safe_float(
-                time_of_day[2:4]) * 60.0 + safe_float(time_of_day[4:])
+                if start_time <= timestamp <= end_time:
+                    if len(tmp) > 0:
+                        prev_x = tmp[-1][1]
+                        prev_y = tmp[-1][2]
+                        dist_added = math.sqrt((x - prev_x) ** 2 + (y - prev_y) ** 2)
+                        distance_along_path += dist_added
 
-            if start_time <= timestamp <= end_time:
-                if len(tmp) > 0:
-                    prev_x = tmp[-1][1]
-                    prev_y = tmp[-1][2]
-                    dist_added = math.sqrt((x - prev_x) ** 2 + (y - prev_y) ** 2)
-                    distance_along_path += dist_added
+                    tmp.append([timestamp, x, y, z, fix_type, long, lat, distance_along_path])
+            elif row[0] == "$NAVSAT":
+                lat = safe_float(row[3])
+                long = safe_float(row[4])
+                z = safe_float(row[5]) + 37.2       # todo: altitude measured differently in NavSatFix vs $GPGGA
+                x, y = projection(long, lat)
+                fix_type = 4 if safe_float(row[6]) < 0.2 else 1         # rough
+                timestamp = safe_float(row[1]) + 1e-9 * safe_float(row[2])
 
-                tmp.append([timestamp, x, y, z, fix_type, long, lat, distance_along_path])
+                # TODO: is this fair? rounding down to 10th of a second for comparison
+                timestamp = 0.1 * math.floor(timestamp * 10.0)
+
+                if start_time <= timestamp <= end_time:
+                    if len(tmp) > 0:
+                        prev_x = tmp[-1][1]
+                        prev_y = tmp[-1][2]
+                        dist_added = math.sqrt((x - prev_x) ** 2 + (y - prev_y) ** 2)
+                        distance_along_path += dist_added
+
+                    tmp.append([timestamp, x, y, z, fix_type, long, lat, distance_along_path])
 
     return np.array(tmp)
 
@@ -106,26 +123,45 @@ def main():
     assert (osp.exists(gt_path))
     dataset = args.groundtruth_file[:6]
 
+    gt_path = "/home/ben/Desktop/gt/june16c.csv"        # quick test of new data
+    dataset = "june16c"
+
+    # testa = read_gpgga("/home/ben/Desktop/gt/june16a.csv", 0)
+    # testb = read_gpgga("/home/ben/Desktop/gt/june16b.csv", 0)
+    # testc = read_gpgga("/home/ben/Desktop/gt/june16c.csv", 0)
+    # plt.plot(testa[:, 1], testa[:, 2])
+    # plt.plot(testb[:, 1], testb[:, 2])
+    # plt.plot(testc[:, 1], testc[:, 2])
+    # plt.xlabel("x [m]")
+    # plt.ylabel("y [m]")
+    # plt.axis('equal')
+    # plt.show()
+
     # OPTIONS
     plot_xy_errors = False  # whether we want 3 subplots in error plot or just overall error
     plot_vehicle_frame_errors = False
 
-    cpo_path = osp.expanduser("~/Desktop/cpo_c.csv")
+    cpo_path = osp.expanduser("~/Desktop/cpo_16c.csv")
     cpo_available = osp.exists(cpo_path)
 
+    # result_files = ["vis_16b_full.csv", "gps_16b_full.csv"]
+    # result_files = ["vis_16b_full.csv", "gps_16b_most.csv", "casc_16b_most.csv"]
+    result_files = ["vis_16c_full.csv", "gps_16c_most.csv", "casc_16c_most.csv"]
+
     # result_files = ["vo_vis_a.csv", "gps_a_2.csv"]
-    result_files = ["vo_vis_c.csv", "gps_c_3min_15.csv"]
+    # result_files = ["vo_vis_c.csv", "gps_c_3min_15.csv"]
     # result_files = ["vo_vis_e.csv", "gps_e_def.csv"]
     # result_files = ["vo_vis_f.csv", "gps_f_def.csv"]
     # result_files = ["vo_vis_c_full.csv", "gps_c_full_casc_win.csv", "gps_c_full_casc_10win.csv"]
-    run_colours = {result_files[0]: 'C3', result_files[1]: 'C0', "cpo": 'C1'}
-    run_labels = {result_files[0]: 'Only Vision', result_files[1]: 'With GPS', "cpo": 'GPS Odometry'}
-    # run_colours = {result_files[0]: 'C3', result_files[1]: 'C0', result_files[2]: 'C4', "cpo": 'C1'}
-    # run_labels = {result_files[0]: 'Only Vision', result_files[1]: 'With GPS', result_files[2]: 'Cascaded', "cpo": 'GPS Odometry'}
+    # run_colours = {result_files[0]: 'C3', result_files[1]: 'C0', "cpo": 'C1'}
+    # run_labels = {result_files[0]: 'Only Vision', result_files[1]: 'With GPS', "cpo": 'GPS Odometry'}
+    run_colours = {result_files[0]: 'C3', result_files[1]: 'C0', result_files[2]: 'C4', "cpo": 'C1'}
+    run_labels = {result_files[0]: 'Only Vision', result_files[1]: 'With GPS', result_files[2]: 'Cascaded', "cpo": 'GPS Odometry'}
     # run_colours = {result_files[0]: 'C3', result_files[1]: 'C4', "cpo": 'C1'}
     # run_labels = {result_files[0]: 'Only Vision', result_files[1]: 'Cascaded', "cpo": 'GPS Odometry'}
 
     win_size_v = 5
+    tdcp_period = 0.1
 
     rs = {}  # position estimates from each result/run                  # todo: better var names
     rs_interp = {}  # position estimates interpolated to ground truth times
@@ -161,12 +197,15 @@ def main():
 
     # GET TIME INTERVAL WE WANT TO WORK WITH
     start_trim = 10  # seconds to trim off start
+    end_trim = 2
     first_time = math.ceil(rs[result_files[1]][0, 0]) + start_trim
-    last_time = math.floor(rs[result_files[1]][-1, 0])
+    last_time = math.floor(rs[result_files[1]][-1, 0]) - end_trim
 
     # READ GROUND TRUTH
     if dataset[:5] == "feb15":
         day = 2145 * 7 + 1  # Feb.15/21
+    elif dataset[:4] == "june":
+        day = 0         # don't need to know day to decode NavSatFix ground truth
     else:
         raise Exception("Unknown dataset - {0}".format(dataset))
     gt = read_gpgga(gt_path, day, start_time=first_time, end_time=last_time)
@@ -333,7 +372,7 @@ def main():
 
         tmp = []
         for row in gt:
-            idx_np = np.where(cpo_estimates[:, 0] == row[0])
+            idx_np = np.where(abs(cpo_estimates[:, 0] - row[0]) < 0.001)        # this off with new data
             if idx_np[0].size != 0:
                 idx = safe_int(idx_np[0][0])
                 tmp.append([cpo_estimates[idx, 0],  # GPS ref. timestamp
@@ -355,10 +394,10 @@ def main():
             for i, row in enumerate(cpo_errors):  # GPS availability
                 if i < 1:
                     continue
-                if cpo_errors[i, 0] - cpo_errors[i - 1, 0] > 1.1:
+                if cpo_errors[i, 0] - cpo_errors[i - 1, 0] > tdcp_period + 0.04:
                     ax2[0].plot([cpo_errors[i - 1, 7], cpo_errors[i, 7]], [0, 0], c='k')
                     ax2[1].plot([cpo_errors[i - 1, 7], cpo_errors[i, 7]], [0, 0], c='k')
-                    ax2[2].plot([cpo_errors[i - 1, 7], cpo_errors[i, 7]], [0, 0], c='k')
+                    ax2[2].plot([cpo_errors[i - 1, 7], cpo_errors[i, 7]], [0.01, 0.01], c='k')
         elif plot_vehicle_frame_errors:
             print("TODO")  # todo: use yaws to get these?
         else:
@@ -367,8 +406,8 @@ def main():
             for i, row in enumerate(cpo_errors):  # GPS availability
                 if i < 1:
                     continue
-                if cpo_errors[i, 0] - cpo_errors[i - 1, 0] > 1.1:
-                    ax2.plot([cpo_errors[i - 1, 7], cpo_errors[i, 7]], [0, 0], c='k')
+                if cpo_errors[i, 0] - cpo_errors[i - 1, 0] > tdcp_period + 0.04:
+                    ax2.plot([cpo_errors[i - 1, 7], cpo_errors[i, 7]], [0.01, 0.01], c='k')
 
     plt.legend()
 
@@ -410,7 +449,7 @@ def main():
     # for run, r_rot_interp in rs_rot_interp.items():
     #     tmp = []
     #     for i, row in enumerate(r_rot_interp):
-    #         if i < 3 or i % 4 != 0:
+    #         if i < 3 or i % 4 != 0:                 # todo: this assuming 4 Hz
     #             continue
     #         prev_row = r_rot_interp[i-4, :]
     #         dx = row[1] - prev_row[1]
