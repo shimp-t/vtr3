@@ -73,7 +73,9 @@ class OfflineNavigator {
        << graph_->numberOfRuns();
     auto run_results_dir = fs::path(fs::path(output_dir) / ss.str());
     fs::create_directories(run_results_dir);
-    outstream_.open(run_results_dir / "vo.csv");
+    std::string results_filename =
+        node_->declare_parameter<std::string>("results_filename", "vo.csv");
+    outstream_.open(run_results_dir / results_filename);
     outstream_ << "timestamp,vertex major id (run),vertex minor id "
                   "(vertex),r,,,T (col major)\n";
   }
@@ -126,6 +128,7 @@ class OfflineNavigator {
 
     for (; path_itr != graph_->end(); ++path_itr) {
       T_curr = T_curr * path_itr->T();
+      T_curr.reproject(true);
       if (path_itr->from().isValid()) {
         LOG(INFO) << path_itr->e()->id();
       }
