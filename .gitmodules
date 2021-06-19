@@ -5,11 +5,12 @@
 [submodule "ros2/src/deps/steam"]
 	path = main/src/deps/steam
 	url = git@github.com:utiasASRL/steam.git
-	branch = ros2-dev
+	branch = ros2
 [submodule "ros2/src/deps/lgmath"]
 	path = main/src/deps/lgmath
 	url = git@github.com:utiasASRL/lgmath.git
-	branch = ros2-dev
+	branch = ros2
 [submodule "main/src/deps/cpo"]
 	path = main/src/deps/cpo
 	url = https://github.com/ben-congram/cpo
+	branch = master
