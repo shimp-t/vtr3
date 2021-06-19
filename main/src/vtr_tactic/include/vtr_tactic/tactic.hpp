@@ -389,6 +389,21 @@ class Tactic : public mission_planning::StateMachineInterface {
     }
   }
 
+  void addGpsEdge(QueryCache::Ptr &qdata) {
+    auto e_id =
+        EdgeId(chain_.petioleVertexId(), *qdata->live_id, pose_graph::Temporal);
+    if (graph_->contains(e_id)) {
+      LOG(INFO) << "Trying to set GPS transform for edge " << e_id;
+      auto e = graph_->at(e_id);
+      auto dummy = lgmath::se3::TransformationWithCovariance();
+      // todo: get from querying CPO
+      e->setTransformGps(dummy);
+      LOG(INFO) << "Set gps edge to \n" << e->TGps().matrix();  //debug
+    } else {
+      LOG(INFO) << "Couldn't find " << e_id << " in graph.";
+    }
+  }
+
  private:
   void startPathTracker(LocalizationChain& chain) {
     if (!path_tracker_) {

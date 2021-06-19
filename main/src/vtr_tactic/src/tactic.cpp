@@ -186,6 +186,8 @@ void Tactic::branch(QueryCache::Ptr qdata) {
     /// Call the pipeline to process the keyframe
     pipeline_->processKeyframe(qdata, graph_, current_vertex_id_);
 
+    addGpsEdge(qdata);
+
     /// Compute odometry in world frame for visualization.
     T_w_m_odo_ = T_w_m_odo_ * (*qdata->T_r_m_odo).inverse();
     keyframe_poses_.emplace_back();
