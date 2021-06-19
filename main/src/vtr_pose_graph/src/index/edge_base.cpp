@@ -150,6 +150,22 @@ void EdgeBase::setTransform(const TransformType& transform) {
   modified_ = true;
 }
 
+EdgeBase::TransformType EdgeBase::TGps() const {
+  return T_to_from_gps_;
+}
+
+void EdgeBase::setTransformGps(const TransformType &transform) {
+  T_to_from_gps_ = transform;
+  tf_gps_set_ = true;
+#if 0   // todo
+   modified_ = true;
+#endif
+}
+
+bool EdgeBase::isTfGpsSet() const {
+  return tf_gps_set_;
+}
+
 std::ostream& operator<<(std::ostream& out, const EdgeBase& e) {
   if (e.type() == EdgeBase::IdType::Type::Spatial)
     return out << "{" << e.from() << "--" << e.to() << "}";

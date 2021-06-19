@@ -81,6 +81,12 @@ class EdgeBase {
   /** \brief Set the edge transform */
   virtual void setTransform(const TransformType& transform);
 
+  /** \brief Get the GPS edge transform */
+  virtual TransformType TGps() const;
+
+  /** \brief Set the GPS edge transform */
+  virtual void setTransformGps(const TransformType& transform);
+
   /** \brief Return true if the edge was manually driven */
   bool isManual() const;
 
@@ -110,6 +116,9 @@ class EdgeBase {
 
   /** \brief Flag the vertex as needing to be saved */
   void setModified(bool modified = true);
+
+  /** \brief Return true if a transform from GPS has been set */
+  bool isTfGpsSet() const;
 
   /** \brief String output */
   friend std::ostream& operator<<(std::ostream& out, const EdgeBase& e);
@@ -144,6 +153,12 @@ class EdgeBase {
 
   /** \brief Whether or not the edge has been modified */
   bool modified_;
+
+  /** \brief Separate transform estimate from GPS odometry */
+  TransformType T_to_from_gps_;
+
+  /** \brief Whether or not T_to_from_gps_ is available */
+  bool tf_gps_set_;
 };
 }  // namespace pose_graph
 }  // namespace vtr
