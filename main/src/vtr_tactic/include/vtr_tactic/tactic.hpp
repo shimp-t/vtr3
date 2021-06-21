@@ -9,6 +9,7 @@
 #include <nav_msgs/msg/odometry.hpp>
 #include <nav_msgs/msg/path.hpp>
 
+#include <cpo_interfaces/srv/query_trajectory.hpp>
 #include <vtr_path_tracker/base.h>
 #include <vtr_tactic/caches.hpp>
 #include <vtr_tactic/memory_manager/live_memory_manager.hpp>
@@ -21,6 +22,7 @@ using OdometryMsg = nav_msgs::msg::Odometry;
 using ROSPathMsg = nav_msgs::msg::Path;
 using PoseStampedMsg = geometry_msgs::msg::PoseStamped;
 using TimeStampMsg = vtr_messages::msg::TimeStamp;
+using QueryTrajectory = cpo_interfaces::srv::QueryTrajectory;
 
 /// \todo define PathTracker::Ptr in Base
 using PathTrackerPtr = std::shared_ptr<vtr::path_tracker::Base>;
@@ -76,6 +78,8 @@ class Tactic : public mission_planning::StateMachineInterface {
     /// start the memory managers
     live_mem_.start();
     map_mem_.start();
+
+    query_gps_client_ = node_->create_client<QueryTrajectory>("query_trajectory");
 
     /// for visualization only
     tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(node_);
@@ -390,15 +394,50 @@ class Tactic : public mission_planning::StateMachineInterface {
   }
 
   void addGpsEdge(QueryCache::Ptr &qdata) {
-    auto e_id =
-        EdgeId(chain_.petioleVertexId(), *qdata->live_id, pose_graph::Temporal);
+    auto v_id1 = chain_.petioleVertexId();
+    auto v_id2 = *qdata->live_id;
+    auto e_id = EdgeId(v_id1, v_id2, pose_graph::Temporal);
     if (graph_->contains(e_id)) {
       LOG(INFO) << "Trying to set GPS transform for edge " << e_id;
-      auto e = graph_->at(e_id);
-      auto dummy = lgmath::se3::TransformationWithCovariance();
-      // todo: get from querying CPO
-      e->setTransformGps(dummy);
-      LOG(INFO) << "Set gps edge to \n" << e->TGps().matrix();  //debug
+
+      auto t_1 = graph_->at(v_id1)->keyFrameTime().nanoseconds_since_epoch;
+      auto t_2 = graph_->at(v_id2)->keyFrameTime().nanoseconds_since_epoch;
+
+      // wait for the service
+      // todo: is this the proper behaviour? want it to not interfere with navigation
+      while (!query_gps_client_->wait_for_service(50ms)) {
+        if (!rclcpp::ok()) {
+          LOG(ERROR) << "Interrupted while waiting for the service. Exiting.";
+          return;
+        }
+        LOG(INFO) << "Query trajectory not available so not adding edge.";
+        return;
+      }
+
+      // send and wait for the result
+      auto request = std::make_shared<QueryTrajectory::Request>();
+      request->t_1 = t_1;
+      request->t_2 = t_2;
+
+      auto response = query_gps_client_->async_send_request(request);
+
+      if (rclcpp::spin_until_future_complete(node_, response) ==
+          rclcpp::FutureReturnCode::SUCCESS) {
+        LOG(INFO) << "Message back: " << response.get()->message;
+        if (response.get()->success) {
+          Eigen::Affine3d T_21_eig;
+          Eigen::fromMsg(response.get()->tf_2_1.pose,T_21_eig);   // not sure if this is best way to convert. Seems to flip
+
+          auto T_21 = lgmath::se3::TransformationWithCovariance(T_21_eig.matrix());
+          // todo - also set covariance
+          auto e = graph_->at(e_id);
+          e->setTransformGps(T_21);
+          LOG(INFO) << "Set gps edge to \n" << e->TGps().matrix();  //debug
+          LOG(INFO) << "Vision edge is \n" << e->T().matrix();  //debug
+        }
+      } else {
+        LOG(WARNING) << "Failed to call GPS service.";
+      }
     } else {
       LOG(INFO) << "Couldn't find " << e_id << " in graph.";
     }
@@ -498,6 +537,9 @@ class Tactic : public mission_planning::StateMachineInterface {
   std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
   rclcpp::Publisher<ROSPathMsg>::SharedPtr odo_path_pub_;
   rclcpp::Publisher<ROSPathMsg>::SharedPtr loc_path_pub_;
+
+  /** \brief Client to call query GPS trajectory service */
+  rclcpp::Client<QueryTrajectory>::SharedPtr query_gps_client_;
 };
 
 }  // namespace tactic

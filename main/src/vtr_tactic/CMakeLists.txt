@@ -26,6 +26,7 @@ find_package(pcl_conversions REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 # find_package(geometry_msgs REQUIRED)
+find_package(cpo_interfaces REQUIRED)
 
 find_package(lgmath REQUIRED)
 find_package(steam REQUIRED)
@@ -62,7 +63,7 @@ ament_target_dependencies(${PROJECT_NAME}
   OpenCV
   PCL pcl_conversions sensor_msgs nav_msgs
   #
-  lgmath steam gpusurf
+  lgmath steam gpusurf cpo_interfaces
   # vtr
   vtr_lidar vtr_logging vtr_messages vtr_pose_graph vtr_messages_lidar
   vtr_vision vtr_steam_extensions vtr_lgmath_extensions vtr_mission_planning
@@ -76,6 +77,7 @@ target_include_directories(${PROJECT_NAME}
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
 ament_export_dependencies(
   nav_msgs
+  cpo_interfaces
   vtr_pose_graph
   vtr_path_tracker
   vtr_mission_planning
