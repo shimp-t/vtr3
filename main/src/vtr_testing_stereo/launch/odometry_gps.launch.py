@@ -90,6 +90,8 @@ def generate_launch_description():
             executable='vtr_testing_stereo_odometry_gps',
             # name='stereo_test',
             output='screen',
+            # todo: figure out proper mapping/namespaces
+            remappings=[("/vtr/tdcp", "/tdcp"), ("/vtr/query_trajectory", "/query_trajectory")],
             #   prefix=['xterm -e gdb --args'],
             parameters=[
                 {
