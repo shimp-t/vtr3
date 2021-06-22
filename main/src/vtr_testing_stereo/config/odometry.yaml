@@ -20,6 +20,9 @@
     start_index: 500 # TODO: index starts from 1 instead of 0?
     stop_index: 600
 
+    # (temporary) used in odometry_gps.cpp to toggle black images - have to be doubles for my syntax to work
+    blackout_toggles: [540.0, 580.0]
+
     ############ tactic configuration ############
     tactic:
       visualize: true

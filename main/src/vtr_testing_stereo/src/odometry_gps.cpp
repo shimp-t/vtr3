@@ -88,6 +88,15 @@ int main(int argc, char **argv) {
   auto start_index = node->declare_parameter<int>("start_index", 1);
   auto stop_index = node->declare_parameter<int>("stop_index", 99999);
 
+  auto blackout_toggles = node->declare_parameter<std::vector<double>>(
+      "blackout_toggles",
+      std::vector<double>{});
+  bool blackout = false;
+  std::vector<uint8_t> black_data(589824, 0);     // assuming fixed size image
+  LOG(INFO) << "Found " << blackout_toggles.size() << " blackout toggles.";
+  for (double toggle : blackout_toggles)
+    std::cout << "Toggle point: " << toggle << std::endl;
+
   std::shared_ptr<storage::VTRMessage> image_msg;
 #if 0
   std::shared_ptr<storage::VTRMessage> gpgga_msg;
@@ -153,8 +162,19 @@ int main(int argc, char **argv) {
           image_stamp.nanoseconds_since_epoch < gpgga_msg->template get<GpggaMsg>().utc_seconds * 1e9)
 #endif
     {
+      if (!blackout_toggles.empty()
+          && image_idx + start_index >= blackout_toggles.front()) {
+        // if at toggle point, toggle and remove
+        blackout = !blackout;
+        blackout_toggles.erase(blackout_toggles.begin());
+      }
+
       // process image
-      LOG(INFO) << "Processing image: " << image_idx;
+      LOG(INFO) << "Processing image: " << image_idx << "    Blackout? "
+                << blackout;
+      if (blackout)   // replace left image with zeros
+        rig_images.channels[0].cameras[0].data = black_data;
+
       navigator.process(std::make_shared<RigImagesMsg>(rig_images));
       image_idx++;
 
