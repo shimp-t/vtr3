@@ -218,5 +218,8 @@ int main(int argc, char **argv) {
   }
 
   LOG(INFO) << "Bye-bye!";
+  std::this_thread::sleep_for(std::chrono::milliseconds(500));
+  LOG(INFO) << "Leaving now!";
+
   rclcpp::shutdown();
 }

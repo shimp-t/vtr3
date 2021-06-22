@@ -83,6 +83,9 @@ class OfflineNavigator {
   }
 
   ~OfflineNavigator() {
+    quit_ = true;
+
+    tactic_.reset();
     saveVO();
     graph_->save();
   }
@@ -92,6 +95,9 @@ class OfflineNavigator {
   }
 
   void process(const RigImagesMsg::SharedPtr msg) {
+    if (quit_)
+      return;
+
     // Convert message to query_data format and store into query_data
     auto query_data = std::make_shared<tactic::QueryCache>();
 
@@ -160,6 +166,8 @@ class OfflineNavigator {
  protected:
   /** \brief The ROS2 node */
   const rclcpp::Node::SharedPtr node_;
+
+  bool quit_ = false;
 
   // vtr building blocks
   tactic::Tactic::Ptr tactic_;
