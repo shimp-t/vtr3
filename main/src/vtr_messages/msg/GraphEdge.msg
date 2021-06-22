@@ -21,3 +21,8 @@ vtr_messages/UtilPoint[] point_idx
 # originating vertex into the reference frame of the terminating vertex.
 vtr_messages/UtilVectorXd t_to_from
 vtr_messages/UtilVectorXd t_to_from_cov
+
+# Optionally set an analogous transform calculated from GPS rather than rich sensor
+bool tf_gps_set
+vtr_messages/UtilVectorXd t_to_from_gps
+vtr_messages/UtilVectorXd t_to_from_gps_cov

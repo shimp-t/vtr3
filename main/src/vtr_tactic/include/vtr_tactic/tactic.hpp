@@ -421,8 +421,10 @@ class Tactic : public mission_planning::StateMachineInterface {
 
       auto response = query_gps_client_->async_send_request(request);
 
-      if (rclcpp::spin_until_future_complete(node_, response) ==  // todo: hangs if CPO exits
-          rclcpp::FutureReturnCode::SUCCESS) {
+      if (rclcpp::spin_until_future_complete(node_,
+                                             response,
+                                             std::chrono::milliseconds(25))
+          == rclcpp::FutureReturnCode::SUCCESS) {
         LOG(INFO) << "Message back: " << response.get()->message;
         if (response.get()->success) {
           Eigen::Affine3d T_21_eig;
