@@ -421,19 +421,32 @@ class Tactic : public mission_planning::StateMachineInterface {
 
       auto response = query_gps_client_->async_send_request(request);
 
-      if (rclcpp::spin_until_future_complete(node_, response) ==
+      if (rclcpp::spin_until_future_complete(node_, response) ==  // todo: hangs if CPO exits
           rclcpp::FutureReturnCode::SUCCESS) {
         LOG(INFO) << "Message back: " << response.get()->message;
         if (response.get()->success) {
           Eigen::Affine3d T_21_eig;
-          Eigen::fromMsg(response.get()->tf_2_1.pose,T_21_eig);   // not sure if this is best way to convert. Seems to flip
+          Eigen::fromMsg(response.get()->tf_2_1.pose, T_21_eig);
+          auto T_21 =
+              lgmath::se3::TransformationWithCovariance(T_21_eig.matrix());
 
-          auto T_21 = lgmath::se3::TransformationWithCovariance(T_21_eig.matrix());
-          // todo - also set covariance
+          // copy over covariance  // todo: may be better way to check if set properly
+          if (response.get()->tf_2_1.covariance.at(0) == 0) {
+            LOG(WARNING) << "Covariance on GPS transform appears to be unset.";
+          } else {
+            Eigen::Matrix<double, 6, 6> T_21_cov;
+            for (int i = 0; i < 6; ++i) {
+              for (int j = 0; j < 6; ++j) {
+                T_21_cov(i, j) =
+                    response.get()->tf_2_1.covariance.at(6 * i + j);
+              }
+            }
+            T_21.setCovariance(T_21_cov);
+          }
           auto e = graph_->at(e_id);
           e->setTransformGps(T_21);
-          LOG(INFO) << "Set gps edge to \n" << e->TGps().matrix();  //debug
-          LOG(INFO) << "Vision edge is \n" << e->T().matrix();  //debug
+          LOG(INFO) << "Set gps edge to \n" << e->TGps();  //debug
+          LOG(INFO) << "Vision edge is \n" << e->T();  //debug
         }
       } else {
         LOG(WARNING) << "Failed to call GPS service.";
