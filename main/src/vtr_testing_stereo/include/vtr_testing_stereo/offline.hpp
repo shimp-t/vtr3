@@ -129,6 +129,7 @@ class OfflineNavigator {
   /** \brief Save VO estimates to CSV file as way to plot. */
   void saveVO() {
     tactic::EdgeTransform T_curr(true);
+    tactic::EdgeTransform T_curr_gps(true);
     auto root_vid = tactic::VertexId(graph_->numberOfRuns() - 1, 0);
     tactic::TemporalEvaluator::Ptr evaluator(new tactic::TemporalEvaluator());
     evaluator->setGraph((void *)graph_.get());
@@ -137,6 +138,15 @@ class OfflineNavigator {
     for (; path_itr != graph_->end(); ++path_itr) {
       T_curr = T_curr * path_itr->T();
       T_curr.reproject(true);
+      bool tf_gps_set = false;
+
+      if (path_itr->from().isValid() && graph_->contains(path_itr->e()->id())
+          && path_itr->e()->isTfGpsSet()) {
+        T_curr_gps = T_curr_gps * path_itr->e()->TGps().inverse();
+        T_curr_gps.reproject(true);
+        tf_gps_set = true;
+      }
+
       if (path_itr->from().isValid()) {
         LOG(INFO) << path_itr->e()->id();
       }
@@ -158,6 +168,17 @@ class OfflineNavigator {
       auto T_flat = std::vector<double>(tmp2.data(), tmp2.data() + 16);
 
       for (auto v : T_flat) outstream_ << "," << v;
+
+      // save GPS odometry transforms and flag to denote whether transform valid
+      auto tmp_gps = T_curr_gps.r_ab_inb();
+      auto r_flat_gps = std::vector<double>(tmp_gps.data(), tmp_gps.data() + 3);
+      for (auto v : r_flat_gps) outstream_ << "," << v;
+      auto tmp2_gps = T_curr_gps.matrix();
+      auto T_flat_gps =
+          std::vector<double>(tmp2_gps.data(), tmp2_gps.data() + 16);
+      for (auto v : T_flat_gps) outstream_ << "," << v;
+      outstream_ << "," << (int) tf_gps_set;
+
       outstream_ << "\n";
     }
     outstream_.close();
