@@ -38,11 +38,8 @@ def safe_int(field):
 
 def read_cpo(cpo_path, start_time=0.0, end_time=4999999999.9):
     estimates = np.genfromtxt(cpo_path, delimiter=',', skip_header=1)
-    print("Found {0} rows.".format(len(estimates)))
     estimates = estimates[estimates[:, 0] >= start_time, :]
-    print("{0} rows after start".format(len(estimates)))
     estimates = estimates[estimates[:, 0] <= end_time, :]
-    print("{0} rows after start and before end".format(len(estimates)))
     return estimates
 
 
@@ -52,7 +49,6 @@ def read_gpgga(gga_path, gps_day, start_time=0.0, end_time=4999999999.9):
     day_seconds = UNIX_GPS_OFFSET + gps_day * 24 * 3600
 
     proj_origin = (43.7822845, -79.4661581, 169.642048)  # hardcoding for now - todo: get from ground truth CSV
-
     projection = Proj(
         "+proj=etmerc +ellps=WGS84 +lat_0={0} +lon_0={1} +x_0=0 +y_0=0 +z_0={2} +k_0=1".format(proj_origin[0],
                                                                                                proj_origin[1],
@@ -107,6 +103,55 @@ def read_gpgga(gga_path, gps_day, start_time=0.0, end_time=4999999999.9):
     return np.array(tmp)
 
 
+def interpolate_to_gt_times(gt, r):
+    tmp = []
+    for i, row in enumerate(gt):
+        if row[0] < r[0, 0] or row[0] > r[-1, 0]:  # check that time in range we have ground truth
+            continue
+
+        idx = np.argmax(r[:, 0] > row[0])
+        time_fraction = (row[0] - r[idx - 1, 0]) / (r[idx, 0] - r[idx - 1, 0])
+        interp_vertex = r[idx - 1, 2] + time_fraction * (r[idx, 2] - r[idx - 1, 2])
+        interp_x = r[idx - 1, 3] + time_fraction * (r[idx, 3] - r[idx - 1, 3])
+        interp_y = r[idx - 1, 4] + time_fraction * (r[idx, 4] - r[idx - 1, 4])
+        interp_z = r[idx - 1, 5] + time_fraction * (r[idx, 5] - r[idx - 1, 5])
+        d = row[7]
+
+        tmp.append([row[0], interp_x, interp_y, interp_z, d, 0,
+                    interp_vertex])  # time, x, y, z, dist_along_path, yaw(TBD), ~vertex
+
+    return np.array(tmp)
+
+
+def rotate_all_runs(align_time, gt, gt_idx, vo_r_idxs, vo_rs_interp, vo_rs_rot_interp):
+    for run, r in vo_rs_interp.items():
+        r_idx = np.argmax(r[:, 0] >= align_time)
+        vo_r_idxs[run] = r_idx
+
+        theta_gt = math.atan2(gt[gt_idx, 2] - gt[0, 2], gt[gt_idx, 1] - gt[0, 1])
+        theta_r = math.atan2(r[r_idx, 2] - r[0, 2], r[r_idx, 1] - r[0, 1])
+        theta = theta_r - theta_gt
+        c = math.cos(theta)
+        s = math.sin(theta)
+
+        vo_rs_rot_interp[run] = np.copy(r)  # copy estimates into new rotated array
+        vo_rs_rot_interp[run][:, 1] = c * r[:, 1] + s * r[:, 2]
+        vo_rs_rot_interp[run][:, 2] = -s * r[:, 1] + c * r[:, 2]
+
+
+def estimate_yaws(r_rot_int):
+    for i in range(len(r_rot_int) - 2):
+        yaw = math.atan2(r_rot_int[i + 2, 2] - r_rot_int[i, 2], r_rot_int[i + 2, 1] - r_rot_int[i, 1])
+        r_rot_int[i + 1, 5] = yaw
+    r_rot_int[0, 5] = r_rot_int[1, 5]  # use neighbouring yaw estimate for endpoints
+    r_rot_int[-1, 5] = r_rot_int[-2, 5]
+
+
+result_files = ["vo_full_cpooff.csv", "vo_tdcp_full2.csv"]
+run_colours = {result_files[0]: 'C3', result_files[1]: 'C0', "cpo": 'C1'}
+run_labels = {result_files[0]: 'VO - CPO Off', result_files[1]: 'VO - CPO On', "cpo": 'GPS Odometry'}
+
+
 def main():
     # ARGUMENT PARSING
     parser = argparse.ArgumentParser(description='Plot integrated VO from odometry_gps')
@@ -126,20 +171,22 @@ def main():
     # OPTIONS
     plot_xy_errors = False  # whether we want 3 subplots in error plot or just overall error
     plot_vehicle_frame_errors = False
-
+    tdcp_period = 0.1
+    start_trim = 15  # seconds to trim off start
+    end_trim = 2
+    align_distance = 10.0
     cpo_path = osp.expanduser("~/Desktop/cpo_16b.csv")
     cpo_available = osp.exists(cpo_path)
 
-    result_files = ["vo_full_cpooff.csv", "vo_tdcp_full2.csv"]
-    run_colours = {result_files[0]: 'C3', result_files[1]: 'C0', "cpo": 'C1'}
-    run_labels = {result_files[0]: 'VO - CPO Off', result_files[1]: 'VO - CPO On', "cpo": 'GPS Odometry'}
-
-    tdcp_period = 0.1
-
+    # RESULT DICTIONARIES
     vo_rs = {}  # position estimates from each result/run                  # todo: better var names
     vo_rs_interp = {}  # position estimates interpolated to ground truth times
     vo_rs_rot_interp = {}  # interpolated position estimates rotated to align with ground truth frame
     vo_r_idxs = {}  # where in the position estimates the align point is
+    cp_rs = {}  # the same stuff but for the "GPS edges"
+    cp_rs_interp = {}
+    cp_rs_rot_interp = {}
+    cp_r_idxs = {}
 
     # READ IN TRANSFORMS FROM VO
     for run in result_files:
@@ -152,15 +199,18 @@ def main():
         T_vs[1, 3] = 0.00
         T_vs[2, 3] = 0.52
         tmp = []
+        tmp2 = []
         for row in results:
             T_0v = np.reshape(row[6:22], (4, 4)).transpose()
             T_0s = T_0v @ T_vs
             tmp.append([row[0], row[1], row[2], T_0s[0, 3], T_0s[1, 3], T_0s[2, 3]])
+            T_0v_cp = np.reshape(row[25:41], (4, 4)).transpose()
+            T_0s_cp = T_0v_cp @ T_vs                    # todo: check
+            tmp2.append([row[0], row[1], row[2], T_0s_cp[0, 3], T_0s_cp[1, 3], T_0s_cp[2, 3], row[41]])
         vo_rs[run] = np.array(tmp)
+        cp_rs[run] = np.array(tmp2)
 
     # GET TIME INTERVAL WE WANT TO WORK WITH
-    start_trim = 15  # seconds to trim off start
-    end_trim = 2
     first_time = math.ceil(vo_rs[result_files[1]][0, 0]) + start_trim
     last_time = math.floor(vo_rs[result_files[1]][-1, 0]) - end_trim
 
@@ -175,44 +225,23 @@ def main():
 
     # INTERPOLATE ESTIMATES AT KEYFRAME TIMES TO GROUND TRUTH TIMES
     for run, r in vo_rs.items():
-        tmp = []
-        for i, row in enumerate(gt):
-            if row[0] < r[0, 0] or row[0] > r[-1, 0]:  # check that time in range we have ground truth
-                continue
-
-            idx = np.argmax(r[:, 0] > row[0])
-            time_fraction = (row[0] - r[idx - 1, 0]) / (r[idx, 0] - r[idx - 1, 0])
-            interp_vertex = r[idx - 1, 2] + time_fraction * (r[idx, 2] - r[idx - 1, 2])
-            interp_x = r[idx - 1, 3] + time_fraction * (r[idx, 3] - r[idx - 1, 3])
-            interp_y = r[idx - 1, 4] + time_fraction * (r[idx, 4] - r[idx - 1, 4])
-            interp_z = r[idx - 1, 5] + time_fraction * (r[idx, 5] - r[idx - 1, 5])
-            d = row[7]
-
-            tmp.append([row[0], interp_x, interp_y, interp_z, d, 0, interp_vertex])  # time, x, y, z, dist_along_path, yaw(TBD), ~vertex
-
-        vo_rs_interp[run] = np.array(tmp)
+        vo_rs_interp[run] = interpolate_to_gt_times(gt, r)
+    for run, r in cp_rs.items():
+        cp_rs_interp[run] = interpolate_to_gt_times(gt, r)
 
     # USE GROUND TRUTH TO ALIGN/ROTATE EACH VO RUN
-    align_distance = 10.0
     gt_idx = np.argmax(gt[:, 7] > align_distance)  # find first time we've travelled at least align_distance
     align_time = round(gt[gt_idx, 0])       # a little hacky (assumes we have ground truth at integer second times)
     print("Align time: {0}".format(align_time))
 
-    for run, r in vo_rs_interp.items():
-        r_idx = np.argmax(r[:, 0] >= align_time)
-        vo_r_idxs[run] = r_idx
+    rotate_all_runs(align_time, gt, gt_idx, vo_r_idxs, vo_rs_interp, vo_rs_rot_interp)
+    rotate_all_runs(align_time, gt, gt_idx, cp_r_idxs, cp_rs_interp, cp_rs_rot_interp)
 
-        theta_gt = math.atan2(gt[gt_idx, 2] - gt[0, 2], gt[gt_idx, 1] - gt[0, 1])
-        theta_r = math.atan2(r[r_idx, 2] - r[0, 2], r[r_idx, 1] - r[0, 1])
-        theta = theta_r - theta_gt
-        c = math.cos(theta)
-        s = math.sin(theta)
+    # ESTIMATE YAW AT EACH VERTEX OF VO RUNS USING BEFORE/AFTER VERTEX
+    for run, r_rot_int in vo_rs_rot_interp.items():
+        estimate_yaws(r_rot_int)
 
-        vo_rs_rot_interp[run] = np.copy(r)  # copy estimates into new rotated array
-        vo_rs_rot_interp[run][:, 1] = c * r[:, 1] + s * r[:, 2]
-        vo_rs_rot_interp[run][:, 2] = -s * r[:, 1] + c * r[:, 2]
-
-    # OVERHEAD PLOT GROUND TRUTH
+    # SET UP OVERHEAD PLOT
     fig = plt.figure(1, figsize=[9, 5])
     ax = fig.add_subplot(111)
     plt.title("Integrated VO - {0} Run".format(dataset))
@@ -249,20 +278,17 @@ def main():
             plt.plot(cpo_estimates[:, 2] - cpo_estimates[0, 2], cpo_estimates[:, 3] - cpo_estimates[0, 3],
                      label=run_labels["cpo"], c=run_colours["cpo"])
 
-    # ESTIMATE YAW AT EACH VERTEX OF VO RUNS USING BEFORE/AFTER VERTEX
-    for run, r_rot_int in vo_rs_rot_interp.items():
-        for i in range(len(r_rot_int) - 2):
-            yaw = math.atan2(r_rot_int[i + 2, 2] - r_rot_int[i, 2], r_rot_int[i + 2, 1] - r_rot_int[i, 1])
-            r_rot_int[i + 1, 5] = yaw
-        r_rot_int[0, 5] = r_rot_int[1, 5]  # use neighbouring yaw estimate for endpoints
-        r_rot_int[-1, 5] = r_rot_int[-2, 5]
-
     # OVERHEAD PLOT THE ROTATED ESTIMATES
     for run, r_rot_int in vo_rs_rot_interp.items():
         ax.plot(r_rot_int[:, 1] - r_rot_int[0, 1], r_rot_int[:, 2] - r_rot_int[0, 2], c=run_colours[run],
                 label='Rotated Estimates - {0}'.format(run_labels[run]))
         ax.scatter(r_rot_int[vo_r_idxs[run], 1] - r_rot_int[0, 1], r_rot_int[vo_r_idxs[run], 2] - r_rot_int[0, 2],
                    c=run_colours[run])
+    for run, r_rot_int in cp_rs_rot_interp.items():
+        ax.plot(r_rot_int[:, 1] - r_rot_int[0, 1], r_rot_int[:, 2] - r_rot_int[0, 2], c='k',
+                label='Rotated Estimates - {0}'.format(run_labels[run]))
+        ax.scatter(r_rot_int[vo_r_idxs[run], 1] - r_rot_int[0, 1], r_rot_int[vo_r_idxs[run], 2] - r_rot_int[0, 2],
+                   c='k')
     ax.plot(gt[:, 1] - gt[0, 1], gt[:, 2] - gt[0, 2], c='C2', label='RTK Ground Truth')
     ax.scatter(gt[gt_idx, 1] - gt[0, 1], gt[gt_idx, 2] - gt[0, 2], c='C2')
     plt.legend()
