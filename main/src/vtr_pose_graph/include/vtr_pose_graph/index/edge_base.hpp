@@ -158,7 +158,7 @@ class EdgeBase {
   TransformType T_to_from_gps_;
 
   /** \brief Whether or not T_to_from_gps_ is available */
-  bool tf_gps_set_;
+  bool tf_gps_set_ = false;
 };
 }  // namespace pose_graph
 }  // namespace vtr
