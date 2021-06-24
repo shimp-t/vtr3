@@ -42,7 +42,62 @@ class LocalizationNavigator : public OfflineNavigator {
 
     // Create a branch pipeline.
     tactic_->setPipeline(tactic::PipelineMode::Following);
+
+    // todo: set up loc_outstream_
   }
 
+  ~LocalizationNavigator() { saveLoc(); }
+
  private:
+
+  void saveLoc() {
+    navigation::EdgeTransform T_q_m(true);
+
+    // get vertices from latest run
+    auto root_vid = navigation::VertexId(graph_->numberOfRuns() - 1, 0);
+    navigation::TemporalEvaluatorPtr evaluator(
+        new navigation::TemporalEvaluator());
+    evaluator->setGraph((void *)graph_.get());
+    auto path_itr = graph_->beginDfs(root_vid, 0, evaluator);
+
+    for (; path_itr != graph_->end(); ++path_itr) {
+      auto loc_msg =
+          path_itr->v()
+              ->retrieveKeyframeData<vtr_messages::msg::LocalizationStatus>(
+                  "results_localization");
+
+      if (loc_msg != nullptr && loc_msg->success) {
+        uint64 q_id_64 = loc_msg->query_id;
+        uint q_id_minor = (uint)q_id_64;
+        uint q_id_major = (uint)(q_id_64 >> 32);
+
+        uint64 m_id_64 = loc_msg->map_id;
+        uint m_id_minor = (uint)m_id_64;
+        uint m_id_major = (uint)(m_id_64 >> 32);
+
+        LOG(INFO) << q_id_major << "-" << q_id_minor << ", " << m_id_major
+                  << "-" << m_id_minor;
+
+        loc_msg->t_query_map >> T_q_m;
+
+        std::streamsize prec = loc_outstream_.precision();
+        loc_outstream_
+            << std::setprecision(21)
+            << (path_itr->v()->keyFrameTime().nanoseconds_since_epoch) / 1e9
+            << std::setprecision(prec) << "," << q_id_major << "," << q_id_minor
+            << "," << m_id_major << "," << m_id_minor << ","
+            << loc_msg->success;
+
+        // flatten r vector to save
+        auto tmp = T_q_m.r_ba_ina();
+        auto r_flat = std::vector<double>(tmp.data(), tmp.data() + 3);
+        for (auto v : r_flat) loc_outstream_ << "," << v;
+        loc_outstream_ << "\n";
+      }
+    }
+    loc_outstream_.close();
+  }
+
+  /** \brief Stream to save position from localization to csv */
+  std::ofstream loc_outstream_;
 };
