@@ -405,7 +405,7 @@ class Tactic : public mission_planning::StateMachineInterface {
 
       // wait for the service
       // todo: is this the proper behaviour? want it to not interfere with navigation
-      while (!query_gps_client_->wait_for_service(50ms)) {
+      while (!query_gps_client_->wait_for_service(10ms)) {
         if (!rclcpp::ok()) {
           LOG(ERROR) << "Interrupted while waiting for the service. Exiting.";
           return;
@@ -423,7 +423,7 @@ class Tactic : public mission_planning::StateMachineInterface {
 
       if (rclcpp::spin_until_future_complete(node_,
                                              response,
-                                             std::chrono::milliseconds(25))
+                                             std::chrono::milliseconds(10))
           == rclcpp::FutureReturnCode::SUCCESS) {
         LOG(INFO) << "Message back: " << response.get()->message;
         if (response.get()->success) {
