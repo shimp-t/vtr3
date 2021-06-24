@@ -147,9 +147,9 @@ def estimate_yaws(r_rot_int):
     r_rot_int[-1, 5] = r_rot_int[-2, 5]
 
 
-result_files = ["vo_full_cpooff.csv", "vo_tdcp_full2.csv"]
-run_colours = {result_files[0]: 'C3', result_files[1]: 'C0', "cpo": 'C1'}
-run_labels = {result_files[0]: 'VO - CPO Off', result_files[1]: 'VO - CPO On', "cpo": 'GPS Odometry'}
+result_files = ["vo.csv"]
+run_colours = {result_files[0]: 'C3', "cpo": 'C1'}
+run_labels = {result_files[0]: 'VO', "cpo": 'GPS Odometry'}
 
 
 def main():
@@ -172,7 +172,7 @@ def main():
     plot_xy_errors = False  # whether we want 3 subplots in error plot or just overall error
     plot_vehicle_frame_errors = False
     tdcp_period = 0.1
-    start_trim = 15  # seconds to trim off start
+    start_trim = 2  # seconds to trim off start
     end_trim = 2
     align_distance = 10.0
     cpo_path = osp.expanduser("~/Desktop/cpo_16b.csv")
@@ -211,8 +211,10 @@ def main():
         cp_rs[run] = np.array(tmp2)
 
     # GET TIME INTERVAL WE WANT TO WORK WITH
-    first_time = math.ceil(vo_rs[result_files[1]][0, 0]) + start_trim
-    last_time = math.floor(vo_rs[result_files[1]][-1, 0]) - end_trim
+    first_time = math.ceil(vo_rs[result_files[0]][0, 0]) + start_trim
+    last_time = math.floor(vo_rs[result_files[0]][-1, 0]) - end_trim
+
+    # todo - find spot to check tf_gps_set flag in cp_rs but only in interval
 
     # READ GROUND TRUTH
     if dataset[:5] == "feb15":
@@ -286,7 +288,7 @@ def main():
                    c=run_colours[run])
     for run, r_rot_int in cp_rs_rot_interp.items():
         ax.plot(r_rot_int[:, 1] - r_rot_int[0, 1], r_rot_int[:, 2] - r_rot_int[0, 2], c='k',
-                label='Rotated Estimates - {0}'.format(run_labels[run]))
+                label='GPS Edges'.format(run_labels[run]))
         ax.scatter(r_rot_int[vo_r_idxs[run], 1] - r_rot_int[0, 1], r_rot_int[vo_r_idxs[run], 2] - r_rot_int[0, 2],
                    c='k')
     ax.plot(gt[:, 1] - gt[0, 1], gt[:, 2] - gt[0, 2], c='C2', label='RTK Ground Truth')
