@@ -44,11 +44,11 @@ class OfflineNavigator {
   OfflineNavigator(const rclcpp::Node::SharedPtr node, std::string output_dir)
       : node_(node) {
     /// data storage directory
-    output_dir =
+    output_dir_ =
         common::utils::expand_user(common::utils::expand_env(output_dir));
 
     /// pose graph
-    graph_ = pose_graph::RCGraph::LoadOrCreate(output_dir + "/graph.index", 0);
+    graph_ = pose_graph::RCGraph::LoadOrCreate(output_dir_ + "/graph.index", 0);
     LOG(INFO) << "[Navigator] Pose graph has " << graph_->numberOfVertices()
               << " vertices.";
 
@@ -73,7 +73,7 @@ class OfflineNavigator {
     std::stringstream ss;
     ss << "results_run_" << std::setfill('0') << std::setw(6)
        << graph_->numberOfRuns();
-    auto run_results_dir = fs::path(fs::path(output_dir) / ss.str());
+    auto run_results_dir = fs::path(fs::path(output_dir_) / ss.str());
     fs::create_directories(run_results_dir);
     std::string results_filename =
         node_->declare_parameter<std::string>("results_filename", "vo.csv");
@@ -200,6 +200,8 @@ class OfflineNavigator {
   /** \brief Calibration for the stereo rig */
   std::shared_ptr<vision::RigCalibration> rig_calibration_;
   lgmath::se3::TransformationWithCovariance T_sensor_vehicle_;
+
+  std::string output_dir_;
 
   /** \brief Stream to save position from integrated VO to csv */
   std::ofstream outstream_;

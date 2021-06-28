@@ -10,6 +10,7 @@
     output_dir: "${VTRTEMP}/testing/stereo"
     clear_output_dir: false
     results_filename: "vo.csv"
+    loc_results_filename: "loc.csv"
     # The sensor frame from the urdf (also defines the rig name)
     sensor_frame: front_xb3
     # The control frame from the urdf

@@ -35,7 +35,7 @@ def read_vo_transforms(data_dir):
             if i == 0:
                 continue
             else:
-                tmp = [float(i) for i in row[6:]]
+                tmp = [float(i) for i in row[6:22]]
                 assert len(tmp) == 16
                 vo_transforms[int(row[2])] = np.array(tmp).reshape((4, 4), order='F')    # csv is column-major
 
@@ -84,17 +84,17 @@ def main():
     plt.rc("legend", fontsize=SMALL_SIZE)  # legend fontsize
 
     # Flags
-    teach_dir = osp.expanduser("~/ASRL/vtr3_offline_test/results/")
-    repeat_dir = osp.expanduser("~/ASRL/vtr3_offline_test/results/")
+    teach_dir = osp.expanduser("~/ASRL/temp/testing/stereo/")
+    repeat_dir = osp.expanduser("~/ASRL/temp/testing/stereo/")
 
-    r_teach = read_vo(teach_dir + "run_000000")
+    r_teach = read_vo(teach_dir + "results_run_000000")
 
     r_repeat = {}
     r_qm = {}
 
     i = 1
-    while osp.exists(repeat_dir + "run_" + str(i).zfill(6)):
-        r_repeat[i], r_qm[i] = read_loc(teach_dir + "run_000000", repeat_dir + "run_" + str(i).zfill(6))
+    while osp.exists(repeat_dir + "results_run_" + str(i).zfill(6)):
+        r_repeat[i], r_qm[i] = read_loc(teach_dir + "results_run_000000", repeat_dir + "results_run_" + str(i).zfill(6))
         i = i + 1
 
     print("Number of teach points: ", r_teach.shape[0])
