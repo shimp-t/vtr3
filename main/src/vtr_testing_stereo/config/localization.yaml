@@ -5,7 +5,8 @@
     log_to_file: true
     log_debug: false
     # Dataset directory for odometry
-    input_dir: "${VTRDATA}/utias_20201104/nov4_b"
+#    input_dir: "${VTRDATA}/utias_2016_inthedark/run_000009"
+    input_dir: "${VTRDATA}/june16-images/june16a"
     # Result directory for odometry (including graph and odometry result)
     output_dir: "${VTRTEMP}/testing/stereo"
     clear_output_dir: false
@@ -16,8 +17,8 @@
     # The control frame from the urdf
     control_frame: base_link
     # Start and stop index
-    start_index: 0 # TODO: index starts from 1 instead of 0?
-    stop_index: 600
+    start_index: 2400
+    stop_index: 5000
 
     ############ tactic configuration ############
     tactic:

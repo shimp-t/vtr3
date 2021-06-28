@@ -72,13 +72,11 @@ class LocalizationNavigator : public OfflineNavigator {
       auto &v = path_itr->v();
       LOG(INFO) << "v " << v->id();
       v->load("results_localization");
-      LOG(INFO) << "LOADED " << v->id();
 
       auto loc_msg =
           v->retrieveKeyframeData<vtr_messages::msg::LocalizationStatus>(
               "results_localization",
               true);
-      LOG(INFO) << "RETRIEVED " << v->id();
 
       if (loc_msg != nullptr && loc_msg->success) {
         uint64 q_id_64 = loc_msg->query_id;

@@ -304,6 +304,9 @@ void Tactic::follow(QueryCache::Ptr qdata) {
 
     /// Call the pipeline to process the keyframe
     pipeline_->processKeyframe(qdata, graph_, current_vertex_id_);
+
+    addGpsEdge(qdata);
+
 #ifdef DETERMINISTIC_VTR
     {
       ChainLockType lck(*chain_mutex_ptr_);

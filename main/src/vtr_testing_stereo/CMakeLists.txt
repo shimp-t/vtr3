@@ -65,6 +65,17 @@ target_include_directories(${PROJECT_NAME}_localization
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>)
 
+# localization with GPS
+add_executable(${PROJECT_NAME}_localization_gps src/localization_gps.cpp)
+ament_target_dependencies(${PROJECT_NAME}_localization_gps
+        rclcpp sensor_msgs cpo_interfaces
+        vtr_common vtr_navigation vtr_logging
+        )
+target_include_directories(${PROJECT_NAME}_localization_gps
+        PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>)
+
 # ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
 # ament_export_dependencies()
 
@@ -78,6 +89,7 @@ install(
     ${PROJECT_NAME}_odometry
     ${PROJECT_NAME}_odometry_gps
     ${PROJECT_NAME}_localization
+    ${PROJECT_NAME}_localization_gps
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}
