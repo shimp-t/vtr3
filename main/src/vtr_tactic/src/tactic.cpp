@@ -426,6 +426,12 @@ void Tactic::follow(QueryCache::Ptr qdata) {
     }
     *qdata->loc_success = false;
 
+    LOG(DEBUG) << "T_twig_branch().r_ba_ina: " << chain_.T_twig_branch().r_ba_ina().transpose();
+
+    // todo - also need to add to below to deterministic block
+    if (config_->use_gps_odometry)
+      computeGpsPrior(qdata);
+
     // /// Should finish odometry jobs before running localization
     // /// performance gains from when this is also running in a separate
     // /// thread.
@@ -1119,6 +1125,55 @@ void Tactic::publishLocalization(QueryCache::Ptr qdata) {
   msg.transform.translation.z -= 10;
   msg.child_frame_id = "localization keyframe";
   tf_broadcaster_->sendTransform(msg);
+}
+
+void Tactic::computeGpsPrior(QueryCache::Ptr &qdata) {
+
+  LOG(INFO) << "trunk vid: " << chain_.trunkVertexId() << "  branch vid: " << chain_.branchVertexId() << "  twig vid: " << chain_.twigVertexId() << "  petiole vid: " << chain_.petioleVertexId();
+
+  if (!graph_->contains(chain_.trunkVertexId()) || !graph_->contains(chain_.branchVertexId()) || !graph_->contains(chain_.twigVertexId()) || !graph_->contains(chain_.petioleVertexId()))
+    return;
+
+  auto priv_eval = std::make_shared<pose_graph::eval::Mask::Privileged<pose_graph::RCGraph>::Direct>();
+  priv_eval->setGraph(graph_.get());
+
+  auto it_br_tr = graph_->dijkstraSearch(chain_.branchVertexId(), chain_.trunkVertexId(), pose_graph::eval::Weight::Const::MakeShared(1, 1), priv_eval);
+  // todo (Ben) - does it_tw_pe need eval too?
+  auto it_tw_pe = graph_->dijkstraSearch(chain_.twigVertexId(), chain_.petioleVertexId(), pose_graph::eval::Weight::Const::MakeShared(1, 1));
+
+  lgmath::se3::TransformationWithCovariance T_branch_trunk;
+  T_branch_trunk.setZeroCovariance();
+
+  for (auto it = it_br_tr->begin(chain_.branchVertexId()); it != it_br_tr->end(); ++it) {
+    if (!graph_->contains(it->to()) || !graph_->contains(it->from()))
+      continue;
+
+    if (it->e()->isTfGpsSet()) {
+      T_branch_trunk = T_branch_trunk * it->e()->TGps().inverse();
+    } else {
+      LOG(WARNING) << "Couldn't calculate T_branch_trunk_gps because missing a GPS odometry transform on " << it->e()->id();
+      return;
+    }
+  }
+
+  lgmath::se3::TransformationWithCovariance T_pet_twig;
+  T_pet_twig.setZeroCovariance();
+
+  for (auto it = it_tw_pe->begin(chain_.twigVertexId()); it != it_tw_pe->end(); ++it) {
+    if (!graph_->contains(it->to()) || !graph_->contains(it->from()))
+      continue;
+
+    if (it->e()->isTfGpsSet()) {
+      T_pet_twig = it->e()->TGps() * T_pet_twig;
+    } else {
+      LOG(WARNING) << "Couldn't calculate T_twig_pet_gps because missing a GPS odometry transform on " << it->e()->id();
+      return;
+    }
+  }
+
+  *qdata->T_r_m_gps.fallback(T_pet_twig * chain_.T_twig_branch() * T_branch_trunk);
+  LOG(DEBUG) << "T_r_m_gps \n" << qdata->T_r_m_gps->matrix();
+  LOG(DEBUG) << "T_r_m_loc (vision) \n" << qdata->T_r_m_loc->matrix();
 }
 
 }  // namespace tactic

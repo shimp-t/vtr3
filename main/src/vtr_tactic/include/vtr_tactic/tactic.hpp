@@ -395,6 +395,8 @@ class Tactic : public mission_planning::StateMachineInterface {
     }
   }
 
+  void computeGpsPrior(QueryCache::Ptr &qdata);
+
   void addGpsEdge(QueryCache::Ptr &qdata) {
     auto v_id1 = chain_.petioleVertexId();
     auto v_id2 = *qdata->live_id;
