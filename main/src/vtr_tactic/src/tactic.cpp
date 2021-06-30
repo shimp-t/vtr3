@@ -342,6 +342,10 @@ void Tactic::follow(QueryCache::Ptr qdata) {
     /// performance gains from when this is also running in a separate thread.
     pipeline_->waitForKeyframeJob();
 
+    LOG(DEBUG) << "T_twig_branch().r_ba_ina: " << chain_.T_twig_branch().r_ba_ina().transpose();  // todo: temporary
+    if (config_->use_gps_odometry)
+      computeGpsPrior(qdata);
+
     // Run the localizer against the closest vertex
     pipeline_->runLocalization(qdata, graph_);
     if (config_->visualize) {
@@ -426,9 +430,7 @@ void Tactic::follow(QueryCache::Ptr qdata) {
     }
     *qdata->loc_success = false;
 
-    LOG(DEBUG) << "T_twig_branch().r_ba_ina: " << chain_.T_twig_branch().r_ba_ina().transpose();
-
-    // todo - also need to add to below to deterministic block
+    LOG(DEBUG) << "T_twig_branch().r_ba_ina: " << chain_.T_twig_branch().r_ba_ina().transpose();  // todo - remove eventually
     if (config_->use_gps_odometry)
       computeGpsPrior(qdata);
 

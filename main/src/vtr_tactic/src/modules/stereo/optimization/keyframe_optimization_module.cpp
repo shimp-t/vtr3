@@ -313,7 +313,6 @@ void KeyframeOptimizationModule::addPosePrior(QueryCache &qdata) {
     *qdata.T_r_m_prior = *qdata.T_r_m_gps;
   }
 
-
   // TODO: Replace with T_leaf_branch from graph?
   EdgeTransform &pose_prior = *qdata.T_r_m_prior;
 
