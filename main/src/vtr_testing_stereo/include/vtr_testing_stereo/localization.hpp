@@ -77,40 +77,36 @@ class LocalizationNavigator : public OfflineNavigator {
           v->retrieveKeyframeData<vtr_messages::msg::LocalizationStatus>(
               "results_localization",
               true);
+      bool success = loc_msg != nullptr && loc_msg->success;
 
-      if (loc_msg != nullptr && loc_msg->success) {
-        uint64 q_id_64 = loc_msg->query_id;
-        uint q_id_minor = (uint)q_id_64;
-        uint q_id_major = (uint)(q_id_64 >> 32);
+      if (!path_itr->v()->spatialEdges().empty()) {
+        // grab the edge that contains the localization transform
+        const auto edge = *path_itr->v()->spatialEdges().begin();
+        if (graph_->contains(edge)) {
+          auto &e = graph_->at(edge);
+          lgmath::se3::TransformationWithCovariance
+              T_q_m_new = e->T().inverse();
 
-        uint64 m_id_64 = loc_msg->map_id;
-        uint m_id_minor = (uint)m_id_64;
-        uint m_id_major = (uint)(m_id_64 >> 32);
+          std::streamsize prec = loc_outstream_.precision();
+          loc_outstream_ << std::setprecision(21) <<
+                         (path_itr->v()->keyFrameTime().nanoseconds_since_epoch)
+                             / 1e9 << std::setprecision(prec) << ","
+                         << e->from().majorId() << "," << e->from().minorId()
+                         << "," << e->to().majorId() << "," << e->to().minorId()
+                         << "," << success;
 
-        LOG(INFO) << q_id_major << "-" << q_id_minor << ", " << m_id_major
-                  << "-" << m_id_minor;
+          // flatten r vector to save
+          auto tmp = T_q_m_new.r_ba_ina();
+          auto r_flat = std::vector<double>(tmp.data(), tmp.data() + 3);
+          for (auto element : r_flat) loc_outstream_ << "," << element;
 
-        loc_msg->t_query_map >> T_q_m;
+          // also save whole T_q_m matrix
+          auto tmp2 = T_q_m_new.matrix();
+          auto T_flat = std::vector<double>(tmp2.data(), tmp2.data() + 16);
+          for (auto element : T_flat) loc_outstream_ << "," << element;
 
-        std::streamsize prec = loc_outstream_.precision();
-        loc_outstream_
-            << std::setprecision(21)
-            << (path_itr->v()->keyFrameTime().nanoseconds_since_epoch) / 1e9
-            << std::setprecision(prec) << "," << q_id_major << "," << q_id_minor
-            << "," << m_id_major << "," << m_id_minor << ","
-            << loc_msg->success;
-
-        // flatten r vector to save
-        auto tmp = T_q_m.r_ba_ina();
-        auto r_flat = std::vector<double>(tmp.data(), tmp.data() + 3);
-        for (auto element : r_flat) loc_outstream_ << "," << element;
-
-        // also save whole T_q_m matrix
-        auto tmp2 = T_q_m.matrix();
-        auto T_flat = std::vector<double>(tmp2.data(), tmp2.data() + 16);
-        for (auto element : T_flat) loc_outstream_ << "," << element;
-
-        loc_outstream_ << "\n";
+          loc_outstream_ << "\n";
+        }
       }
     }
     loc_outstream_.close();

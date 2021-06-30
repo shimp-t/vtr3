@@ -20,6 +20,9 @@
     start_index: 2400
     stop_index: 5000
 
+    # (temporary) used in localization_gps.cpp to toggle black images - have to be doubles for my syntax to work
+    blackout_toggles: [2500.0, 2600.0]
+
     ############ tactic configuration ############
     tactic:
       visualize: true
