@@ -306,8 +306,22 @@ KeyframeOptimizationModule::generateOptimizationProblem(
 }
 
 void KeyframeOptimizationModule::addPosePrior(QueryCache &qdata) {
+  LOG(INFO) << "Vision pose prior is : " << *qdata.T_r_m_prior;
+
+  // todo - add option to let user decide which sensor to prefer
+  if (qdata.T_r_m_gps.is_valid()) {
+    *qdata.T_r_m_prior = *qdata.T_r_m_gps;
+  }
+
+
   // TODO: Replace with T_leaf_branch from graph?
   EdgeTransform &pose_prior = *qdata.T_r_m_prior;
+
+  if (qdata.T_r_m_gps.is_valid()) {
+    LOG(INFO) << "GPS pose prior is : " << *qdata.T_r_m_gps;
+  } else {
+    LOG(WARNING) << "No GPS pose prior found.";
+  }
 
   steam::BaseNoiseModel<6>::Ptr priorUncertainty;
 
