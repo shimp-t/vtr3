@@ -120,6 +120,12 @@ void StereoPipeline::runLocalization(QueryCache::Ptr &qdata,
   auto loc_data = std::make_shared<MapCache>();
 
   qdata->map_id.fallback(*qdata->map_id);
+
+  // todo - add option to let user decide which sensor to prefer
+  if (qdata->T_r_m_gps.is_valid()) {
+    *qdata->T_r_m_loc = *qdata->T_r_m_gps;
+  }
+
   qdata->T_r_m_prior.fallback(*qdata->T_r_m_loc);
   qdata->T_r_m.fallback(*qdata->T_r_m_loc);
   qdata->localization_status.fallback();
