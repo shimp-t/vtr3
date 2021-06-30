@@ -60,6 +60,8 @@ class Tactic : public mission_planning::StateMachineInterface {
      */
     bool visualize = false;
 
+    bool use_gps_odometry = false;
+
     static const Ptr fromROS(const rclcpp::Node::SharedPtr node);
   };
 

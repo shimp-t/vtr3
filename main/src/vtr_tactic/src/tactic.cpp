@@ -40,6 +40,7 @@ auto Tactic::Config::fromROS(const rclcpp::Node::SharedPtr node) -> const Ptr {
   config->merge_threshold = node->declare_parameter<std::vector<double>>("tactic.merge_threshold", std::vector<double>{0.5, 0.25, 0.2});
 
   config->visualize = node->declare_parameter<bool>("tactic.visualize", false);
+  config->use_gps_odometry = node->declare_parameter<bool>("tactic.use_gps_odometry", false);
   // clang-format on
   return config;
 }
@@ -186,7 +187,8 @@ void Tactic::branch(QueryCache::Ptr qdata) {
     /// Call the pipeline to process the keyframe
     pipeline_->processKeyframe(qdata, graph_, current_vertex_id_);
 
-    addGpsEdge(qdata);
+    if (config_->use_gps_odometry)
+      addGpsEdge(qdata);
 
     /// Compute odometry in world frame for visualization.
     T_w_m_odo_ = T_w_m_odo_ * (*qdata->T_r_m_odo).inverse();
@@ -305,7 +307,8 @@ void Tactic::follow(QueryCache::Ptr qdata) {
     /// Call the pipeline to process the keyframe
     pipeline_->processKeyframe(qdata, graph_, current_vertex_id_);
 
-    addGpsEdge(qdata);
+    if (config_->use_gps_odometry)
+      addGpsEdge(qdata);
 
 #ifdef DETERMINISTIC_VTR
     {
