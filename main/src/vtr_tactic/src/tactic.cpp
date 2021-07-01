@@ -187,8 +187,10 @@ void Tactic::branch(QueryCache::Ptr qdata) {
     /// Call the pipeline to process the keyframe
     pipeline_->processKeyframe(qdata, graph_, current_vertex_id_);
 
-    if (config_->use_gps_odometry)
+    if (config_->use_gps_odometry) {
       addGpsEdge(qdata);
+      updateGpsEdge(qdata);
+    }
 
     /// Compute odometry in world frame for visualization.
     T_w_m_odo_ = T_w_m_odo_ * (*qdata->T_r_m_odo).inverse();
@@ -307,8 +309,10 @@ void Tactic::follow(QueryCache::Ptr qdata) {
     /// Call the pipeline to process the keyframe
     pipeline_->processKeyframe(qdata, graph_, current_vertex_id_);
 
-    if (config_->use_gps_odometry)
+    if (config_->use_gps_odometry) {
       addGpsEdge(qdata);
+      updateGpsEdge(qdata);
+    }
 
 #ifdef DETERMINISTIC_VTR
     {

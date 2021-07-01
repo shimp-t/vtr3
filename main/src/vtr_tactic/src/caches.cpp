@@ -15,6 +15,7 @@ template class cache_ptr<std::vector<bool>>;
 
 template class cache_ptr<tactic::KeyframeTestResult>;
 template class cache_ptr<tactic::VertexId>;
+template class cache_ptr<tactic::EdgeId>;
 template class cache_ptr<TimeStampMsg>;
 template class cache_ptr<lgmath::se3::TransformationWithCovariance>;
 template class cache_ptr<rclcpp::Time>;

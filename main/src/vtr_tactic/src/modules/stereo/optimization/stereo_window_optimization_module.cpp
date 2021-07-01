@@ -719,6 +719,9 @@ void StereoWindowOptimizationModule::updateGraphImpl(QueryCache &qdata,
         } else {
           T_b_a.setCovariance(gn_solver->queryCovariance(
               pose_b_itr->second.tf_state_var->getKey()));
+
+          // keep track of outgoing edge so GPS odometry can update T_gps
+          qdata.outgoing_edge.fallback(e_id);
         }
         e->setTransform(T_b_a);
       } else {

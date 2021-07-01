@@ -462,6 +462,68 @@ class Tactic : public mission_planning::StateMachineInterface {
     }
   }
 
+  void updateGpsEdge(QueryCache::Ptr &qdata) {
+    if (qdata->outgoing_edge.is_valid() && graph_->contains(*qdata->outgoing_edge)) {
+      auto e = graph_->at(*qdata->outgoing_edge);
+      LOG(INFO) << "Trying to update GPS transform for edge " << e->id();
+
+      auto t_1 = graph_->at(e->from())->keyFrameTime().nanoseconds_since_epoch;
+      auto t_2 = graph_->at(e->to())->keyFrameTime().nanoseconds_since_epoch;
+
+      // wait for the service
+      // todo: is this the proper behaviour? want it to not interfere with navigation
+      while (!query_gps_client_->wait_for_service(10ms)) {
+        if (!rclcpp::ok()) {
+          LOG(ERROR) << "Interrupted while waiting for the service. Exiting.";
+          return;
+        }
+        LOG(INFO) << "Query trajectory not available so not adding edge.";
+        return;
+      }
+
+      // send and wait for the result
+      auto request = std::make_shared<QueryTrajectory::Request>();
+      request->t_1 = t_1;
+      request->t_2 = t_2;
+      auto response = query_gps_client_->async_send_request(request);
+
+      if (rclcpp::spin_until_future_complete(node_,
+                                             response,
+                                             std::chrono::milliseconds(10))
+          == rclcpp::FutureReturnCode::SUCCESS) {
+        LOG(INFO) << "Message back: " << response.get()->message;
+        if (response.get()->success) {
+          Eigen::Affine3d T_21_eig;
+          Eigen::fromMsg(response.get()->tf_2_1.pose, T_21_eig);
+          auto T_21 =
+              lgmath::se3::TransformationWithCovariance(T_21_eig.matrix());
+
+          // copy over covariance  // todo: may be better way to check if set properly
+          if (response.get()->tf_2_1.covariance.at(0) == 0) {
+            LOG(WARNING) << "Covariance on GPS transform appears to be unset.";
+          } else {
+            Eigen::Matrix<double, 6, 6> T_21_cov;
+            for (int i = 0; i < 6; ++i) {
+              for (int j = 0; j < 6; ++j) {
+                T_21_cov(i, j) =
+                    response.get()->tf_2_1.covariance.at(6 * i + j);
+              }
+            }
+            T_21.setCovariance(T_21_cov);
+          }
+
+          e->setTransformGps(T_21);
+          LOG(INFO) << "Set " << e->id() << " gps edge to \n" << e->TGps();  //debug
+          LOG(INFO) << e->id() << " vision edge is \n" << e->T();  //debug
+        }
+      } else {
+        LOG(WARNING) << "Failed to call GPS service.";
+      }
+    } else {
+      LOG(INFO) << "Couldn't update GPS transform on outgoing edge.";
+    }
+  }
+
  private:
   void startPathTracker(LocalizationChain& chain) {
     if (!path_tracker_) {
