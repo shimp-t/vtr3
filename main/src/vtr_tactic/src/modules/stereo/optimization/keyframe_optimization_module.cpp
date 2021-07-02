@@ -551,7 +551,6 @@ void KeyframeOptimizationModule::computeTrajectory(
 
   // Trajectory prior smoothing terms
   trajectory_->appendPriorCostTerms(cost_terms_);
-  trajectory_->appendPriorCostTerms(depth_cost_terms_);
 
   if (config_->velocity_prior) {
     trajectory_->addVelocityPrior(query_time, velocity_prior_,
