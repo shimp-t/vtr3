@@ -5,7 +5,7 @@
 [submodule "ros2/src/deps/steam"]
 	path = main/src/deps/steam
 	url = git@github.com:utiasASRL/steam.git
-	branch = ros2-dev
+	branch = ros2-traj-covariance
 [submodule "ros2/src/deps/lgmath"]
 	path = main/src/deps/lgmath
 	url = git@github.com:utiasASRL/lgmath.git
