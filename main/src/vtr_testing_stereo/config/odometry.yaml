@@ -21,7 +21,7 @@
     stop_index: 5000
 
     # (temporary) used in odometry_gps.cpp to toggle black images - have to be doubles for my syntax to work
-    blackout_toggles: [540.0, 580.0]
+    # blackout_toggles: [1000.0, 1080.0]
 
     ############ tactic configuration ############
     tactic:

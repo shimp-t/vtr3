@@ -116,6 +116,14 @@ void StereoPipeline::visualizeOdometry(QueryCache::Ptr &qdata,
 
 void StereoPipeline::runLocalization(QueryCache::Ptr &qdata,
                                      const Graph::Ptr &graph) {
+  LOG(INFO) << "Running stereo localization.";   // temporary for development
+  LOG(INFO) << "Vision pose prior is : " << *qdata->T_r_m_loc;
+  if (qdata->T_r_m_gps.is_valid()) {
+    LOG(INFO) << "GPS pose prior is (r_ba_a) : " << qdata->T_r_m_gps->r_ba_ina().transpose();
+  } else {
+    LOG(WARNING) << "No GPS pose prior found.";
+  }
+
   // create a new map cache and fill it out
   auto loc_data = std::make_shared<MapCache>();
 
