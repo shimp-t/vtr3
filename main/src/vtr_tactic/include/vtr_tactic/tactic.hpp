@@ -402,7 +402,7 @@ class Tactic : public mission_planning::StateMachineInterface {
     auto v_id2 = *qdata->live_id;
     auto e_id = EdgeId(v_id1, v_id2, pose_graph::Temporal);
     if (graph_->contains(e_id)) {
-      LOG(INFO) << "Trying to set GPS transform for edge " << e_id;
+      LOG(DEBUG) << "Trying to set GPS transform for edge " << e_id;
 
       auto t_1 = graph_->at(v_id1)->keyFrameTime().nanoseconds_since_epoch;
       auto t_2 = graph_->at(v_id2)->keyFrameTime().nanoseconds_since_epoch;
@@ -414,7 +414,7 @@ class Tactic : public mission_planning::StateMachineInterface {
           LOG(ERROR) << "Interrupted while waiting for the service. Exiting.";
           return;
         }
-        LOG(INFO) << "Query trajectory not available so not adding edge.";
+        LOG(DEBUG) << "Query trajectory not available so not adding edge.";
         return;
       }
 
@@ -429,7 +429,7 @@ class Tactic : public mission_planning::StateMachineInterface {
                                              response,
                                              std::chrono::milliseconds(10))
           == rclcpp::FutureReturnCode::SUCCESS) {
-        LOG(INFO) << "Message back: " << response.get()->message;
+        LOG(DEBUG) << "Message back: " << response.get()->message;
         if (response.get()->success) {
           Eigen::Affine3d T_21_eig;
           Eigen::fromMsg(response.get()->tf_2_1.pose, T_21_eig);
@@ -451,8 +451,8 @@ class Tactic : public mission_planning::StateMachineInterface {
           }
           auto e = graph_->at(e_id);
           e->setTransformGps(T_21);
-          LOG(INFO) << "Set gps edge to \n" << e->TGps();  //debug
-          LOG(INFO) << "Vision edge is \n" << e->T();  //debug
+          LOG(DEBUG) << "Set gps edge to \n" << e->TGps();
+          LOG(DEBUG) << "Vision edge is \n" << e->T();
         }
       } else {
         LOG(WARNING) << "Failed to call GPS service.";
@@ -465,7 +465,7 @@ class Tactic : public mission_planning::StateMachineInterface {
   void updateGpsEdge(QueryCache::Ptr &qdata) {
     if (qdata->outgoing_edge.is_valid() && graph_->contains(*qdata->outgoing_edge)) {
       auto e = graph_->at(*qdata->outgoing_edge);
-      LOG(INFO) << "Trying to update GPS transform for edge " << e->id();
+      LOG(DEBUG) << "Trying to update GPS transform for edge " << e->id();
 
       auto t_1 = graph_->at(e->from())->keyFrameTime().nanoseconds_since_epoch;
       auto t_2 = graph_->at(e->to())->keyFrameTime().nanoseconds_since_epoch;
@@ -477,7 +477,7 @@ class Tactic : public mission_planning::StateMachineInterface {
           LOG(ERROR) << "Interrupted while waiting for the service. Exiting.";
           return;
         }
-        LOG(INFO) << "Query trajectory not available so not adding edge.";
+        LOG(DEBUG) << "Query trajectory not available so not adding edge.";
         return;
       }
 
@@ -491,7 +491,7 @@ class Tactic : public mission_planning::StateMachineInterface {
                                              response,
                                              std::chrono::milliseconds(10))
           == rclcpp::FutureReturnCode::SUCCESS) {
-        LOG(INFO) << "Message back: " << response.get()->message;
+        LOG(DEBUG) << "Message back: " << response.get()->message;
         if (response.get()->success) {
           Eigen::Affine3d T_21_eig;
           Eigen::fromMsg(response.get()->tf_2_1.pose, T_21_eig);
@@ -513,8 +513,8 @@ class Tactic : public mission_planning::StateMachineInterface {
           }
 
           e->setTransformGps(T_21);
-          LOG(INFO) << "Set " << e->id() << " gps edge to \n" << e->TGps();  //debug
-          LOG(INFO) << e->id() << " vision edge is \n" << e->T();  //debug
+          LOG(DEBUG) << "Set " << e->id() << " gps edge to \n" << e->TGps();
+          LOG(DEBUG) << e->id() << " vision edge is \n" << e->T();
         }
       } else {
         LOG(WARNING) << "Failed to call GPS service.";
