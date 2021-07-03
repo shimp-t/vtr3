@@ -81,7 +81,7 @@ def read_loc_sensor(teach_dir, repeat_dir, T_sv):
     with open(osp.join(repeat_dir, "loc.csv"), newline='') as resultfile:
         spamreader = csv.reader(resultfile, delimiter=',', quotechar='|')
 
-        r_qsms_in_ms_set = np.empty((0, 8))
+        r_qsms_in_ms_set = np.empty((0, 9))
         for i, row in enumerate(spamreader):
             if i == 0:
                 continue
@@ -90,7 +90,7 @@ def read_loc_sensor(teach_dir, repeat_dir, T_sv):
                 T_qv_mv = np.array(tmp).reshape((4, 4), order='F')    # csv is column-major
                 T_qs_ms = T_sv @ T_qv_mv @ np.linalg.inv(T_sv)
                 T_ms_qs = np.linalg.inv(T_qs_ms)
-                r_qs_ms = np.empty([8, 1])
+                r_qs_ms = np.empty([9, 1])
                 teach_time_idx = np.argmax(teach_data[:, 2] == float(row[4]))  # find time corresponding to map vertex
                 r_qs_ms[0] = teach_data[teach_time_idx, 0]
                 r_qs_ms[1] = float(row[0])   # repeat timestamp
@@ -100,10 +100,55 @@ def read_loc_sensor(teach_dir, repeat_dir, T_sv):
                 r_qs_ms[5] = 0   # x gt (TBD)
                 r_qs_ms[6] = 0   # y gt (TBD)
                 r_qs_ms[7] = 0   # z gt (TBD)
+                r_qs_ms[8] = 0   # cumulative distance travelled based on teach ground truth (TBD)
 
                 r_qsms_in_ms_set = np.append(r_qsms_in_ms_set, r_qs_ms.T, axis=0)
 
     return r_qsms_in_ms_set
+
+
+def interpolate_and_rotate(gt_repeat, gt_teach, r_loc_in_gps_frame):
+    first_teach_idx = 0
+    for i, row in enumerate(r_loc_in_gps_frame):
+        t_teach = row[0]
+        t_repeat = row[1]
+
+        if t_teach < gt_teach[0, 0] or t_teach > gt_teach[-1, 0]:
+            raise ValueError
+        if t_repeat < gt_repeat[0, 0] or t_repeat > gt_repeat[-1, 0]:
+            raise ValueError
+
+        teach_idx = np.argmax(gt_teach[:, 0] > t_teach)
+        if i == 0:
+            first_teach_idx = teach_idx
+
+        t_0_t = gt_teach[teach_idx - 1, 0]
+        t_1_t = gt_teach[teach_idx, 0]
+        ratio_t = (t_teach - t_0_t) / (t_1_t - t_0_t)
+        x_t = ratio_t * gt_teach[teach_idx - 1, 1] + (1 - ratio_t) * gt_teach[teach_idx, 1]
+        y_t = ratio_t * gt_teach[teach_idx - 1, 2] + (1 - ratio_t) * gt_teach[teach_idx, 2]
+        z_t = ratio_t * gt_teach[teach_idx - 1, 3] + (1 - ratio_t) * gt_teach[teach_idx, 3]
+
+        theta_mg = math.atan2(gt_teach[teach_idx + 4, 2] - gt_teach[teach_idx - 5, 2],
+                              gt_teach[teach_idx + 4, 1] - gt_teach[teach_idx - 5, 1])
+
+        repeat_idx = np.argmax(gt_repeat[:, 0] > t_repeat)
+        t_0_r = gt_repeat[repeat_idx - 1, 0]
+        t_1_r = gt_repeat[repeat_idx, 0]
+        ratio_r = (t_repeat - t_0_r) / (t_1_r - t_0_r)
+        x_r = ratio_r * gt_repeat[repeat_idx - 1, 1] + (1 - ratio_r) * gt_repeat[repeat_idx, 1]
+        y_r = ratio_r * gt_repeat[repeat_idx - 1, 2] + (1 - ratio_r) * gt_repeat[repeat_idx, 2]
+        z_r = ratio_r * gt_repeat[repeat_idx - 1, 3] + (1 - ratio_r) * gt_repeat[repeat_idx, 3]
+
+        dx_g = x_r - x_t
+        dy_g = y_r - y_t
+        dz_g = z_r - z_t
+        # rotate localizations into vehicle frame (roughly)
+        r_loc_in_gps_frame[i, 5] = math.cos(theta_mg) * dx_g + math.sin(theta_mg) * dy_g
+        r_loc_in_gps_frame[i, 6] = -1 * math.sin(theta_mg) * dx_g + math.cos(theta_mg) * dy_g
+        r_loc_in_gps_frame[i, 7] = dz_g
+
+        r_loc_in_gps_frame[i, 8] = gt_teach[teach_idx, 7] - gt_teach[first_teach_idx, 7]
 
 
 def main():
@@ -165,8 +210,9 @@ def main():
 
     # Calculate and plot errors of localization estimates wrt ground truth
     # Get localization estimates and times in GPS receiver frame
-    T_sv = np.eye(4)
-    r_loc_in_gps_frame = read_loc_sensor(teach_dir + "results_run_000000", repeat_dir + "results_run_000001", T_sv)
+    T_sv = np.eye(4)      # todo: better way to handle files
+    r_loc_in_gps_frame = read_loc_sensor(teach_dir + "results_run_000000_vis", repeat_dir + "results_run_000001_vis", T_sv)
+    r_loc_in_gps_frame2 = read_loc_sensor(teach_dir + "results_run_000000_gps", repeat_dir + "results_run_000001_gps", T_sv)
 
     # READ GROUND TRUTH
     groundtruth_dir = '${VTRDATA}/june16-gt/'
@@ -177,40 +223,8 @@ def main():
     gt_teach = read_gpgga(gt_teach_path, 0)
     gt_repeat = read_gpgga(gt_repeat_path, 0)
 
-    for i, row in enumerate(r_loc_in_gps_frame):
-        t_teach = row[0]
-        t_repeat = row[1]
-
-        if t_teach < gt_teach[0, 0] or t_teach > gt_teach[-1, 0]:
-            raise ValueError
-        if t_repeat < gt_repeat[0, 0] or t_repeat > gt_repeat[-1, 0]:
-            raise ValueError
-
-        teach_idx = np.argmax(gt_teach[:, 0] > t_teach)
-        t_0_t = gt_teach[teach_idx - 1, 0]
-        t_1_t = gt_teach[teach_idx, 0]
-        ratio_t = (t_teach - t_0_t) / (t_1_t - t_0_t)
-        x_t = ratio_t * gt_teach[teach_idx - 1, 1] + (1 - ratio_t) * gt_teach[teach_idx, 1]
-        y_t = ratio_t * gt_teach[teach_idx - 1, 2] + (1 - ratio_t) * gt_teach[teach_idx, 2]
-        z_t = ratio_t * gt_teach[teach_idx - 1, 3] + (1 - ratio_t) * gt_teach[teach_idx, 3]
-
-        theta_mg = math.atan2(gt_teach[teach_idx+4, 2] - gt_teach[teach_idx-5, 2], gt_teach[teach_idx+4, 1] - gt_teach[teach_idx-5, 1])
-
-        repeat_idx = np.argmax(gt_repeat[:, 0] > t_repeat)
-        t_0_r = gt_repeat[repeat_idx - 1, 0]
-        t_1_r = gt_repeat[repeat_idx, 0]
-        ratio_r = (t_repeat - t_0_r) / (t_1_r - t_0_r)
-        x_r = ratio_r * gt_repeat[repeat_idx - 1, 1] + (1 - ratio_r) * gt_repeat[repeat_idx, 1]
-        y_r = ratio_r * gt_repeat[repeat_idx - 1, 2] + (1 - ratio_r) * gt_repeat[repeat_idx, 2]
-        z_r = ratio_r * gt_repeat[repeat_idx - 1, 3] + (1 - ratio_r) * gt_repeat[repeat_idx, 3]
-
-        dx_g = x_r - x_t
-        dy_g = y_r - y_t
-        dz_g = z_r - z_t
-        # rotate localizations into vehicle frame (roughly)
-        r_loc_in_gps_frame[i, 5] = math.cos(theta_mg) * dx_g + math.sin(theta_mg) * dy_g
-        r_loc_in_gps_frame[i, 6] = -1*math.sin(theta_mg) * dx_g + math.cos(theta_mg) * dy_g
-        r_loc_in_gps_frame[i, 7] = dz_g
+    interpolate_and_rotate(gt_repeat, gt_teach, r_loc_in_gps_frame)
+    interpolate_and_rotate(gt_repeat, gt_teach, r_loc_in_gps_frame2)
 
     fig3, ax3 = plt.subplots(nrows=2, ncols=1, figsize=[8, 6])
     fig3.subplots_adjust(left=0.10, bottom=0.06, right=0.96, top=0.93)
@@ -221,7 +235,16 @@ def main():
     ax3[1].plot(r_loc_in_gps_frame[:, 3], c='C0', label='y - estimated')
     ax3[1].plot(r_loc_in_gps_frame[:, 6], c='C2', label='y - gt')
     ax3[1].plot(r_loc_in_gps_frame[:, 3] - r_loc_in_gps_frame[:, 6], c='C1', label='y - error')
+    plt.legend()
 
+    # Compares localization from two different runs
+    fig4 = plt.figure(4, figsize=[9, 4])
+    plt.title("Localization Estimate Errors")
+    plt.plot(r_loc_in_gps_frame[:, 8], r_loc_in_gps_frame[:, 3] - r_loc_in_gps_frame[:, 6], c='C0', label='VO prior')
+    plt.plot(r_loc_in_gps_frame2[:, 8], r_loc_in_gps_frame2[:, 3] - r_loc_in_gps_frame2[:, 6], c='C2', label='GPS prior')
+    plt.ylim([-0.25, 0.25])
+    plt.ylabel("Error wrt Ground Truth (m)")
+    plt.xlabel("Distance Along Path (m)")
     plt.legend()
 
     plt.show()
