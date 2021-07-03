@@ -38,6 +38,7 @@ struct QueryCache : public common::CacheContainer {
         stamp("stamp", janitor_.get()),
         rcl_stamp("rcl_stamp", janitor_.get()),
         first_frame("first_frame", janitor_.get()),
+        vloc_block("vloc_block", janitor_.get()),   // *** temporary for testing
         live_id("live_id", janitor_.get()),
         map_id("map_id", janitor_.get()),
         T_r_m_odo("T_r_m_odo", janitor_.get()),
@@ -102,6 +103,7 @@ struct QueryCache : public common::CacheContainer {
   common::cache_ptr<TimeStampMsg> stamp;
   common::cache_ptr<rclcpp::Time> rcl_stamp;
   common::cache_ptr<bool> first_frame;
+  common::cache_ptr<bool> vloc_block;     // *** temporary for testing
   common::cache_ptr<VertexId> live_id;
   common::cache_ptr<VertexId> map_id;
   common::cache_ptr<lgmath::se3::TransformationWithCovariance> T_r_m_odo;  //

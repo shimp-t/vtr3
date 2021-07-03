@@ -47,6 +47,7 @@ class StereoPipeline : public BasePipeline {
     std::vector<std::string> odometry;
     std::vector<std::string> bundle_adjustment;
     std::vector<std::string> localization;
+    std::vector<double> vloc_toggles;         // *** temporary for testing
   };
 
   StereoPipeline(const std::string &name = static_name) : BasePipeline{name} {}
@@ -209,6 +210,9 @@ class StereoPipeline : public BasePipeline {
   std::shared_ptr<steam::se3::SteamTrajInterface> trajectory_;
   /** \brief the time at which the trajectory was estimated */
   common::timing::time_point trajectory_time_point_;
+
+  bool vloc_block = false;    // *** temporary for testing
+  int image_count = 0;        // *** temporary for testing
 };
 
 }  // namespace tactic

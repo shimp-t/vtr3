@@ -11,6 +11,11 @@ void StereoPipeline::configFromROS(const rclcpp::Node::SharedPtr &node,
   config_->odometry = node->declare_parameter<std::vector<std::string>>(param_prefix + ".odometry", config_->odometry);
   config_->bundle_adjustment = node->declare_parameter<std::vector<std::string>>(param_prefix + ".bundle_adjustment", config_->bundle_adjustment);
   config_->localization = node->declare_parameter<std::vector<std::string>>(param_prefix + ".localization", config_->localization);
+
+  config_->vloc_toggles = node->declare_parameter<std::vector<double>>("visual_loc_toggles",std::vector<double>{});
+  LOG(INFO) << "Found " << config_->vloc_toggles.size() << " visual localization toggles.";
+  for (double toggle : config_->vloc_toggles)
+    std::cout << "VLoc toggle point: " << toggle << std::endl;
   // clang-format on
 }
 
@@ -40,6 +45,8 @@ void StereoPipeline::preprocess(QueryCache::Ptr &qdata,
                                 const Graph::Ptr &graph) {
   auto tmp = std::make_shared<MapCache>();
   for (auto module : preprocessing_) module->run(*qdata, *tmp, graph);
+
+  image_count++;       // *** temporary for testing
 }
 
 void StereoPipeline::visualizePreprocess(QueryCache::Ptr &qdata,
@@ -138,6 +145,17 @@ void StereoPipeline::runLocalization(QueryCache::Ptr &qdata,
   qdata->T_r_m.fallback(*qdata->T_r_m_loc);
   qdata->localization_status.fallback();
   qdata->loc_timer.fallback();
+
+  // *** temporary for testing
+  if (!config_->vloc_toggles.empty() && image_count >= config_->vloc_toggles[0]) {
+    vloc_block = !vloc_block;
+    config_->vloc_toggles.erase(config_->vloc_toggles.begin());
+    LOG(WARNING) << "Set vloc_block to " << vloc_block;
+  }
+  if (vloc_block) {
+    LOG(WARNING) << "Blocking visual localization via flag sent to RANSAC!";
+    qdata->vloc_block.fallback(false);
+  }
 
   for (auto module : localization_) module->run(*qdata, *loc_data, graph);
 

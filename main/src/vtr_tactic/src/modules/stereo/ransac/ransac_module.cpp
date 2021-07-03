@@ -161,6 +161,12 @@ void RansacModule::runImpl(QueryCache &qdata, MapCache &mdata,
     *qdata.success = false;
   }
 
+  if (qdata.vloc_block.is_valid() && !*qdata.vloc_block) {    // *** temporary for testing
+    LOG(ERROR) << "RansacModule found " << flattened_matches.size() << " inliers but won't use per visual loc block request! ";
+    inliers.clear();
+    *qdata.success = false;
+  }
+
   // Inflate matches
   auto &matches = *qdata.ransac_matches.fallback();
   matches.push_back(vision::RigMatches());
