@@ -157,7 +157,7 @@ void Tactic::branch(QueryCache::Ptr qdata) {
     /// Publish odometry result on live robot localization
     if (publisher_)
       publisher_->publishRobot(persistent_loc_, chain_.trunkSequenceId(),
-                               target_loc_);
+                               target_loc_, qdata->rcl_stamp.ptr());
 #endif
   }
 
