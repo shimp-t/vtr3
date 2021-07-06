@@ -423,6 +423,37 @@ class Tactic : public mission_planning::StateMachineInterface {
       request->t_1 = t_1;
       request->t_2 = t_2;
 
+#if 1 // online
+      auto response_callback =
+          [this, e_id](rclcpp::Client<QueryTrajectory>::SharedFuture future) {
+            auto response = future.get();
+            LOG(DEBUG) << "Message back: " << response->message;
+            if (response->success) {
+              Eigen::Affine3d T_21_eig;
+              Eigen::fromMsg(response->tf_2_1.pose, T_21_eig);
+              auto T_21 =
+                  lgmath::se3::TransformationWithCovariance(T_21_eig.matrix());
+
+              // copy over covariance  // todo: may be better way to check if set properly
+              if (response->tf_2_1.covariance.at(0) == 0) {
+                LOG(WARNING) << "Covariance on GPS transform appears to be unset.";
+              } else {
+                Eigen::Matrix<double, 6, 6> T_21_cov;
+                for (int i = 0; i < 6; ++i) {
+                  for (int j = 0; j < 6; ++j) {
+                    T_21_cov(i, j) = response->tf_2_1.covariance.at(6 * i + j);
+                  }
+                }
+                T_21.setCovariance(T_21_cov);
+              }
+              auto e = graph_->at(e_id);
+              e->setTransformGps(T_21);
+              LOG(DEBUG) << "Set gps edge to \n" << e->TGps();
+              LOG(DEBUG) << "Vision edge is \n" << e->T();
+            }
+          };
+      auto response = query_gps_client_->async_send_request(request, response_callback);
+#else
       auto response = query_gps_client_->async_send_request(request);
 
       if (rclcpp::spin_until_future_complete(node_,
@@ -457,6 +488,7 @@ class Tactic : public mission_planning::StateMachineInterface {
       } else {
         LOG(WARNING) << "Failed to call GPS service.";
       }
+#endif
     } else {
       LOG(INFO) << "Couldn't find " << e_id << " in graph.";
     }
@@ -485,6 +517,39 @@ class Tactic : public mission_planning::StateMachineInterface {
       auto request = std::make_shared<QueryTrajectory::Request>();
       request->t_1 = t_1;
       request->t_2 = t_2;
+
+#if 1    // online
+      auto response_callback =
+      [this, e](rclcpp::Client<QueryTrajectory>::SharedFuture future) {
+        auto response = future.get();
+        LOG(DEBUG) << "Message back: " << response->message;
+        if (response->success) {
+          Eigen::Affine3d T_21_eig;
+          Eigen::fromMsg(response->tf_2_1.pose, T_21_eig);
+          auto T_21 =
+              lgmath::se3::TransformationWithCovariance(T_21_eig.matrix());
+
+          // copy over covariance  // todo: may be better way to check if set properly
+          if (response->tf_2_1.covariance.at(0) == 0) {
+            LOG(WARNING) << "Covariance on GPS transform appears to be unset.";
+          } else {
+            Eigen::Matrix<double, 6, 6> T_21_cov;
+            for (int i = 0; i < 6; ++i) {
+              for (int j = 0; j < 6; ++j) {
+                T_21_cov(i, j) =
+                    response->tf_2_1.covariance.at(6 * i + j);
+              }
+            }
+            T_21.setCovariance(T_21_cov);
+          }
+
+          e->setTransformGps(T_21);
+          LOG(DEBUG) << "Set " << e->id() << " gps edge to \n" << e->TGps();
+          LOG(DEBUG) << e->id() << " vision edge is \n" << e->T();
+        }
+      };
+      auto response = query_gps_client_->async_send_request(request, response_callback);
+#else  // currently needed for offline tools
       auto response = query_gps_client_->async_send_request(request);
 
       if (rclcpp::spin_until_future_complete(node_,
@@ -519,6 +584,7 @@ class Tactic : public mission_planning::StateMachineInterface {
       } else {
         LOG(WARNING) << "Failed to call GPS service.";
       }
+#endif
     } else {
       LOG(INFO) << "Couldn't update GPS transform on outgoing edge.";
     }
