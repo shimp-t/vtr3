@@ -135,8 +135,8 @@ def rotate_all_runs(align_time, gt, gt_idx, vo_r_idxs, vo_rs_interp, vo_rs_rot_i
         s = math.sin(theta)
 
         vo_rs_rot_interp[run] = np.copy(r)  # copy estimates into new rotated array
-        vo_rs_rot_interp[run][:, 1] = c * r[:, 1] + s * r[:, 2]
-        vo_rs_rot_interp[run][:, 2] = -s * r[:, 1] + c * r[:, 2]
+        vo_rs_rot_interp[run][:, 1] = c * (r[:, 1] - r[0, 1]) + s * (r[:, 2] - r[0, 2])
+        vo_rs_rot_interp[run][:, 2] = -s * (r[:, 1] - r[0, 1]) + c * (r[:, 2] - r[0, 2])
 
 
 def estimate_yaws(r_rot_int):
@@ -269,8 +269,8 @@ def main():
             s = math.sin(theta)
 
             cpo_estimates_rot = np.copy(cpo_estimates)  # copy estimates into new rotated array
-            cpo_estimates_rot[:, 2] = c * cpo_estimates[:, 2] + s * cpo_estimates[:, 3]
-            cpo_estimates_rot[:, 3] = -s * cpo_estimates[:, 2] + c * cpo_estimates[:, 3]
+            cpo_estimates_rot[:, 2] = c * (cpo_estimates[:, 2] - cpo_estimates[0, 2]) + s * (cpo_estimates[:, 3] - cpo_estimates[0, 3])
+            cpo_estimates_rot[:, 3] = -s * (cpo_estimates[:, 2] - cpo_estimates[0, 2]) + c * (cpo_estimates[:, 3] - cpo_estimates[0, 3])
 
             plt.plot(cpo_estimates_rot[:, 2] - cpo_estimates_rot[0, 2],
                      cpo_estimates_rot[:, 3] - cpo_estimates_rot[0, 3], label='GPS Odometry - Rotated', c='C1')
