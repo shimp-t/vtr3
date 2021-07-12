@@ -179,6 +179,10 @@ class OfflineNavigator {
       for (auto v : T_flat_gps) outstream_ << "," << v;
       outstream_ << "," << (int) tf_gps_set;
 
+      // debugging
+      double yaw_vo = atan2(T_curr.matrix()(1, 0), T_curr.matrix()(0, 0));
+      double yaw_gps = atan2(T_curr_gps.matrix()(1, 0), T_curr_gps.matrix()(0, 0));
+      outstream_ << "," << yaw_vo << "," << yaw_gps;
       outstream_ << "\n";
     }
     outstream_.close();

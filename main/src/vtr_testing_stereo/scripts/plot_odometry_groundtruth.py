@@ -147,7 +147,16 @@ def estimate_yaws(r_rot_int):
     r_rot_int[-1, 5] = r_rot_int[-2, 5]
 
 
-result_files = ["vo.csv"]
+def estimate_yaws_cpo(cpo_rot):
+    for i in range(len(cpo_rot) - 2):
+        yaw = math.atan2(cpo_rot[i + 2, 3] - cpo_rot[i, 3], cpo_rot[i + 2, 2] - cpo_rot[i, 2])
+        cpo_rot[i + 1, 1] = yaw
+    cpo_rot[0, 1] = cpo_rot[1, 1]  # use neighbouring yaw estimate for endpoints
+    cpo_rot[-1, 1] = cpo_rot[-2, 1]
+
+
+# result_files = ["vo.csv"]
+result_files = ["5a_all.csv"]
 run_colours = {result_files[0]: 'C3', "cpo": 'C1'}
 run_labels = {result_files[0]: 'VO', "cpo": 'GPS Odometry'}
 
@@ -158,9 +167,11 @@ def main():
     parser.add_argument('--results_path', '-r', type=str, help='Parent directory containing run files.',
                         default='${VTRTEMP}/testing/stereo/results_run_000000')
     parser.add_argument('--groundtruth_dir', '-g', type=str, help='Path to directory with RTK ground truth (optional)',
-                        default='${VTRDATA}/june16-gt/')
+                        # default='${VTRDATA}/june16-gt/')
+                        default='${VTRDATA}/july5/gt/')
     parser.add_argument('--groundtruth_file', '-f', type=str, help='File name of RTK ground truth (optional)',
-                        default='june16b.csv')
+                        # default='june16b.csv')
+                        default='july5a.csv')
     args = parser.parse_args()
 
     results_path = osp.expanduser(osp.expandvars(args.results_path))
@@ -175,7 +186,8 @@ def main():
     start_trim = 2  # seconds to trim off start
     end_trim = 2
     align_distance = 10.0
-    cpo_path = osp.expanduser("~/Desktop/cpo_16b.csv")
+    # cpo_path = osp.expanduser("~/Desktop/cpo_16b.csv")
+    cpo_path = osp.expanduser("/home/ben/CLionProjects/ros2-ws/src/cpo_analysis/data/estimates/cpo.csv")
     cpo_available = osp.exists(cpo_path)
 
     # RESULT DICTIONARIES
@@ -205,7 +217,8 @@ def main():
             T_0s = T_0v @ T_vs
             tmp.append([row[0], row[1], row[2], T_0s[0, 3], T_0s[1, 3], T_0s[2, 3]])
             T_0v_cp = np.reshape(row[25:41], (4, 4)).transpose()
-            T_0s_cp = T_0v_cp @ T_vs                    # todo: check
+            T_0s_cp = T_0v_cp @ T_vs
+            #            t, vid_maj, vid_min, x, y, z, success
             tmp2.append([row[0], row[1], row[2], T_0s_cp[0, 3], T_0s_cp[1, 3], T_0s_cp[2, 3], row[41]])
         vo_rs[run] = np.array(tmp)
         cp_rs[run] = np.array(tmp2)
@@ -219,7 +232,7 @@ def main():
     # READ GROUND TRUTH
     if dataset[:5] == "feb15":
         day = 2145 * 7 + 1  # Feb.15/21
-    elif dataset[:4] == "june":
+    elif dataset[:4] == "june" or dataset[:4] == "july":
         day = 0         # don't need to know day to decode NavSatFix ground truth
     else:
         raise Exception("Unknown dataset - {0}".format(dataset))
@@ -238,10 +251,6 @@ def main():
 
     rotate_all_runs(align_time, gt, gt_idx, vo_r_idxs, vo_rs_interp, vo_rs_rot_interp)
     rotate_all_runs(align_time, gt, gt_idx, cp_r_idxs, cp_rs_interp, cp_rs_rot_interp)
-
-    # ESTIMATE YAW AT EACH VERTEX OF VO RUNS USING BEFORE/AFTER VERTEX
-    for run, r_rot_int in vo_rs_rot_interp.items():
-        estimate_yaws(r_rot_int)
 
     # SET UP OVERHEAD PLOT
     fig = plt.figure(1, figsize=[9, 5])
@@ -401,6 +410,19 @@ def main():
                     ax2.plot([cpo_errors[i - 1, 7], cpo_errors[i, 7]], [0.01, 0.01], c='k')
 
     plt.legend()
+
+    # ESTIMATE YAW AT EACH VERTEX OF VO RUNS USING BEFORE/AFTER VERTEX
+    plt.figure(3)
+    plt.title("Heading vs Distance Along Path")
+    for run, r_rot_int in vo_rs_rot_interp.items():
+        estimate_yaws(r_rot_int)
+        plt.plot(r_rot_int[:, 4] - r_rot_int[0, 4], r_rot_int[:, 5], c='C3')
+    for run, r_rot_int in cp_rs_rot_interp.items():
+        estimate_yaws(r_rot_int)
+        plt.plot(r_rot_int[:, 4] - r_rot_int[0, 4], r_rot_int[:, 5], c='k')
+    if cpo_available:
+        estimate_yaws_cpo(cpo_estimates_rot)
+        plt.plot(cpo_errors[:, 7] - cpo_errors[0, 7], cpo_estimates_rot[:, 1], c='C1')
 
     plt.show()
 
