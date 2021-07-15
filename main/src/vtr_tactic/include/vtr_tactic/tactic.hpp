@@ -425,7 +425,7 @@ class Tactic : public mission_planning::StateMachineInterface {
       request->t_1 = t_1;
       request->t_2 = t_2;
 
-#if 1 // online
+#if 0 // online
       auto response_callback =
           [this, e_id](rclcpp::Client<QueryTrajectory>::SharedFuture future) {
             auto response = future.get();
@@ -520,7 +520,7 @@ class Tactic : public mission_planning::StateMachineInterface {
       request->t_1 = t_1;
       request->t_2 = t_2;
 
-#if 1    // online
+#if 0    // online
       auto response_callback =
       [this, e](rclcpp::Client<QueryTrajectory>::SharedFuture future) {
         auto response = future.get();

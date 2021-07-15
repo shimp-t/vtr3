@@ -215,6 +215,10 @@ int main(int argc, char **argv) {
       gpgga_msg = gpgga_stream->readNextFromSeek();
     }
 #endif
+
+#if 0   // may work for online fix in tactic, need to debug
+    rclcpp::spin_some(node);
+#endif
   }
 
   LOG(INFO) << "Bye-bye!";
