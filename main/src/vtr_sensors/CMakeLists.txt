@@ -58,11 +58,15 @@ target_link_libraries(BumblebeeReplay ${PROJECT_NAME}_index)
 add_executable(BumblebeeCalibration src/xb3_calibration.cpp)
 target_link_libraries(BumblebeeCalibration ${PROJECT_NAME}_index)
 
+add_executable(NavSatToCsv src/navsat_to_csv_2.cpp)
+target_link_libraries(NavSatToCsv ${PROJECT_NAME}_index)
+
 install(TARGETS
         BumblebeeDriver
         BumblebeeRecorder
         BumblebeeReplay
         BumblebeeCalibration
+        NavSatToCsv
         DESTINATION lib/${PROJECT_NAME})
 
 
