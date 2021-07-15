@@ -155,8 +155,8 @@ def estimate_yaws_cpo(cpo_rot):
     cpo_rot[-1, 1] = cpo_rot[-2, 1]
 
 
-# result_files = ["vo.csv"]
-result_files = ["5a_all.csv"]
+result_files = ["vo.csv"]
+# result_files = ["vo_partial16b.csv"]
 run_colours = {result_files[0]: 'C3', "cpo": 'C1'}
 run_labels = {result_files[0]: 'VO', "cpo": 'GPS Odometry'}
 
@@ -167,11 +167,11 @@ def main():
     parser.add_argument('--results_path', '-r', type=str, help='Parent directory containing run files.',
                         default='${VTRTEMP}/testing/stereo/results_run_000000')
     parser.add_argument('--groundtruth_dir', '-g', type=str, help='Path to directory with RTK ground truth (optional)',
-                        # default='${VTRDATA}/june16-gt/')
-                        default='${VTRDATA}/july5/gt/')
+                        default='${VTRDATA}/june16-gt/')
+    # default='${VTRDATA}/july5/gt/')
     parser.add_argument('--groundtruth_file', '-f', type=str, help='File name of RTK ground truth (optional)',
-                        # default='june16b.csv')
-                        default='july5a.csv')
+                        default='june16b.csv')
+    # default='july5a.csv')
     args = parser.parse_args()
 
     results_path = osp.expanduser(osp.expandvars(args.results_path))
@@ -413,16 +413,19 @@ def main():
 
     # ESTIMATE YAW AT EACH VERTEX OF VO RUNS USING BEFORE/AFTER VERTEX
     plt.figure(3)
-    plt.title("Heading vs Distance Along Path")
+    plt.title("Estimated Heading vs Distance Along Path")
     for run, r_rot_int in vo_rs_rot_interp.items():
         estimate_yaws(r_rot_int)
-        plt.plot(r_rot_int[:, 4] - r_rot_int[0, 4], r_rot_int[:, 5], c='C3')
+        plt.plot(r_rot_int[:, 4] - r_rot_int[0, 4], r_rot_int[:, 5], c='C3', label="VO")
     for run, r_rot_int in cp_rs_rot_interp.items():
         estimate_yaws(r_rot_int)
-        plt.plot(r_rot_int[:, 4] - r_rot_int[0, 4], r_rot_int[:, 5], c='k')
-    if cpo_available:
+        plt.plot(r_rot_int[:, 4] - r_rot_int[0, 4], r_rot_int[:, 5], c='k', label="GPS Edges")
+    if cpo_available and rotate_cpo:
         estimate_yaws_cpo(cpo_estimates_rot)
-        plt.plot(cpo_errors[:, 7] - cpo_errors[0, 7], cpo_estimates_rot[:, 1], c='C1')
+        plt.plot(cpo_errors[:, 7] - cpo_errors[0, 7], cpo_estimates_rot[:, 1], c='C1', label="GPS Odometry")
+    plt.legend()
+    plt.xlabel("Distance [m]")
+    plt.ylabel("Heading [rad]")
 
     plt.show()
 

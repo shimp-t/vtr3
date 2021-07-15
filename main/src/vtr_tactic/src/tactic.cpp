@@ -356,11 +356,15 @@ void Tactic::follow(QueryCache::Ptr qdata) {
       publishLocalization(qdata);
       pipeline_->visualizeLocalization(qdata, graph_);
     }
+    LOG(INFO) << "Estimated r_qm_m from trunk ("
+              << *(qdata->map_id) << ") to petiole ("
+              << *(qdata->live_id)
+              << "): " << qdata->T_r_m_loc->r_ba_ina().transpose();   // debugging exp 2
 
-    LOG(DEBUG) << "Estimated transformation from trunk vertex ("
+    LOG(INFO) << "Estimated transformation from trunk vertex ("
                << *(qdata->map_id) << ") to petiole vertex ("
                << *(qdata->live_id)
-               << ") (i.e., T_r_m localization): " << *qdata->T_r_m_loc;
+               << ") (i.e., T_r_m localization): \n" << qdata->T_r_m_loc->matrix();
 
     /// Add an edge no matter localization is successful or not
     /// \todo this might not be necessary when not running localization in
