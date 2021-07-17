@@ -168,10 +168,10 @@ def main():
                         default='${VTRTEMP}/testing/stereo/results_run_000000')
     parser.add_argument('--groundtruth_dir', '-g', type=str, help='Path to directory with RTK ground truth (optional)',
                         default='${VTRDATA}/june16-gt/')
-    # default='${VTRDATA}/july5/gt/')
+                        # default='${VTRDATA}/july5/gt/')
     parser.add_argument('--groundtruth_file', '-f', type=str, help='File name of RTK ground truth (optional)',
                         default='june16b.csv')
-    # default='july5a.csv')
+                        # default='july5c.csv')
     args = parser.parse_args()
 
     results_path = osp.expanduser(osp.expandvars(args.results_path))
@@ -226,6 +226,7 @@ def main():
     # GET TIME INTERVAL WE WANT TO WORK WITH
     first_time = math.ceil(vo_rs[result_files[0]][0, 0]) + start_trim
     last_time = math.floor(vo_rs[result_files[0]][-1, 0]) - end_trim
+    print("Start time: {0}    End time: {1}".format(first_time, last_time))
 
     # todo - find spot to check tf_gps_set flag in cp_rs but only in interval
 
@@ -426,6 +427,19 @@ def main():
     plt.legend()
     plt.xlabel("Distance [m]")
     plt.ylabel("Heading [rad]")
+
+    plt.figure(4)
+    # if cpo_available and rotate_cpo:
+    #     plt.plot(cpo_errors[1:, 7] - cpo_errors[0, 7], np.diff(cpo_estimates_rot[:, 1]), c='C1', label="GPS Odometry")
+    for run, r_rot_int in vo_rs_rot_interp.items():
+        plt.plot(r_rot_int[1:, 4] - r_rot_int[0, 4], np.diff(r_rot_int[:, 5]), c='C3', label="VO")
+    for run, r_rot_int in cp_rs_rot_interp.items():
+        plt.plot(r_rot_int[1:, 4] - r_rot_int[0, 4], np.diff(r_rot_int[:, 5]), c='k', label="GPS Edges")
+    plt.title("Delta Estimated Heading vs Distance Along Path")
+
+    plt.legend()
+    plt.xlabel("Distance [m]")
+    plt.ylabel("Change in Heading [rad]")
 
     plt.show()
 
