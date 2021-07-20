@@ -162,7 +162,7 @@ void RansacModule::runImpl(QueryCache &qdata, MapCache &mdata,
   }
 
   if (qdata.vloc_block.is_valid() && !*qdata.vloc_block) {    // *** temporary for testing
-    LOG(ERROR) << "RansacModule found " << flattened_matches.size() << " inliers but won't use per visual loc block request! ";
+    LOG(ERROR) << "RansacModule found " << flattened_matches.size() << " matches but won't use per visual loc block request! ";
     inliers.clear();
     *qdata.success = false;
   }

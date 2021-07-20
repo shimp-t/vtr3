@@ -484,8 +484,8 @@ class Tactic : public mission_planning::StateMachineInterface {
           }
           auto e = graph_->at(e_id);
           e->setTransformGps(T_21);
-          LOG(DEBUG) << "Set gps edge to \n" << e->TGps();
-          LOG(DEBUG) << "Vision edge is \n" << e->T();
+          LOG(INFO) << "Set gps edge " << e_id << " to \n" << e->TGps();
+          LOG(INFO) << "Vision edge is \n" << e->T();
         }
       } else {
         LOG(WARNING) << "Failed to call GPS service.";
@@ -580,8 +580,8 @@ class Tactic : public mission_planning::StateMachineInterface {
           }
 
           e->setTransformGps(T_21);
-          LOG(DEBUG) << "Set " << e->id() << " gps edge to \n" << e->TGps();
-          LOG(DEBUG) << e->id() << " vision edge is \n" << e->T();
+          LOG(INFO) << "Set existing gps edge " << e->id() << " to \n" << e->TGps().matrix();
+          LOG(INFO) << e->id() << " vision edge is \n" << e->T().matrix();
         }
       } else {
         LOG(WARNING) << "Failed to call GPS service.";

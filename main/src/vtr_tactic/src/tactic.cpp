@@ -346,9 +346,11 @@ void Tactic::follow(QueryCache::Ptr qdata) {
     /// performance gains from when this is also running in a separate thread.
     pipeline_->waitForKeyframeJob();
 
-    LOG(DEBUG) << "T_twig_branch().r_ba_ina: " << chain_.T_twig_branch().r_ba_ina().transpose();  // todo: temporary
-    if (config_->use_gps_odometry)
-      computeGpsPrior(qdata);
+    {
+      ChainLockType lck(*chain_mutex_ptr_);
+      if (config_->use_gps_odometry)
+        computeGpsPrior(qdata);
+    }
 
     // Run the localizer against the closest vertex
     pipeline_->runLocalization(qdata, graph_);
@@ -364,7 +366,7 @@ void Tactic::follow(QueryCache::Ptr qdata) {
     LOG(INFO) << "Estimated transformation from trunk vertex ("
                << *(qdata->map_id) << ") to petiole vertex ("
                << *(qdata->live_id)
-               << ") (i.e., T_r_m localization): \n" << qdata->T_r_m_loc->matrix();
+               << ") (i.e., T_r_m localization): " << *qdata->T_r_m_loc;
 
     /// Add an edge no matter localization is successful or not
     /// \todo this might not be necessary when not running localization in
