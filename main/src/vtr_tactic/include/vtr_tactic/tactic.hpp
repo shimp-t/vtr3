@@ -397,6 +397,14 @@ class Tactic : public mission_planning::StateMachineInterface {
     }
   }
 
+  virtual inline void incrementVoCount(bool loc_failed) {
+    if (loc_failed) {
+      keyframes_on_vo_++;
+    } else {
+      keyframes_on_vo_ = 0;
+    }
+  }
+
   void computeGpsPrior(QueryCache::Ptr &qdata);
 
   void addGpsEdge(QueryCache::Ptr &qdata) {
@@ -673,6 +681,9 @@ class Tactic : public mission_planning::StateMachineInterface {
   Localization persistent_loc_;
   /** \brief Localization against a target for merging. */
   Localization target_loc_;
+
+  /** \brief Track how long we've gone without localizing */
+  int keyframes_on_vo_ = 0;
 
   /** \brief Transformation from the latest keyframe to world frame */
   lgmath::se3::TransformationWithCovariance T_w_m_odo_ =

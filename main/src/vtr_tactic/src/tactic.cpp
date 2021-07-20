@@ -354,6 +354,7 @@ void Tactic::follow(QueryCache::Ptr qdata) {
 
     // Run the localizer against the closest vertex
     pipeline_->runLocalization(qdata, graph_);
+    incrementVoCount(!*qdata->loc_success);
     if (config_->visualize) {
       publishLocalization(qdata);
       pipeline_->visualizeLocalization(qdata, graph_);
@@ -515,6 +516,8 @@ void Tactic::runLocalizationInFollow_(QueryCache::Ptr qdata) {
 
   // Run the localizer against the closest vertex
   pipeline_->runLocalization(qdata, graph_);
+  incrementVoCount(!*qdata->loc_success);
+
   if (config_->visualize) {
     // publishLocalization(qdata);
     pipeline_->visualizeLocalization(qdata, graph_);
