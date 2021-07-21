@@ -35,6 +35,7 @@
         search_back_depth: 10
         distance_warning: 3.0
       use_gps_odometry: true    # todo: also add to default param files
+      gps_odometry_update_delay: 1.0
 
     ############ pipeline configuration ############
     pipeline:

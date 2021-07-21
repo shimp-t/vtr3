@@ -62,7 +62,10 @@ class Tactic : public mission_planning::StateMachineInterface {
      */
     bool visualize = false;
 
+    /** \brief Whether to use GPS odometry as an alternative prior to VO */
     bool use_gps_odometry = false;
+    /** \brief Seconds to wait before calling queryTrajectory on edge */
+    double gps_odometry_update_delay = 1.0;
 
     static const Ptr fromROS(const rclcpp::Node::SharedPtr node);
   };
@@ -504,13 +507,40 @@ class Tactic : public mission_planning::StateMachineInterface {
     }
   }
 
-  void updateGpsEdge(QueryCache::Ptr &qdata) {
-    if (qdata->outgoing_edge.is_valid() && graph_->contains(*qdata->outgoing_edge)) {
-      auto e = graph_->at(*qdata->outgoing_edge);
-      LOG(DEBUG) << "Trying to update GPS transform for edge " << e->id();
+  void updateGpsEdges(QueryCache::Ptr &qdata) {
 
-      auto t_1 = graph_->at(e->from())->keyFrameTime().nanoseconds_since_epoch;
-      auto t_2 = graph_->at(e->to())->keyFrameTime().nanoseconds_since_epoch;
+    graph_->lock();
+    const auto frozen_graph = std::make_shared<GraphBase>(*graph_);
+    graph_->unlock();
+
+    // use iterator to search backwards along path for edges that need updating
+    TemporalEvaluator::Ptr tempeval(new TemporalEvaluator());
+    tempeval->setGraph((void *) frozen_graph.get());
+    using DirectionEvaluator = pose_graph::eval::Mask::DirectionFromVertexDirect<GraphBase>;
+    auto direval = std::make_shared<DirectionEvaluator>(*qdata->live_id, true);
+    direval->setGraph((void *) frozen_graph.get());
+    auto eval = pose_graph::eval::And(tempeval, direval);
+    auto itr = frozen_graph->beginDfs(*qdata->live_id,50, eval);
+    itr++;
+
+    VertexId prev_gps_edge_update = last_gps_edge_update_;
+
+    bool updated_last_update_v = false;
+    for (; itr != frozen_graph->end(); ++itr) {
+      auto e = itr->e();
+      if(e->to() == prev_gps_edge_update) {
+        // this edge already updated so we're finished
+        break;
+      }
+      if (frozen_graph->at(*qdata->live_id)->keyFrameTime().nanoseconds_since_epoch
+          - frozen_graph->at(e->from())->keyFrameTime().nanoseconds_since_epoch
+          < config_->gps_odometry_update_delay * 1e9) {
+        // not ready to update this edge yet
+        continue;
+      }
+
+      auto t_1 = frozen_graph->at(e->from())->keyFrameTime().nanoseconds_since_epoch;
+      auto t_2 = frozen_graph->at(e->to())->keyFrameTime().nanoseconds_since_epoch;
 
       // wait for the service
       // todo: is this the proper behaviour? want it to not interfere with navigation
@@ -595,8 +625,12 @@ class Tactic : public mission_planning::StateMachineInterface {
         LOG(WARNING) << "Failed to call GPS service.";
       }
 #endif
-    } else {
-      LOG(INFO) << "Couldn't update GPS transform on outgoing edge.";
+
+      if (!updated_last_update_v) {
+        // update which edges have been updated
+        last_gps_edge_update_ = e->to();
+        updated_last_update_v = true;
+      }
     }
   }
 
@@ -684,6 +718,9 @@ class Tactic : public mission_planning::StateMachineInterface {
 
   /** \brief Track how long we've gone without localizing */
   int keyframes_on_vo_ = 0;
+
+  /** \brief Vertex delineating which edges have had TGps updated  */
+  VertexId last_gps_edge_update_ = VertexId((uint64_t)-1);
 
   /** \brief Transformation from the latest keyframe to world frame */
   lgmath::se3::TransformationWithCovariance T_w_m_odo_ =

@@ -41,6 +41,7 @@ auto Tactic::Config::fromROS(const rclcpp::Node::SharedPtr node) -> const Ptr {
 
   config->visualize = node->declare_parameter<bool>("tactic.visualize", false);
   config->use_gps_odometry = node->declare_parameter<bool>("tactic.use_gps_odometry", false);
+  config->gps_odometry_update_delay = node->declare_parameter<double>("tactic.gps_odometry_update_delay", 1.0);
   // clang-format on
   return config;
 }
@@ -189,7 +190,7 @@ void Tactic::branch(QueryCache::Ptr qdata) {
 
     if (config_->use_gps_odometry) {
       addGpsEdge(qdata);
-      updateGpsEdge(qdata);
+      updateGpsEdges(qdata);
     }
 
     /// Compute odometry in world frame for visualization.
@@ -311,7 +312,7 @@ void Tactic::follow(QueryCache::Ptr qdata) {
 
     if (config_->use_gps_odometry) {
       addGpsEdge(qdata);
-      updateGpsEdge(qdata);
+      updateGpsEdges(qdata);
     }
 
 #ifdef DETERMINISTIC_VTR
@@ -1236,8 +1237,8 @@ void Tactic::computeGpsPrior(QueryCache::Ptr &qdata) {
 
   *qdata->T_r_m_gps.fallback(
       T_pet_twig * e_gps_branch_twig.T().inverse() * T_branch_trunk);
-  LOG(DEBUG) << "T_r_m_gps \n" << qdata->T_r_m_gps->matrix();
-  LOG(DEBUG) << "T_r_m_loc (vision) \n" << qdata->T_r_m_loc->matrix();
+  LOG(DEBUG) << "T_r_m_gps " << *qdata->T_r_m_gps;
+  LOG(DEBUG) << "T_r_m_loc (vision) " << *qdata->T_r_m_loc;
 }
 
 }  // namespace tactic
