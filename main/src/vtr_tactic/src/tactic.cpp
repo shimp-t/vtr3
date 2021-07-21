@@ -1144,49 +1144,98 @@ void Tactic::publishLocalization(QueryCache::Ptr qdata) {
 
 void Tactic::computeGpsPrior(QueryCache::Ptr &qdata) {
 
-  LOG(INFO) << "trunk vid: " << chain_.trunkVertexId() << "  branch vid: " << chain_.branchVertexId() << "  twig vid: " << chain_.twigVertexId() << "  petiole vid: " << chain_.petioleVertexId();
+  LOG(INFO) << "trunk vid: " << chain_.trunkVertexId() << "  branch vid: "
+            << chain_.branchVertexId() << "  twig vid: "
+            << chain_.twigVertexId() << "  petiole vid: "
+            << chain_.petioleVertexId();
 
-  if (!graph_->contains(chain_.trunkVertexId()) || !graph_->contains(chain_.branchVertexId()) || !graph_->contains(chain_.twigVertexId()) || !graph_->contains(chain_.petioleVertexId()))
+  graph_->lock();
+  const auto frozen_graph = std::make_shared<GraphBase>(*graph_);
+  graph_->unlock();
+
+  if (!frozen_graph->contains(chain_.trunkVertexId())
+      || !frozen_graph->contains(chain_.branchVertexId())
+      || !frozen_graph->contains(chain_.twigVertexId())
+      || !frozen_graph->contains(chain_.petioleVertexId()))
     return;
 
-  auto priv_eval = std::make_shared<pose_graph::eval::Mask::Privileged<pose_graph::RCGraph>::Direct>();
-  priv_eval->setGraph(graph_.get());
-
-  auto it_br_tr = graph_->dijkstraSearch(chain_.branchVertexId(), chain_.trunkVertexId(), pose_graph::eval::Weight::Const::MakeShared(1, 1), priv_eval);
-  // todo (Ben) - does it_tw_pe need eval too?
-  auto it_tw_pe = graph_->dijkstraSearch(chain_.twigVertexId(), chain_.petioleVertexId(), pose_graph::eval::Weight::Const::MakeShared(1, 1));
-
-  lgmath::se3::TransformationWithCovariance T_branch_trunk;
-  T_branch_trunk.setZeroCovariance();
-
-  for (auto it = it_br_tr->begin(chain_.branchVertexId()); it != it_br_tr->end(); ++it) {
-    if (!graph_->contains(it->to()) || !graph_->contains(it->from()))
-      continue;
-
-    if (it->e()->isTfGpsSet()) {
-      T_branch_trunk = T_branch_trunk * it->e()->TGps().inverse();
-    } else {
-      LOG(WARNING) << "Couldn't calculate T_branch_trunk_gps because missing a GPS odometry transform on " << it->e()->id();
-      return;
-    }
-  }
+  TemporalEvaluator::Ptr repeat_tempeval(new TemporalEvaluator());
+  repeat_tempeval->setGraph((void *) frozen_graph.get());
+  using DirectionEvaluator = pose_graph::eval::Mask::DirectionFromVertexDirect<
+      GraphBase>;
+  auto repeat_direval =
+      std::make_shared<DirectionEvaluator>(chain_.petioleVertexId(), true);
+  repeat_direval->setGraph((void *) frozen_graph.get());
+  auto repeat_eval = pose_graph::eval::And(repeat_tempeval, repeat_direval);
+  auto repeat_itr = frozen_graph->beginDfs(chain_.petioleVertexId(),
+                                           keyframes_on_vo_ + 1,
+                                           repeat_eval);
+  repeat_itr++;
 
   lgmath::se3::TransformationWithCovariance T_pet_twig;
   T_pet_twig.setZeroCovariance();
 
-  for (auto it = it_tw_pe->begin(chain_.twigVertexId()); it != it_tw_pe->end(); ++it) {
-    if (!graph_->contains(it->to()) || !graph_->contains(it->from()))
+  VertexId gps_twig_id = repeat_itr->e()->from();
+  for (; repeat_itr != frozen_graph->end(); ++repeat_itr) {
+    if (!frozen_graph->contains(repeat_itr->to())
+        || !frozen_graph->contains(repeat_itr->from())) {
+      continue;
+    }
+
+    if (repeat_itr->e()->isTfGpsSet()) {
+      T_pet_twig = T_pet_twig * repeat_itr->e()->TGps();
+
+      // last id we get to is the "gps twig"
+      gps_twig_id = repeat_itr->e()->from();
+    } else {
+      LOG(WARNING)
+          << "Couldn't calculate T_twig_pet_gps because missing a GPS odometry transform on "
+          << repeat_itr->e()->id();
+      return;
+    }
+  }
+  LOG(DEBUG) << "gps_twig_id " << gps_twig_id;
+
+  if (frozen_graph->at(gps_twig_id)->spatialEdges().empty()) {
+    LOG(WARNING) << gps_twig_id << " had no spatial edges. Missing edge?"
+                 << "As a result, couldn't set GPS prior.";
+    return;
+  }
+
+  auto e_gps_branch_twig =
+      *frozen_graph->at(*frozen_graph->at(gps_twig_id)->spatialEdges().begin());
+  VertexId gps_branch_id = e_gps_branch_twig.to();
+  LOG(DEBUG) << "gps_branch_id " << gps_branch_id;
+
+  auto priv_eval =
+      std::make_shared<pose_graph::eval::Mask::Privileged<pose_graph::RCGraph>::Direct>();
+  priv_eval->setGraph(frozen_graph.get());
+  auto it_br_tr = frozen_graph->dijkstraSearch(
+      gps_branch_id,
+      chain_.trunkVertexId(),
+      pose_graph::eval::Weight::Const::MakeShared(1, 1),
+      priv_eval);
+
+  lgmath::se3::TransformationWithCovariance T_branch_trunk;
+  T_branch_trunk.setZeroCovariance();
+
+  for (auto teach_itr = it_br_tr->begin(gps_branch_id);
+       teach_itr != it_br_tr->end(); ++teach_itr) {
+    if (!frozen_graph->contains(teach_itr->to())
+        || !frozen_graph->contains(teach_itr->from()))
       continue;
 
-    if (it->e()->isTfGpsSet()) {
-      T_pet_twig = it->e()->TGps() * T_pet_twig;
+    if (teach_itr->e()->isTfGpsSet()) {
+      T_branch_trunk = T_branch_trunk * teach_itr->e()->TGps().inverse();
     } else {
-      LOG(WARNING) << "Couldn't calculate T_twig_pet_gps because missing a GPS odometry transform on " << it->e()->id();
+      LOG(WARNING) << "Couldn't calculate T_branch_trunk_gps because missing "
+                   << "a GPS odometry transform on " << teach_itr->e()->id();
       return;
     }
   }
 
-  *qdata->T_r_m_gps.fallback(T_pet_twig * chain_.T_twig_branch() * T_branch_trunk);
+  *qdata->T_r_m_gps.fallback(
+      T_pet_twig * e_gps_branch_twig.T().inverse() * T_branch_trunk);
   LOG(DEBUG) << "T_r_m_gps \n" << qdata->T_r_m_gps->matrix();
   LOG(DEBUG) << "T_r_m_loc (vision) \n" << qdata->T_r_m_loc->matrix();
 }
