@@ -183,7 +183,7 @@ def main():
     plot_xy_errors = False  # whether we want 3 subplots in error plot or just overall error
     plot_vehicle_frame_errors = False
     tdcp_period = 0.1
-    start_trim = 2  # seconds to trim off start
+    start_trim = 4  # seconds to trim off start
     end_trim = 2
     align_distance = 10.0
     # cpo_path = osp.expanduser("~/Desktop/cpo_16b.csv")
@@ -215,11 +215,11 @@ def main():
         for row in results:
             T_0v = np.reshape(row[6:22], (4, 4)).transpose()
             T_0s = T_0v @ T_vs
-            tmp.append([row[0], row[1], row[2], T_0s[0, 3], T_0s[1, 3], T_0s[2, 3]])
+            tmp.append([row[0], row[1], row[2], T_0s[0, 3], T_0s[1, 3], T_0s[2, 3], row[42]])
             T_0v_cp = np.reshape(row[25:41], (4, 4)).transpose()
             T_0s_cp = T_0v_cp @ T_vs
-            #            t, vid_maj, vid_min, x, y, z, success
-            tmp2.append([row[0], row[1], row[2], T_0s_cp[0, 3], T_0s_cp[1, 3], T_0s_cp[2, 3], row[41]])
+            #            t, vid_maj, vid_min, x, y, z, success , (temp) yaw from gps edges
+            tmp2.append([row[0], row[1], row[2], T_0s_cp[0, 3], T_0s_cp[1, 3], T_0s_cp[2, 3], row[41], row[43]])
         vo_rs[run] = np.array(tmp)
         cp_rs[run] = np.array(tmp2)
 
@@ -433,13 +433,25 @@ def main():
     #     plt.plot(cpo_errors[1:, 7] - cpo_errors[0, 7], np.diff(cpo_estimates_rot[:, 1]), c='C1', label="GPS Odometry")
     for run, r_rot_int in vo_rs_rot_interp.items():
         plt.plot(r_rot_int[1:, 4] - r_rot_int[0, 4], np.diff(r_rot_int[:, 5]), c='C3', label="VO")
+        # plt.plot(r_rot_int[:, 4] - r_rot_int[0, 4], r_rot_int[:, 5], c='C3', label="VO")  # absolute
     for run, r_rot_int in cp_rs_rot_interp.items():
         plt.plot(r_rot_int[1:, 4] - r_rot_int[0, 4], np.diff(r_rot_int[:, 5]), c='k', label="GPS Edges")
+        # plt.plot(r_rot_int[:, 4] - r_rot_int[0, 4], r_rot_int[:, 5], c='k', label="GPS Edges")
     plt.title("Delta Estimated Heading vs Distance Along Path")
 
     plt.legend()
     plt.xlabel("Distance [m]")
     plt.ylabel("Change in Heading [rad]")
+
+    plt.figure(5)
+    plt.title("Change in Heading Per Edge")
+    for run, r in vo_rs.items():
+        plt.plot(r[1:, 0], np.diff(r[:, 6]), c='C3', label="VO")
+    for run, r in cp_rs.items():
+        plt.plot(r[1:, 0], np.diff(r[:, 7]), c='k', label="GPS Edges")
+    plt.legend()
+    plt.xlabel("Timestamp [s]")
+    plt.ylabel("Delta Yaw [rad]")
 
     plt.show()
 

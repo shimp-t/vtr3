@@ -23,7 +23,7 @@
 
     # (temporary) used in localization_gps.cpp to toggle black images - have to be doubles for my syntax to work
     # blackout_toggles: [2600.0, 2760.0]
-    visual_loc_toggles: [ 100.0, 200.0]  # prevents us from getting feature matches in visual localization. (measured from start index)
+    visual_loc_toggles: [ 200.0, 520.0]  # prevents us from getting feature matches in visual localization. (measured from start index)
 
     ############ tactic configuration ############
     tactic:

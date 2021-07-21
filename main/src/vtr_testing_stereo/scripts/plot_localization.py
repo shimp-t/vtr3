@@ -66,19 +66,23 @@ def read_loc(teach_dir, repeat_dir, loc_file="loc.csv", teach_vo_file="vo.csv"):
     with open(osp.join(repeat_dir, loc_file), newline='') as resultfile:
         spamreader = csv.reader(resultfile, delimiter=',', quotechar='|')
         r_world_set = np.empty((0, 4))
-        r_qm_in_m_set = np.empty((0, 4))
+        r_qm_in_m_set = np.empty((0, 8))
         for i, row in enumerate(spamreader):
             if i == 0:
                 continue
             else:
-                r_loc = np.empty([4, 1])
+                r_loc = np.empty([8, 1])
                 r_loc[0] = float(row[6])
                 r_loc[1] = float(row[7])
                 r_loc[2] = float(row[8])
                 r_loc[3] = 1.0
+                r_loc[4] = row[0]  # repeat vertex timestamp
+                r_loc[5] = row[2]  # repeat vertex minor id
+                r_loc[6] = row[4]  # teach vertex minor id
+                r_loc[7] = row[5]  # localization successful?
 
                 map_T = vo_transforms[int(row[4])]
-                r_world = np.matmul(map_T, r_loc)
+                r_world = np.matmul(map_T, r_loc[:4])
                 r_world_set = np.append(r_world_set, r_world.T, axis=0)
                 r_qm_in_m_set = np.append(r_qm_in_m_set, r_loc.T, axis=0)
 
@@ -93,7 +97,7 @@ def read_loc_sensor(teach_dir, repeat_dir, T_sv, loc_file="loc.csv", teach_vo_fi
     with open(osp.join(repeat_dir, loc_file), newline='') as resultfile:
         spamreader = csv.reader(resultfile, delimiter=',', quotechar='|')
 
-        r_qsms_in_ms_set = np.empty((0, 9))
+        r_qsms_in_ms_set = np.empty((0, 10))
         for i, row in enumerate(spamreader):
             if i == 0:
                 continue
@@ -102,7 +106,7 @@ def read_loc_sensor(teach_dir, repeat_dir, T_sv, loc_file="loc.csv", teach_vo_fi
                 T_qv_mv = np.array(tmp).reshape((4, 4), order='F')    # csv is column-major
                 T_qs_ms = T_sv @ T_qv_mv @ np.linalg.inv(T_sv)
                 T_ms_qs = np.linalg.inv(T_qs_ms)
-                r_qs_ms = np.empty([9, 1])
+                r_qs_ms = np.empty([10, 1])
                 teach_time_idx = np.argmax(teach_data[:, 2] == float(row[4]))  # find time corresponding to map vertex
                 r_qs_ms[0] = teach_data[teach_time_idx, 0]
                 r_qs_ms[1] = float(row[0])   # repeat timestamp
@@ -113,6 +117,7 @@ def read_loc_sensor(teach_dir, repeat_dir, T_sv, loc_file="loc.csv", teach_vo_fi
                 r_qs_ms[6] = 0   # y ground truth (TBD)
                 r_qs_ms[7] = 0   # z ground truth (TBD)
                 r_qs_ms[8] = 0   # cumulative distance travelled based on teach ground truth (TBD)
+                r_qs_ms[9] = row[5]   # localization successful
 
                 r_qsms_in_ms_set = np.append(r_qsms_in_ms_set, r_qs_ms.T, axis=0)
 
@@ -120,6 +125,9 @@ def read_loc_sensor(teach_dir, repeat_dir, T_sv, loc_file="loc.csv", teach_vo_fi
 
 
 def interpolate_and_rotate(gt_repeat, gt_teach, r_loc_in_gps_frame):
+    """Interpolates RTK ground truth for both localization (repeat - teach) to keyframe times and roughly rotates it
+    into the local vehicle frame"""
+
     first_teach_idx = 0
     for i, row in enumerate(r_loc_in_gps_frame):
         t_teach = row[0]
@@ -155,7 +163,7 @@ def interpolate_and_rotate(gt_repeat, gt_teach, r_loc_in_gps_frame):
         dx_g = x_r - x_t
         dy_g = y_r - y_t
         dz_g = z_r - z_t
-        # rotate localizations into vehicle frame (roughly)
+        # rotate ground truth localizations from ENU into vehicle frame (roughly)
         r_loc_in_gps_frame[i, 5] = math.cos(theta_mg) * dx_g + math.sin(theta_mg) * dy_g
         r_loc_in_gps_frame[i, 6] = -1 * math.sin(theta_mg) * dx_g + math.cos(theta_mg) * dy_g
         r_loc_in_gps_frame[i, 7] = dz_g
@@ -168,8 +176,10 @@ def main():
     teach_dir = osp.expanduser("~/ASRL/temp/testing/stereo/results_run_000000")
     repeat_dir = osp.expanduser("~/ASRL/temp/testing/stereo/results_run_000001")
 
-    teach_vo_files = {0: "vo0_vis-exp2.csv", 1: "vo0_gps-exp2.csv"}
-    repeat_loc_files = {0: "loc1_vis-exp2.csv", 1: "loc1_gps-exp2.csv"}
+    # teach_vo_files = {0: "vo0_vis-exp2b.csv", 1: "vo0_gps-exp2b.csv"}
+    teach_vo_files = {0: "vo0_vis-exp2b.csv", 1: "vo.csv"}
+    # repeat_loc_files = {0: "loc1_vis-exp2b.csv", 1: "loc1_gps-exp2b.csv"}
+    repeat_loc_files = {0: "loc1_vis-exp2b.csv", 1: "loc.csv"}
     colours = {0: ('C1', 'orange'), 1: ('C2', 'g')}
     labels = {0: "Vision Prior", 1: "GPS Prior"}
     r_teach = {}
@@ -183,13 +193,14 @@ def main():
     print("Number of points in first teach: ", r_teach[0].shape[0])
     print("Number of points in first repeat: ", r_repeat[0].shape[0])
 
-    fig = plt.figure(1)
+    fig = plt.figure(1, figsize=[8, 4])
     ax = fig.add_subplot(111)
     plt.axis('equal')
 
     ax.plot(r_teach[0][:, 0], r_teach[0][:, 1], label='Teach', c='C7')
     for i, run in r_repeat.items():
         ax.plot(run[:, 0], run[:, 1], label='Repeat - {0}'.format(labels[i]), c=colours[i][0])
+        # ax.scatter(run[:, 0], run[:, 1], label='Repeat - {0}'.format(labels[i]), c=colours[i][0])
 
     plt.title('Overhead View of Integrated VO and Localization')
     ax.set_xlabel('x (m)')
@@ -221,8 +232,11 @@ def main():
         interpolate_and_rotate(gt_repeat, gt_teach, r_loc_in_gps_frame)
 
         plt.figure(2)
-        ax2[0].plot(r_qm[i][:, 0], label='x - {0}'.format(labels[i]), c=colours[i][0])
-        ax2[1].plot(r_qm[i][:, 1], label='y - {0}'.format(labels[i]), c=colours[i][0])
+        ax2[0].plot(r_loc_in_gps_frame[:, 8], r_qm[i][:, 0], label='x - {0}'.format(labels[i]), c=colours[i][0])  # x-axis distance for final plots
+        ax2[1].plot(r_loc_in_gps_frame[:, 8], r_qm[i][:, 1], label='y - {0}'.format(labels[i]), c=colours[i][0])
+        # ax2[0].plot(r_qm[i][:, 4] - 1623800000, r_qm[i][:, 0], label='x - {0}'.format(labels[i]), c=colours[i][0])    # x-axis timestamp - 1623800000 for debugging
+        # ax2[1].plot(r_qm[i][:, 4] - 1623800000, r_qm[i][:, 1], label='y - {0}'.format(labels[i]), c=colours[i][0])
+
         # plt.plot(r_qm[i][:, 2], label='z - {0}'.format(labels[i]), c=colours[i][2])
 
         # plt.figure(3)
@@ -234,7 +248,9 @@ def main():
         # ax3[1].plot(r_loc_in_gps_frame[:, 8], r_loc_in_gps_frame[:, 3] - r_loc_in_gps_frame[:, 6], c=colours[i][2], label='y - error')
 
         plt.figure(4)
+        # plt.plot(r_loc_in_gps_frame[:, 8], r_loc_in_gps_frame[:, 2] - r_loc_in_gps_frame[:, 5], c=colours[i][0], label=labels[i])   # longitudinal errors (noisy)
         plt.plot(r_loc_in_gps_frame[:, 8], r_loc_in_gps_frame[:, 3] - r_loc_in_gps_frame[:, 6], c=colours[i][0], label=labels[i])
+    plt.plot(r_loc_in_gps_frame[:, 8], 0.2*r_loc_in_gps_frame[:, 9] - 0.4, c='k', label="Loc. Success")  # (loc success) todo: clean up
 
     plt.figure(2)
     ax2[0].set_title('Estimated Path-Tracking Errors')
@@ -243,6 +259,7 @@ def main():
     ax2[0].set_ylabel("Longitudinal Error (m)")
     ax2[1].set_ylabel("Lateral Error (m)")
     plt.xlabel('Distance Along Path (m)')
+    # plt.xlabel('Timestamp - 1623800000')
     plt.legend()
 
     # plt.figure(3)
