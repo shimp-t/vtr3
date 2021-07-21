@@ -43,7 +43,6 @@ struct QueryCache : public common::CacheContainer {
         T_r_m_odo("T_r_m_odo", janitor_.get()),
         T_r_m_loc("T_r_m_loc", janitor_.get()),
         T_r_m_gps("T_r_m_gps", janitor_.get()),
-        outgoing_edge("outgoing_edge", janitor_.get()),
         keyframe_test_result("keyframe_test_result", janitor_.get()),
         odo_success("odo_success", janitor_.get()),
         loc_success("loc_success", janitor_.get()),
@@ -112,7 +111,6 @@ struct QueryCache : public common::CacheContainer {
   common::cache_ptr<lgmath::se3::TransformationWithCovariance> T_r_m_odo;  //
   common::cache_ptr<lgmath::se3::TransformationWithCovariance> T_r_m_loc;  //
   common::cache_ptr<lgmath::se3::TransformationWithCovariance> T_r_m_gps;
-  common::cache_ptr<EdgeId> outgoing_edge;
   common::cache_ptr<KeyframeTestResult> keyframe_test_result;
   common::cache_ptr<bool, true> odo_success;
   common::cache_ptr<bool, true> loc_success;
