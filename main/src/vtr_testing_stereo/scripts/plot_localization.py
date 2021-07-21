@@ -14,17 +14,8 @@ matplotlib.use("TkAgg")  # Can change to 'Agg' for non-interactive mode
 matplotlib.rcParams["pdf.fonttype"] = 42
 matplotlib.rcParams["ps.fonttype"] = 42
 
-# set sizes
-SMALL_SIZE = 10
-MEDIUM_SIZE = 12
-BIGGER_SIZE = 16
-plt.rc("font", size=MEDIUM_SIZE)  # controls default text sizes
-plt.rc("axes", titlesize=MEDIUM_SIZE)  # fontsize of the axes title
-plt.rc("axes", labelsize=SMALL_SIZE)  # fontsize of the x and y labels
-plt.rc("xtick", labelsize=MEDIUM_SIZE)  # fontsize of the tick labels
-plt.rc("ytick", labelsize=MEDIUM_SIZE)  # fontsize of the tick labels
-plt.rc("figure", titlesize=MEDIUM_SIZE)  # fontsize of the figure title
-plt.rc("legend", fontsize=SMALL_SIZE)  # legend fontsize
+plt.rc('axes', labelsize=12, titlesize=14)
+plt.rcParams["font.family"] = "serif"
 
 
 def read_vo(vo_dir, vo_file="vo.csv"):
@@ -176,10 +167,17 @@ def main():
     teach_dir = osp.expanduser("~/ASRL/temp/testing/stereo/results_run_000000")
     repeat_dir = osp.expanduser("~/ASRL/temp/testing/stereo/results_run_000001")
 
-    # teach_vo_files = {0: "vo0_vis-exp2b.csv", 1: "vo0_gps-exp2b.csv"}
-    teach_vo_files = {0: "vo0_vis-exp2b.csv", 1: "vo.csv"}
-    # repeat_loc_files = {0: "loc1_vis-exp2b.csv", 1: "loc1_gps-exp2b.csv"}
-    repeat_loc_files = {0: "loc1_vis-exp2b.csv", 1: "loc.csv"}
+    # teach_vo_files = {0: "vo0_vis-exp2b.csv", 1: "vo.csv"}
+    # repeat_loc_files = {0: "loc1_vis-exp2b.csv", 1: "loc.csv"}
+    teach_vo_files = {0: "vo0-exp1-vis.csv", 1: "vo0-exp1-gps.csv"}
+    repeat_vo_files = {0: "vo1-exp1-vis.csv", 1: "vo1-exp1-gps.csv"}
+    repeat_loc_files = {0: "loc1-exp1-vis.csv", 1: "loc1-exp1-gps.csv"}
+    # teach_vo_files = {0: "vo0-exp2-vis.csv", 1: "vo0-exp2-gps.csv"}
+    # repeat_vo_files = {0: "vo1-exp2-vis.csv", 1: "vo1-exp2-gps.csv"}
+    # repeat_loc_files = {0: "loc1-exp2-vis.csv", 1: "loc1-exp2-gps.csv"}
+    # teach_vo_files = {0: "vo0-exp3-vis.csv", 1: "vo0-exp3-gps.csv"}
+    # repeat_vo_files = {0: "vo1-exp3-vis.csv", 1: "vo1-exp3-gps.csv"}
+    # repeat_loc_files = {0: "loc1-exp3-vis.csv", 1: "loc1-exp3-gps.csv"}
     colours = {0: ('C1', 'orange'), 1: ('C2', 'g')}
     labels = {0: "Vision Prior", 1: "GPS Prior"}
     r_teach = {}
@@ -193,8 +191,9 @@ def main():
     print("Number of points in first teach: ", r_teach[0].shape[0])
     print("Number of points in first repeat: ", r_repeat[0].shape[0])
 
-    fig = plt.figure(1, figsize=[8, 4])
-    ax = fig.add_subplot(111)
+    fig1 = plt.figure(1, figsize=[9, 3.5])
+    ax = fig1.add_subplot(111)
+    fig1.subplots_adjust(left=0.10, bottom=0.15, right=0.96, top=0.90)
     plt.axis('equal')
 
     ax.plot(r_teach[0][:, 0], r_teach[0][:, 1], label='Teach', c='C7')
@@ -209,9 +208,8 @@ def main():
 
     # CALCULATE AND PLOT ERRORS OF LOCALIZATION ESTIMATES WRT GROUND TRUTH
     fig2, ax2 = plt.subplots(nrows=2, ncols=1, figsize=[8, 6])
-    # fig3, ax3 = plt.subplots(nrows=2, ncols=1, figsize=[8, 6])
-    # fig3.subplots_adjust(left=0.10, bottom=0.06, right=0.96, top=0.93)
-    fig4 = plt.figure(4, figsize=[9, 4])
+    fig3, ax3 = plt.subplots(nrows=2, ncols=1, figsize=[9, 5])
+    fig3.subplots_adjust(left=0.10, bottom=0.10, right=0.96, top=0.92, hspace=0.30)
 
     # Read ground truth
     groundtruth_dir = '${VTRDATA}/june16-gt/'
@@ -237,20 +235,22 @@ def main():
         # ax2[0].plot(r_qm[i][:, 4] - 1623800000, r_qm[i][:, 0], label='x - {0}'.format(labels[i]), c=colours[i][0])    # x-axis timestamp - 1623800000 for debugging
         # ax2[1].plot(r_qm[i][:, 4] - 1623800000, r_qm[i][:, 1], label='y - {0}'.format(labels[i]), c=colours[i][0])
 
-        # plt.plot(r_qm[i][:, 2], label='z - {0}'.format(labels[i]), c=colours[i][2])
-
-        # plt.figure(3)
-        # ax3[0].plot(r_loc_in_gps_frame[:, 8], r_loc_in_gps_frame[:, 2], c=colours[i][1], label='x - estimated')  # todo - fix colours
-        # ax3[0].plot(r_loc_in_gps_frame[:, 8], r_loc_in_gps_frame[:, 5], c='k', label='x - gt')
-        # ax3[0].plot(r_loc_in_gps_frame[:, 8], r_loc_in_gps_frame[:, 2] - r_loc_in_gps_frame[:, 5], c=colours[i][0], label='x - error')
-        # ax3[1].plot(r_loc_in_gps_frame[:, 8], r_loc_in_gps_frame[:, 3], c=colours[i][2], label='y - estimated')
-        # ax3[1].plot(r_loc_in_gps_frame[:, 8], r_loc_in_gps_frame[:, 6], c='k', label='y - gt')
-        # ax3[1].plot(r_loc_in_gps_frame[:, 8], r_loc_in_gps_frame[:, 3] - r_loc_in_gps_frame[:, 6], c=colours[i][2], label='y - error')
-
-        plt.figure(4)
+        plt.figure(3)
         # plt.plot(r_loc_in_gps_frame[:, 8], r_loc_in_gps_frame[:, 2] - r_loc_in_gps_frame[:, 5], c=colours[i][0], label=labels[i])   # longitudinal errors (noisy)
-        plt.plot(r_loc_in_gps_frame[:, 8], r_loc_in_gps_frame[:, 3] - r_loc_in_gps_frame[:, 6], c=colours[i][0], label=labels[i])
-    plt.plot(r_loc_in_gps_frame[:, 8], 0.2*r_loc_in_gps_frame[:, 9] - 0.4, c='k', label="Loc. Success")  # (loc success) todo: clean up
+        ax3[0].plot(r_loc_in_gps_frame[:, 8], abs(r_loc_in_gps_frame[:, 3] - r_loc_in_gps_frame[:, 6]), c=colours[i][0], label=labels[i])
+
+    # plot sensor availability
+    repeat_vo = np.genfromtxt(osp.join(repeat_dir, repeat_vo_files[1]), delimiter=',', skip_header=1)
+    for j, row in enumerate(r_loc_in_gps_frame):
+        if j == 0:
+            continue
+        assert(np.argmax(repeat_vo[:, 0] >= row[1]) == j)  # make sure times line up between repeat vo and loc csv files
+        vo_estimated = repeat_vo[j, 3] != repeat_vo[j - 1, 3]  # todo: a little hacky but not saving VO success flag now
+        c = 'C4' if vo_estimated else 'w'
+        ax3[1].barh(1.5, r_loc_in_gps_frame[j, 8] - r_loc_in_gps_frame[j - 1, 8], height=1.0, left=r_loc_in_gps_frame[j - 1, 8], color=c, edgecolor=c)
+        v_loc_successful = row[9]
+        c = 'C1' if v_loc_successful else 'w'
+        ax3[1].barh(0.5, r_loc_in_gps_frame[j, 8] - r_loc_in_gps_frame[j - 1, 8], height=1.0, left=r_loc_in_gps_frame[j - 1, 8], color=c, edgecolor=c)
 
     plt.figure(2)
     ax2[0].set_title('Estimated Path-Tracking Errors')
@@ -262,17 +262,19 @@ def main():
     # plt.xlabel('Timestamp - 1623800000')
     plt.legend()
 
-    # plt.figure(3)
-    # plt.title("Estimated and Ground Truth Path-Tracking Errors in x and y")
-    # ax3[0].legend()
-    # ax3[1].legend()
-
-    plt.figure(4)
-    plt.title("Localization Estimate Errors")
-    plt.ylim([-0.4, 0.4])
-    plt.ylabel("Lateral Error wrt Ground Truth (m)")
-    plt.xlabel("Distance Along Path (m)")
-    plt.legend()
+    ax3[0].set_title("Localization Estimate Errors wrt Ground Truth ")
+    ax3[0].set_ylim([0, 0.4])
+    ax3[0].set_ylabel("Absolute Lateral Error(m)")
+    ax3[1].patch.set_visible(False)
+    ax3[1].set_yticks([])
+    ax3[1].set_ylim([0, 2])
+    ax3[0].set_xlim([-2, 65])
+    ax3[1].set_xlim([-2, 65])
+    ax3[1].text(-8, 1.5, 'VO', fontsize=12)
+    ax3[1].text(-8, 0.5, 'Vision', fontsize=12)
+    ax3[0].set_xlabel("Distance Along Teach Path (m)")
+    ax3[1].set_xlabel("Distance Along Teach Path (m)")
+    ax3[0].legend()
 
     plt.show()
 
