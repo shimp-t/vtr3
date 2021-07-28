@@ -82,7 +82,7 @@ def generate_launch_description():
                               default_value='${VTRDATA}/june16-tdcp',
                               description='Directory to find TDCP rosbag2'),
         DeclareLaunchArgument('tdcp_dataset',
-                              default_value='june16a',
+                              default_value='june16b',
                               description='TDCP dataset/stream name'),
         Node(
             package='vtr_testing_stereo',

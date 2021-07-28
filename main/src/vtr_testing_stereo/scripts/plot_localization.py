@@ -169,15 +169,19 @@ def main():
 
     # teach_vo_files = {0: "vo0_vis-exp2b.csv", 1: "vo.csv"}
     # repeat_loc_files = {0: "loc1_vis-exp2b.csv", 1: "loc.csv"}
-    teach_vo_files = {0: "vo0-exp1-vis.csv", 1: "vo0-exp1-gps.csv"}
-    repeat_vo_files = {0: "vo1-exp1-vis.csv", 1: "vo1-exp1-gps.csv"}
-    repeat_loc_files = {0: "loc1-exp1-vis.csv", 1: "loc1-exp1-gps.csv"}
+    # teach_vo_files = {0: "vo0-exp1-vis.csv", 1: "vo0-exp1-gps.csv"}
+    # repeat_vo_files = {0: "vo1-exp1-vis.csv", 1: "vo1-exp1-gps.csv"}
+    # repeat_loc_files = {0: "loc1-exp1-vis.csv", 1: "loc1-exp1-gps.csv"}
     # teach_vo_files = {0: "vo0-exp2-vis.csv", 1: "vo0-exp2-gps.csv"}
     # repeat_vo_files = {0: "vo1-exp2-vis.csv", 1: "vo1-exp2-gps.csv"}
     # repeat_loc_files = {0: "loc1-exp2-vis.csv", 1: "loc1-exp2-gps.csv"}
     # teach_vo_files = {0: "vo0-exp3-vis.csv", 1: "vo0-exp3-gps.csv"}
     # repeat_vo_files = {0: "vo1-exp3-vis.csv", 1: "vo1-exp3-gps.csv"}
     # repeat_loc_files = {0: "loc1-exp3-vis.csv", 1: "loc1-exp3-gps.csv"}
+    teach_vo_files = {0: "vo0_16ab.csv", 1: "vo0_16ab.csv"}
+    repeat_vo_files = {0: "vo1_16ab3v.csv", 1: "vo1_16ab3g.csv"}
+    repeat_loc_files = {0: "loc1_16ab3v.csv", 1: "loc1_16ab3g.csv"}
+
     colours = {0: ('C1', 'orange'), 1: ('C2', 'g')}
     labels = {0: "Vision Prior", 1: "GPS Prior"}
     r_teach = {}
@@ -213,8 +217,8 @@ def main():
 
     # Read ground truth
     groundtruth_dir = '${VTRDATA}/june16-gt/'
-    teach_gt_file = 'june16b.csv'
-    repeat_gt_file = 'june16a.csv'
+    teach_gt_file = 'june16a.csv'
+    repeat_gt_file = 'june16b.csv'
     gt_teach_path = osp.join(osp.expanduser(osp.expandvars(groundtruth_dir)), teach_gt_file)
     gt_repeat_path = osp.join(osp.expanduser(osp.expandvars(groundtruth_dir)), repeat_gt_file)
     gt_teach = read_gpgga(gt_teach_path, 0)

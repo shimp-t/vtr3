@@ -83,7 +83,7 @@ def generate_launch_description():
                               # default_value='${VTRDATA}/july5/tdcp',
                               description='Directory to find TDCP rosbag2'),
         DeclareLaunchArgument('tdcp_dataset',
-                              default_value='june16b',
+                              default_value='june16a',
                               # default_value='july5c',
                               description='TDCP dataset/stream name'),
         Node(
