@@ -471,7 +471,7 @@ class Tactic : public mission_planning::StateMachineInterface {
 
       if (rclcpp::spin_until_future_complete(node_,
                                              response,
-                                             std::chrono::milliseconds(10))
+                                             std::chrono::milliseconds(50))
           == rclcpp::FutureReturnCode::SUCCESS) {
         LOG(DEBUG) << "Message back: " << response.get()->message;
         if (response.get()->success) {
