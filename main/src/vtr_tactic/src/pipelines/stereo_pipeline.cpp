@@ -107,6 +107,8 @@ void StereoPipeline::runOdometry(QueryCache::Ptr &qdata,
     /// keep this frame as a candidate for creating a keyframe
     if (*(qdata->keyframe_test_result) != KeyframeTestResult::CREATE_VERTEX)
       candidate_qdata_ = qdata;
+    else
+      candidate_qdata_ = nullptr;
   }
 
   // set result
