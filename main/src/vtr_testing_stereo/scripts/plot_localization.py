@@ -178,9 +178,16 @@ def main():
     # teach_vo_files = {0: "vo0-exp3-vis.csv", 1: "vo0-exp3-gps.csv"}
     # repeat_vo_files = {0: "vo1-exp3-vis.csv", 1: "vo1-exp3-gps.csv"}
     # repeat_loc_files = {0: "loc1-exp3-vis.csv", 1: "loc1-exp3-gps.csv"}
+
     teach_vo_files = {0: "vo0_16ab.csv", 1: "vo0_16ab.csv"}
     repeat_vo_files = {0: "vo1_16ab3v.csv", 1: "vo1_16ab3g.csv"}
     repeat_loc_files = {0: "loc1_16ab3v.csv", 1: "loc1_16ab3g.csv"}
+    # teach_vo_files = {0: "vo0_51bc.csv", 1: "vo0_51bc.csv"}
+    # repeat_vo_files = {0: "vo1_51bc1v.csv", 1: "vo1_51bc1g.csv"}
+    # repeat_loc_files = {0: "loc1_51bc1v.csv", 1: "loc1_51bc1g.csv"}
+    # teach_vo_files = {0: "vo0_52cb.csv", 1: "vo0_52cb.csv"}
+    # repeat_vo_files = {0: "vo1_52cb3v.csv", 1: "vo1_52cb3g.csv"}
+    # repeat_loc_files = {0: "loc1_52cb3v.csv", 1: "loc1_52cb3g.csv"}
 
     colours = {0: ('C1', 'orange'), 1: ('C2', 'g')}
     labels = {0: "Vision Prior", 1: "GPS Prior"}
@@ -219,6 +226,9 @@ def main():
     groundtruth_dir = '${VTRDATA}/june16-gt/'
     teach_gt_file = 'june16a.csv'
     repeat_gt_file = 'june16b.csv'
+    # groundtruth_dir = '${VTRDATA}/july5/gt/'
+    # teach_gt_file = 'july5b.csv'
+    # repeat_gt_file = 'july5c.csv'
     gt_teach_path = osp.join(osp.expanduser(osp.expandvars(groundtruth_dir)), teach_gt_file)
     gt_repeat_path = osp.join(osp.expanduser(osp.expandvars(groundtruth_dir)), repeat_gt_file)
     gt_teach = read_gpgga(gt_teach_path, 0)
@@ -243,12 +253,14 @@ def main():
         # plt.plot(r_loc_in_gps_frame[:, 8], r_loc_in_gps_frame[:, 2] - r_loc_in_gps_frame[:, 5], c=colours[i][0], label=labels[i])   # longitudinal errors (noisy)
         ax3[0].plot(r_loc_in_gps_frame[:, 8], abs(r_loc_in_gps_frame[:, 3] - r_loc_in_gps_frame[:, 6]), c=colours[i][0], label=labels[i])
 
+        print("Method: {0}    Mean Loc. Error: {1}".format(labels[i], np.mean(abs(r_loc_in_gps_frame[:, 3] - r_loc_in_gps_frame[:, 6]))))
+
     # plot sensor availability
     repeat_vo = np.genfromtxt(osp.join(repeat_dir, repeat_vo_files[1]), delimiter=',', skip_header=1)
     for j, row in enumerate(r_loc_in_gps_frame):
         if j == 0:
             continue
-        assert(np.argmax(repeat_vo[:, 0] >= row[1]) == j)  # make sure times line up between repeat vo and loc csv files
+        # assert(np.argmax(repeat_vo[:, 0] >= row[1]) == j)  # make sure times line up between repeat vo and loc csv files   # todo - make sure losing this is okay
         vo_estimated = repeat_vo[j, 3] != repeat_vo[j - 1, 3]  # todo: a little hacky but not saving VO success flag now
         c = 'C4' if vo_estimated else 'w'
         ax3[1].barh(1.5, r_loc_in_gps_frame[j, 8] - r_loc_in_gps_frame[j - 1, 8], height=1.0, left=r_loc_in_gps_frame[j - 1, 8], color=c, edgecolor=c)
@@ -266,16 +278,16 @@ def main():
     # plt.xlabel('Timestamp - 1623800000')
     plt.legend()
 
-    ax3[0].set_title("Localization Estimate Errors wrt Ground Truth ")
+    ax3[0].set_title("Localization Estimate Errors wrt Ground Truth – Path 3")
     ax3[0].set_ylim([0, 0.4])
     ax3[0].set_ylabel("Absolute Lateral Error(m)")
     ax3[1].patch.set_visible(False)
     ax3[1].set_yticks([])
     ax3[1].set_ylim([0, 2])
-    ax3[0].set_xlim([-2, 65])
-    ax3[1].set_xlim([-2, 65])
-    ax3[1].text(-8, 1.5, 'VO', fontsize=12)
-    ax3[1].text(-8, 0.5, 'Vision', fontsize=12)
+    ax3[0].set_xlim([-2, 56])
+    ax3[1].set_xlim([-2, 56])
+    ax3[1].text(-7, 1.5, 'VO', fontsize=12)
+    ax3[1].text(-7, 0.5, 'Vision', fontsize=12)
     ax3[0].set_xlabel("Distance Along Teach Path (m)")
     ax3[1].set_xlabel("Distance Along Teach Path (m)")
     ax3[0].legend()

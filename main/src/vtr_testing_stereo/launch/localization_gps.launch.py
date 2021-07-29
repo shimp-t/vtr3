@@ -80,9 +80,11 @@ def generate_launch_description():
                               description='Whether we want to read and publish TDCP msgs'),
         DeclareLaunchArgument('tdcp_data_dir',
                               default_value='${VTRDATA}/june16-tdcp',
+                              # default_value='${VTRDATA}/july5/tdcp',
                               description='Directory to find TDCP rosbag2'),
         DeclareLaunchArgument('tdcp_dataset',
                               default_value='june16b',
+                              # default_value='july5b',
                               description='TDCP dataset/stream name'),
         Node(
             package='vtr_testing_stereo',

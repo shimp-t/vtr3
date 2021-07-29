@@ -7,12 +7,12 @@
     # Dataset directory for odometry
 #    input_dir: "${VTRDATA}/utias_2016_inthedark/run_000009"
     input_dir: "${VTRDATA}/june16-images/june16b"
-#    input_dir: "${VTRDATA}/july5/images/july5c"
+#    input_dir: "${VTRDATA}/july5/images/july5b"
     # Result directory for odometry (including graph and odometry result)
     output_dir: "${VTRTEMP}/testing/stereo"
     clear_output_dir: false
-    results_filename: "vo1_16ab3v.csv"
-    loc_results_filename: "loc1_16ab3v.csv"
+    results_filename: "vo1_16ab2g.csv"
+    loc_results_filename: "loc1_16ab2g.csv"
     # The sensor frame from the urdf (also defines the rig name)
     sensor_frame: front_xb3
     # The control frame from the urdf
@@ -22,8 +22,8 @@
     stop_index: 1860
 
     # (temporary) used in localization_gps.cpp to toggle black images - have to be doubles for my syntax to work
-    blackout_toggles: [1220.0, 1540.0]
-    # visual_loc_toggles: [ 320.0, 480.0]  # prevents us from getting feature matches in visual localization. (measured from start index)
+    # blackout_toggles: [3820.0, 4140.0]
+    visual_loc_toggles: [ 320.0, 640.0]  # prevents us from getting feature matches in visual localization. (measured from start index)
 
     ############ tactic configuration ############
     tactic:
@@ -35,7 +35,7 @@
         search_depth: 20
         search_back_depth: 10
         distance_warning: 3.0
-      use_gps_odometry: false    # todo: also add to default param files
+      use_gps_odometry: true    # todo: also add to default param files
       gps_odometry_update_delay: 1.0
 
     ############ pipeline configuration ############
