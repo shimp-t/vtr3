@@ -12,5 +12,5 @@
 	branch = ros2-dev
 [submodule "main/src/deps/cpo"]
 	path = main/src/deps/cpo
-	url = https://github.com/ben-congram/cpo
+	url = https://github.com/utiasASRL/cpo
 	branch = master
