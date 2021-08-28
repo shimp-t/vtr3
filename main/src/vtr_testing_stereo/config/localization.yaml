@@ -6,24 +6,33 @@
     log_debug: false
     # Dataset directory for odometry
 #    input_dir: "${VTRDATA}/utias_2016_inthedark/run_000009"
-    input_dir: "${VTRDATA}/june16-images/june16b"
+#    input_dir: "${VTRDATA}/june16-images/june16b"
 #    input_dir: "${VTRDATA}/july5/images/july5b"
+    input_dir: "${VTRDATA}/aug6/images/aug61a"
     # Result directory for odometry (including graph and odometry result)
     output_dir: "${VTRTEMP}/testing/stereo"
     clear_output_dir: false
-    results_filename: "vo1_16ab2g.csv"
-    loc_results_filename: "loc1_16ab2g.csv"
+    results_filename: "vo1_61da2g.csv"
+    loc_results_filename: "loc1_61da2g.csv"
     # The sensor frame from the urdf (also defines the rig name)
     sensor_frame: front_xb3
     # The control frame from the urdf
     control_frame: base_link
     # Start and stop index
-    start_index: 900
-    stop_index: 1860
+    start_index: 1
+    stop_index: 10000
+
+    use_tdcp: true
+    tdcp_data_dir: ${VTRDATA}/aug6/tdcp
+    tdcp_dataset: aug61a
 
     # (temporary) used in localization_gps.cpp to toggle black images - have to be doubles for my syntax to work
     # blackout_toggles: [3820.0, 4140.0]
-    visual_loc_toggles: [ 320.0, 640.0]  # prevents us from getting feature matches in visual localization. (measured from start index)
+
+#    visual_loc_toggles: [ 1320.0, 2060.0]  # 61b
+#    visual_loc_toggles: [1200.0, 1920.0]  # 61c
+#    visual_loc_toggles: [2220.0, 2980.0]  # 61d
+    visual_loc_toggles: [2670.0, 4250.0]  # 61a
 
     ############ tactic configuration ############
     tactic:

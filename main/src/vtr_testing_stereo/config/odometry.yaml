@@ -8,18 +8,23 @@
     # input_dir: "${VTRDATA}/utias_20210412"
     # input_dir: "${VTRDATA}/utias_2016_inthedark/run_000003"
 #    input_dir: "${VTRDATA}/june16-images/june16a"
-    input_dir: "${VTRDATA}/july5/images/july5c"
+#    input_dir: "${VTRDATA}/july5/images/july5c"
+    input_dir: "${VTRDATA}/aug6/images/aug61a"
     # Result directory for odometry (including graph and odometry result)
     output_dir: "${VTRTEMP}/testing/stereo"
     clear_output_dir: true
-    results_filename: "vo0_52cb.csv"
+    results_filename: "vo0_aug61a.csv"
     # The sensor frame from the urdf (also defines the rig name)
     sensor_frame: front_xb3
     # The control frame from the urdf
     control_frame: base_link
     # Start and stop index
-    start_index: 3040
-    stop_index: 4000
+    start_index: 1
+    stop_index: 10000
+
+    use_tdcp: true
+    tdcp_data_dir: ${VTRDATA}/aug6/tdcp
+    tdcp_dataset: aug61a
 
     # (temporary) used in odometry_gps.cpp to toggle black images - have to be doubles for my syntax to work
     # blackout_toggles: [1000.0, 1080.0]

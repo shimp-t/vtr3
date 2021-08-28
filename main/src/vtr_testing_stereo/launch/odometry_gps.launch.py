@@ -75,17 +75,6 @@ def generate_launch_description():
     testing_config = osp.join(vtr_testing, 'config/odometry.yaml')
 
     return LaunchDescription([
-        DeclareLaunchArgument('use_tdcp',
-                              default_value='true',
-                              description='Whether we want to read and publish TDCP msgs'),
-        DeclareLaunchArgument('tdcp_data_dir',
-                              # default_value='${VTRDATA}/june16-tdcp',
-                              default_value='${VTRDATA}/july5/tdcp',
-                              description='Directory to find TDCP rosbag2'),
-        DeclareLaunchArgument('tdcp_dataset',
-                              # default_value='june16a',
-                              default_value='july5c',
-                              description='TDCP dataset/stream name'),
         Node(
             package='vtr_testing_stereo',
             namespace='vtr',
@@ -96,11 +85,6 @@ def generate_launch_description():
             remappings=[("/vtr/tdcp", "/tdcp"), ("/vtr/query_trajectory", "/query_trajectory")],
             #   prefix=['xterm -e gdb --args'],
             parameters=[
-                {
-                    "use_tdcp": LaunchConfiguration("use_tdcp"),
-                    "tdcp_data_dir": LaunchConfiguration("tdcp_data_dir"),
-                    "tdcp_dataset": LaunchConfiguration("tdcp_dataset"),
-                },
                 # base_configs
                 *base_converter_config,
                 *base_odometry_config,
