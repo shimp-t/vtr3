@@ -120,14 +120,18 @@ def interpolate_and_rotate(gt_repeat, gt_teach, r_loc_in_gps_frame):
     into the local vehicle frame"""
 
     first_teach_idx = 0
+    first_gt_idx = 0
+    last_gt_idx = 0
     for i, row in enumerate(r_loc_in_gps_frame):
         t_teach = row[0]
         t_repeat = row[1]
 
         if t_teach < gt_teach[0, 0] or t_teach > gt_teach[-1, 0]:
-            raise ValueError
+            first_gt_idx = i + 1
+            continue
         if t_repeat < gt_repeat[0, 0] or t_repeat > gt_repeat[-1, 0]:
-            raise ValueError
+            first_gt_idx = i + 1
+            continue
 
         teach_idx = np.argmax(gt_teach[:, 0] > t_teach)
         if i == 0:
@@ -161,11 +165,18 @@ def interpolate_and_rotate(gt_repeat, gt_teach, r_loc_in_gps_frame):
 
         r_loc_in_gps_frame[i, 8] = gt_teach[teach_idx, 7] - gt_teach[first_teach_idx, 7]
 
+        last_gt_idx = i
+
+    r_loc_trimmed = r_loc_in_gps_frame[first_gt_idx:last_gt_idx, :]
+    r_loc_trimmed[:, 8] = r_loc_trimmed[:, 8] - r_loc_trimmed[0, 8]
+
+    return r_loc_trimmed
+
 
 def main():
 
     teach_dir = osp.expanduser("~/ASRL/temp/testing/stereo/results_run_000000")
-    repeat_dir = osp.expanduser("~/ASRL/temp/testing/stereo/results_run_000001")
+    repeat_dir = osp.expanduser("~/ASRL/temp/testing/stereo/results_run_000001/aug6-exp2")
 
     # teach_vo_files = {0: "vo0_vis-exp2b.csv", 1: "vo.csv"}
     # repeat_loc_files = {0: "loc1_vis-exp2b.csv", 1: "loc.csv"}
@@ -179,15 +190,28 @@ def main():
     # repeat_vo_files = {0: "vo1-exp3-vis.csv", 1: "vo1-exp3-gps.csv"}
     # repeat_loc_files = {0: "loc1-exp3-vis.csv", 1: "loc1-exp3-gps.csv"}
 
-    teach_vo_files = {0: "vo0_16ab.csv", 1: "vo0_16ab.csv"}
-    repeat_vo_files = {0: "vo1_16ab3v.csv", 1: "vo1_16ab3g.csv"}
-    repeat_loc_files = {0: "loc1_16ab3v.csv", 1: "loc1_16ab3g.csv"}
+    # teach_vo_files = {0: "vo0_16ab.csv", 1: "vo0_16ab.csv"}
+    # repeat_vo_files = {0: "vo1_16ab3v.csv", 1: "vo1_16ab3g.csv"}
+    # repeat_loc_files = {0: "loc1_16ab3v.csv", 1: "loc1_16ab3g.csv"}
     # teach_vo_files = {0: "vo0_51bc.csv", 1: "vo0_51bc.csv"}
     # repeat_vo_files = {0: "vo1_51bc1v.csv", 1: "vo1_51bc1g.csv"}
     # repeat_loc_files = {0: "loc1_51bc1v.csv", 1: "loc1_51bc1g.csv"}
     # teach_vo_files = {0: "vo0_52cb.csv", 1: "vo0_52cb.csv"}
     # repeat_vo_files = {0: "vo1_52cb3v.csv", 1: "vo1_52cb3g.csv"}
     # repeat_loc_files = {0: "loc1_52cb3v.csv", 1: "loc1_52cb3g.csv"}
+
+    # teach_vo_files = {0: "vo0_aug61a.csv", 1: "vo0_aug61a.csv"}
+    # repeat_vo_files = {0: "vo1_61ab2v.csv", 1: "vo1_61ab2g.csv"}
+    # repeat_loc_files = {0: "loc1_61ab2v.csv", 1: "loc1_61ab2g.csv"}
+    # teach_vo_files = {0: "vo0_aug61b.csv", 1: "vo0_aug61b.csv"}
+    # repeat_vo_files = {0: "vo1_61bc2v.csv", 1: "vo1_61bc2g.csv"}
+    # repeat_loc_files = {0: "loc1_61bc2v.csv", 1: "loc1_61bc2g.csv"}
+    # teach_vo_files = {0: "vo0_aug61c.csv", 1: "vo0_aug61c.csv"}
+    # repeat_vo_files = {0: "vo1_61cd2v.csv", 1: "vo1_61cd2g.csv"}
+    # repeat_loc_files = {0: "loc1_61cd2v.csv", 1: "loc1_61cd2g.csv"}
+    teach_vo_files = {0: "vo0_aug61d.csv", 1: "vo0_aug61d.csv"}
+    repeat_vo_files = {0: "vo1_61da2v.csv", 1: "vo1_61da2g.csv"}
+    repeat_loc_files = {0: "loc1_61da2v.csv", 1: "loc1_61da2g.csv"}
 
     colours = {0: ('C1', 'orange'), 1: ('C2', 'g')}
     labels = {0: "Vision Prior", 1: "GPS Prior"}
@@ -223,12 +247,15 @@ def main():
     fig3.subplots_adjust(left=0.10, bottom=0.10, right=0.96, top=0.92, hspace=0.30)
 
     # Read ground truth
-    groundtruth_dir = '${VTRDATA}/june16-gt/'
-    teach_gt_file = 'june16a.csv'
-    repeat_gt_file = 'june16b.csv'
+    # groundtruth_dir = '${VTRDATA}/june16-gt/'
+    # teach_gt_file = 'june16a.csv'
+    # repeat_gt_file = 'june16b.csv'
     # groundtruth_dir = '${VTRDATA}/july5/gt/'
     # teach_gt_file = 'july5b.csv'
     # repeat_gt_file = 'july5c.csv'
+    groundtruth_dir = '${VTRDATA}/aug6/gt/'
+    teach_gt_file = 'aug61d.csv'
+    repeat_gt_file = 'aug61a.csv'
     gt_teach_path = osp.join(osp.expanduser(osp.expandvars(groundtruth_dir)), teach_gt_file)
     gt_repeat_path = osp.join(osp.expanduser(osp.expandvars(groundtruth_dir)), repeat_gt_file)
     gt_teach = read_gpgga(gt_teach_path, 0)
@@ -240,12 +267,15 @@ def main():
 
     for i in range(2):
         # Get localization estimates and times in GPS receiver frame
-        r_loc_in_gps_frame = read_loc_sensor(teach_dir, repeat_dir, T_sv, loc_file=repeat_loc_files[i], teach_vo_file=teach_vo_files[i])
-        interpolate_and_rotate(gt_repeat, gt_teach, r_loc_in_gps_frame)
+        r_loc_in_gps_frame_full = read_loc_sensor(teach_dir, repeat_dir, T_sv, loc_file=repeat_loc_files[i], teach_vo_file=teach_vo_files[i])
+        r_loc_in_gps_frame = interpolate_and_rotate(gt_repeat, gt_teach, r_loc_in_gps_frame_full)
 
         plt.figure(2)
-        ax2[0].plot(r_loc_in_gps_frame[:, 8], r_qm[i][:, 0], label='x - {0}'.format(labels[i]), c=colours[i][0])  # x-axis distance for final plots
-        ax2[1].plot(r_loc_in_gps_frame[:, 8], r_qm[i][:, 1], label='y - {0}'.format(labels[i]), c=colours[i][0])
+        # ax2[0].plot(r_loc_in_gps_frame[:, 8], r_qm[i][:, 0], label='x - {0}'.format(labels[i]), c=colours[i][0])  # x-axis distance for final plots
+        # ax2[1].plot(r_loc_in_gps_frame[:, 8], r_qm[i][:, 1], label='y - {0}'.format(labels[i]), c=colours[i][0])
+        # todo: 2 lines above not working since trimming
+
+
         # ax2[0].plot(r_qm[i][:, 4] - 1623800000, r_qm[i][:, 0], label='x - {0}'.format(labels[i]), c=colours[i][0])    # x-axis timestamp - 1623800000 for debugging
         # ax2[1].plot(r_qm[i][:, 4] - 1623800000, r_qm[i][:, 1], label='y - {0}'.format(labels[i]), c=colours[i][0])
 
@@ -284,10 +314,14 @@ def main():
     ax3[1].patch.set_visible(False)
     ax3[1].set_yticks([])
     ax3[1].set_ylim([0, 2])
-    ax3[0].set_xlim([-2, 56])
-    ax3[1].set_xlim([-2, 56])
-    ax3[1].text(-7, 1.5, 'VO', fontsize=12)
-    ax3[1].text(-7, 0.5, 'Vision', fontsize=12)
+    # ax3[0].set_xlim([-2, 56])
+    ax3[0].set_xlim([-2, 210])
+    # ax3[1].set_xlim([-2, 56])
+    ax3[1].set_xlim([-2, 210])
+    # ax3[1].text(-7, 1.5, 'VO', fontsize=12)
+    ax3[1].text(-20, 1.5, 'VO', fontsize=12)
+    # ax3[1].text(-7, 0.5, 'Vision', fontsize=12)
+    ax3[1].text(-20, 0.5, 'Vision', fontsize=12)
     ax3[0].set_xlabel("Distance Along Teach Path (m)")
     ax3[1].set_xlabel("Distance Along Teach Path (m)")
     ax3[0].legend()
