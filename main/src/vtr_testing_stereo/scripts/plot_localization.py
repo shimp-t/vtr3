@@ -270,7 +270,7 @@ def main():
         r_loc_in_gps_frame_full = read_loc_sensor(teach_dir, repeat_dir, T_sv, loc_file=repeat_loc_files[i], teach_vo_file=teach_vo_files[i])
         r_loc_in_gps_frame = interpolate_and_rotate(gt_repeat, gt_teach, r_loc_in_gps_frame_full)
 
-        plt.figure(2)
+        # plt.figure(2)
         # ax2[0].plot(r_loc_in_gps_frame[:, 8], r_qm[i][:, 0], label='x - {0}'.format(labels[i]), c=colours[i][0])  # x-axis distance for final plots
         # ax2[1].plot(r_loc_in_gps_frame[:, 8], r_qm[i][:, 1], label='y - {0}'.format(labels[i]), c=colours[i][0])
         # todo: 2 lines above not working since trimming
@@ -279,7 +279,7 @@ def main():
         # ax2[0].plot(r_qm[i][:, 4] - 1623800000, r_qm[i][:, 0], label='x - {0}'.format(labels[i]), c=colours[i][0])    # x-axis timestamp - 1623800000 for debugging
         # ax2[1].plot(r_qm[i][:, 4] - 1623800000, r_qm[i][:, 1], label='y - {0}'.format(labels[i]), c=colours[i][0])
 
-        plt.figure(3)
+        plt.figure(2)
         # plt.plot(r_loc_in_gps_frame[:, 8], r_loc_in_gps_frame[:, 2] - r_loc_in_gps_frame[:, 5], c=colours[i][0], label=labels[i])   # longitudinal errors (noisy)
         ax3[0].plot(r_loc_in_gps_frame[:, 8], abs(r_loc_in_gps_frame[:, 3] - r_loc_in_gps_frame[:, 6]), c=colours[i][0], label=labels[i])
 
@@ -298,18 +298,18 @@ def main():
         c = 'C1' if v_loc_successful else 'w'
         ax3[1].barh(0.5, r_loc_in_gps_frame[j, 8] - r_loc_in_gps_frame[j - 1, 8], height=1.0, left=r_loc_in_gps_frame[j - 1, 8], color=c, edgecolor=c)
 
-    plt.figure(2)
-    ax2[0].set_title('Estimated Path-Tracking Errors')
-    ax2[0].set_ylim([-1.2, 1.2])
-    ax2[1].set_ylim([-1.2, 1.2])
-    ax2[0].set_ylabel("Longitudinal Error (m)")
-    ax2[1].set_ylabel("Lateral Error (m)")
-    plt.xlabel('Distance Along Path (m)')
-    # plt.xlabel('Timestamp - 1623800000')
-    plt.legend()
+    # plt.figure(2)
+    # ax2[0].set_title('Estimated Path-Tracking Errors')
+    # ax2[0].set_ylim([-1.2, 1.2])
+    # ax2[1].set_ylim([-1.2, 1.2])
+    # ax2[0].set_ylabel("Longitudinal Error (m)")
+    # ax2[1].set_ylabel("Lateral Error (m)")
+    # plt.xlabel('Distance Along Path (m)')
+    # # plt.xlabel('Timestamp - 1623800000')
+    # plt.legend()
 
-    ax3[0].set_title("Localization Estimate Errors wrt Ground Truth – Path 3")
-    ax3[0].set_ylim([0, 0.4])
+    ax3[0].set_title("Localization Estimate Errors wrt Ground Truth")
+    ax3[0].set_ylim([0, 0.8])
     ax3[0].set_ylabel("Absolute Lateral Error(m)")
     ax3[1].patch.set_visible(False)
     ax3[1].set_yticks([])
