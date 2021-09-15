@@ -130,8 +130,8 @@ void configureLearnedFeatureStereoDetector(const rclcpp::Node::SharedPtr &node,
                                            vision::LearnedFeatureStereoConfiguration &config,
                                            const std::string &param_prefix) {
   // clang-format off
-  config.stereoDisparityMinimum = node->declare_parameter<double>(param_prefix + ".extractor.learned.stereoDisparityMinimum", 0.0);
-  config.stereoDisparityMaximum = node->declare_parameter<double>(param_prefix + ".extractor.learned.stereoDisparityMaximum", 100.0);
+  // config.stereoDisparityMinimum = node->declare_parameter<double>(param_prefix + ".extractor.learned.stereoDisparityMinimum", 0.0);
+  // config.stereoDisparityMaximum = node->declare_parameter<double>(param_prefix + ".extractor.learned.stereoDisparityMaximum", 100.0);
   // config.minDisparity = node->declare_parameter<int>(param_prefix + ".extractor.learned.minDisparity", 0);
   // config.numDisparities = node->declare_parameter<int>(param_prefix + ".extractor.learned.numDisparities", 48);
   // config.blockSize = node->declare_parameter<int>(param_prefix + ".extractor.learned.blockSize", 5);
@@ -168,7 +168,7 @@ void ConversionExtractionModule::configFromROS(
   config_->color_constant_histogram_equalization = node->declare_parameter<bool>(param_prefix + ".color_constant.histogram_equalization", config_->color_constant_histogram_equalization);
   config_->feature_type = node->declare_parameter<std::string>(param_prefix + ".extractor.type", config_->feature_type);
   config_->visualize_raw_features = node->declare_parameter<bool>(param_prefix + ".extractor.visualize_raw_features", config_->visualize_raw_features);
-  config_->visualize_disparity = node->declare_parameter<bool>(param_prefix + ".extractor.visualize_disparity", config_->visualize_disparity);
+  // config_->visualize_disparity = node->declare_parameter<bool>(param_prefix + ".extractor.visualize_disparity", config_->visualize_disparity);
   config_->use_learned = node->declare_parameter<bool>(param_prefix + ".extractor.use_learned", config_->use_learned);
   // configure the detector
   if (config_->feature_type == "OPENCV_ORB") {
@@ -366,8 +366,8 @@ void ConversionExtractionModule::visualizeImpl(QueryCache &qdata0,
   if (config_->visualize_raw_features)  // check if visualization is enabled
     visualize::showRawFeatures(*qdata.vis_mutex, qdata, " raw features");
 
-  if (config_->visualize_disparity)  // check if visualization is enabled
-    visualize::showDisparity(*qdata.vis_mutex, qdata, " disparity");
+  // if (config_->visualize_disparity)  // check if visualization is enabled
+  //   visualize::showDisparity(*qdata.vis_mutex, qdata, " disparity");
 }
 
 }  // namespace vision

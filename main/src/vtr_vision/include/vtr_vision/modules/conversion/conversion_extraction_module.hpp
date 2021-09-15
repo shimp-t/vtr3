@@ -75,7 +75,7 @@ class ConversionExtractionModule : public tactic::BaseModule {
     bool visualize_raw_features = false;
 
     /** \brief Flag for displaying the disparity */
-    bool visualize_disparity = false;
+    // bool visualize_disparity = false;
 
     /** \brief Flag for using the extractor for learned features */
     bool use_learned = false;

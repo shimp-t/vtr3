@@ -54,7 +54,7 @@ void MelMatcherModule::configFromROS(const rclcpp::Node::SharedPtr &node,
   config_->visualize = node->declare_parameter<bool>(param_prefix + ".visualize", config_->visualize);
   config_->screen_matched_landmarks = node->declare_parameter<bool>(param_prefix + ".screen_matched_landmarks", config_->screen_matched_landmarks);
   config_->parallel_threads = node->declare_parameter<int>(param_prefix + ".parallel_threads", config_->parallel_threads);
-  config_->use_learned_features = node->declare_parameter<bool>(param_prefix + ".use_learned_features", config_->use_learned_features);
+  // config_->use_learned_features = node->declare_parameter<bool>(param_prefix + ".use_learned_features", config_->use_learned_features);
 
 #ifdef VTR_DETERMINISTIC
   LOG_IF(config_->parallel_threads != 1, WARNING) << "MEL matcher number of threads set to 1 in deterministic mode.";
@@ -188,10 +188,16 @@ void MelMatcherModule::matchVertex(CameraQueryCache &qdata,
          channel_idx < query_rig_landmarks.channels.size(); ++channel_idx) {
       const auto &map_channel_lm = map_rig_landmarks->channels[channel_idx];
 
+      bool use_learned_features = true;
 
       // LOG(INFO) << map_channel_lm.name;
-      if(((config_->use_learned_features) && (map_channel_lm.name != "RGB")) ||
-         ((!config_->use_learned_features) && (map_channel_lm.name == "RGB"))) {
+      // if(((config_->use_learned_features) && (map_channel_lm.name != "RGB")) ||
+      //    ((!config_->use_learned_features) && (map_channel_lm.name == "RGB"))) {
+      //   continue;
+      // }
+
+      if(((use_learned_features) && (map_channel_lm.name != "RGB")) ||
+         ((!use_learned_features) && (map_channel_lm.name == "RGB"))) {
         continue;
       }
 

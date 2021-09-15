@@ -254,8 +254,8 @@
         type: landmark_recall
         landmark_source: live
 
-      experience_triage:
-        only_privileged: true
+      # experience_triage:
+        # only_privileged: true
 
       migration:
         type: landmark_migration
@@ -274,7 +274,7 @@
         max_depth_diff: 5.0
         max_landmark_depth: 200.0
         screen_matched_landmarks: true
-        use_learned_features: false
+        # use_learned_features: false
         match_on_gpu: false
         match_gpu_knn_match_num: 8
 

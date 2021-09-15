@@ -122,7 +122,7 @@ class MelMatcherModule : public tactic::BaseModule {
     int match_gpu_knn_match_num;
 
     /** \brief Whether to use learned features */
-    bool use_learned_features;
+    // bool use_learned_features;
   };
 
   /** \brief Constructor */
