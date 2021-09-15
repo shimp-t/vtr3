@@ -120,7 +120,7 @@ void ExperienceTriageModule::configFromROS(const rclcpp::Node::SharedPtr &node,
   // clang-format off
   config_->verbose = node->declare_parameter<bool>(param_prefix + ".verbose", config_->verbose);
   config_->always_privileged = node->declare_parameter<bool>(param_prefix + ".always_privileged", config_->always_privileged);
-  // config_->only_privileged = node->declare_parameter<bool>(param_prefix + ".only_privileged", config_->only_privileged);
+  config_->only_privileged = node->declare_parameter<bool>(param_prefix + ".only_privileged", config_->only_privileged);
   config_->in_the_loop = node->declare_parameter<bool>(param_prefix + ".in_the_loop", config_->in_the_loop);
   // clang-format on
 }
@@ -135,14 +135,12 @@ void ExperienceTriageModule::runImpl(QueryCache &qdata0,
 
   // Check if we need to do things...
   // --------------------------------
-
-  bool only_privileged = true;
-
+  
   pose_graph::RCGraphBase::Ptr &submap_ptr = *qdata.localization_map;
   if (config_->in_the_loop) {
     // If the mask is empty, we default to using all runs
     if (recommended.empty()) {
-      if (only_privileged) {
+      if (config_->only_privileged) {
         recommended = privilegedRuns(*graph, getRunIds(*submap_ptr));
 
         // Apply the mask to the localization subgraph
@@ -156,7 +154,7 @@ void ExperienceTriageModule::runImpl(QueryCache &qdata0,
       }
     } else {
       // If we always want to include the priveleged, make sure they're included
-      if (only_privileged) {
+      if (config_->only_privileged) {
         recommended = privilegedRuns(*graph, getRunIds(*submap_ptr));
       } else if (config_->always_privileged) {
         RunIdSet priv_runs = privilegedRuns(*graph, getRunIds(*submap_ptr));

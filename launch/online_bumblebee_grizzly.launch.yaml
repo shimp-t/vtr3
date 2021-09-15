@@ -1,0 +1,79 @@
+## Online Stereo Camera VTR3
+
+session_name: online_vtr_camera
+
+# environment:
+#   ROS_DOMAIN_ID: "1"  # set this to a unique number when multiple ROS2 processes running on the same network
+
+start_directory: ${VTRDATA}
+
+suppress_history: false
+
+windows:
+  - window_name: vtr_main
+    layout: main-horizontal
+    shell_command_before:
+      - source ${VTRSRC}/main/install/setup.bash
+    panes:
+      - sleep 3 &&
+        ros2 launch vtr_navigation vtr.launch.py
+        base_params:=bumblebee_grizzly_default.yaml
+        override_params:=bumblebee_grizzly_learned_features.yaml
+        data_dir:=${VTRDATA}/temp2
+        clear_data_dir:=false
+
+      # - ros2 run vtr_mission_planning vtr_mission.py --help # backup way to send commands if UI not working
+
+      - sleep 5 && ros2 run rviz2 rviz2 -d ${VTRSRC}/rviz/camera.rviz
+      - ssh -t administrator@192.168.131.1 "source /opt/ros/kinetic/setup.bash && rostopic echo /mcu/status" # to monitor Grizzly battery voltage while testing
+
+  - window_name: vtr_ui
+    layout: main-horizontal
+    shell_command_before:
+      - source ${VTRSRC}/main/install/setup.bash
+    panes:
+      - sleep 3 && ros2 run vtr_ui socket_client  --ros-args -r __ns:=/vtr # wait for the socket_server to be created
+      - ros2 run vtr_ui web_server  --ros-args -r __ns:=/vtr
+      - ros2 run vtr_ui socket_server  --ros-args -r __ns:=/vtr
+      - sleep 5 && firefox --new-window "localhost:5200" # the webpage has to wait for everything above
+
+  - window_name: system_monitor
+    layout: main-horizontal
+    shell_command_before:
+      - source ${VTRSRC}/main/install/setup.bash
+    panes:
+      - ros2 launch vtr_safety_monitor safety_monitor.launch.py scenario_params:=default.yaml
+      - ssh -t administrator@192.168.131.1 "source /opt/ros/kinetic/setup.bash && rostopic echo /mcu/status" # to monitor Grizzly battery voltage while testing
+      # - echo 'ros2 topic echo /grizzly_velocity_controller/cmd_vel # monitor velocity commands'
+      - echo "backup terminal"
+
+  - window_name: grizzly
+    layout: main-horizontal
+    shell_command_before:
+      - source ${VTRSRC}/robots/ros2/install/setup.bash
+    panes:
+      - ros2 launch utias_grizzly_description utias_grizzly_description.launch.py
+
+  - window_name: bumblebee
+    layout: main-horizontal
+    shell_command_before:
+      - source ${VTRSRC}/extra/install/setup.bash
+    panes:
+      - ros2 run vtr_bumblebee_xb3 BumblebeeDriver --ros-args --params-file ${VTRSRC}/extra/src/vtr_bumblebee_xb3/param/XB3.yaml
+      - stress -c 1 # workaround for super weird XB3 Driver bug
+      - echo 'backup'
+      # - sleep 120 & ros2 run vtr_sensors BumblebeeRecorder ${VTRDATA}/experiments/2021-08-02/lighting-change/front-xb3/run_000001 front_xb3                  # optional to record full stereo stream
+      # - sleep 60 & ros2 run vtr_sensors BumblebeeRecorder ${VTRDATA}/experiments/2021-08-02/lighting-change-extended/front-xb3/run_000001 front_xb3 
+      # ros2 run vtr_sensors BumblebeeRecorder ${VTRDATA}/online-test/2021-07-26/learned_long/front-xb3/run_000003 front_xb3 
+
+  - window_name: gps
+    layout: main-horizontal
+    panes:
+      - ros2 run nmea_navsat_driver nmea_serial_driver --ros-args -p port:=/dev/ttyUSB0 -p baud:=57600  # run GPS position driver
+      - sleep 3 && ros2 topic echo /fix  # view GPS positions
+      - ssh -t administrator@192.168.131.1 "sudo /home/administrator/catkin_ws/src/serial_bridge/scripts/serial_bridge.py /dev/ttyUSB0 -b 57600 -d enp1s0" # sends RTK info from radio to serial
+      - echo 'backup'
+      # - sleep 120 & ros2 bag record -o ${VTRDATA}/experiments/2021-08-02/lighting-change/navsatfix/run_00000 fix          # record GPS positions
+      # - sleep 60 & ros2 bag record -o ${VTRDATA}/experiments/2021-08-02/lighting-change-extended/navsatfix/run_000001 fix
+      # ros2 bag record -o ${VTRDATA}/online-test/2021-07-26/learned_dark/navsatfix/run_000009 fix
+

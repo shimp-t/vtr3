@@ -459,13 +459,11 @@ ChannelFeatures LFE::learnedFeaturesToStereoKeypoints(
   for (unsigned i = 0; i < num_keypoints; i++) {
     
     // Check disparity to see if point is valid
-    // if ((point_disparities[i].item<float>() > 
-    //      stereo_config_.stereoDisparityMinimum) && 
-    //     (point_disparities[i].item<float>() < 
-    //      stereo_config_.stereoDisparityMaximum)) {
-    if ((point_disparities[i].item<float>() > 0.1) && 
-        (point_disparities[i].item<float>() < 100.0)) {
-
+    if ((point_disparities[i].item<float>() > 
+         stereo_config_.stereoDisparityMinimum) && 
+        (point_disparities[i].item<float>() < 
+         stereo_config_.stereoDisparityMaximum)) {
+    
       //&&
         // (point_scores[i].item<float>() >= 5.0e-3)
          
