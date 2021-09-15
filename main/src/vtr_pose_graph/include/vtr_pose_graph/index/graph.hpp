@@ -1,3 +1,24 @@
+// Copyright 2021, Autonomous Space Robotics Lab (ASRL)
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+/**
+ * \file graph.hpp
+ * \brief
+ * \details
+ *
+ * \author Autonomous Space Robotics Lab (ASRL)
+ */
 #pragma once
 
 #include <mutex>
@@ -57,30 +78,13 @@ class Graph : public virtual GraphBase<V, E, R> {
   /** \brief Construct an empty graph with an id */
   Graph(const IdType& id);
 
-#if true
   /// Yuchen: we used to allow copying and moving, but I don't think it is
   /// needed.
   Graph(const Graph&) = delete;
   Graph(Graph&& other) = delete;
   Graph& operator=(const Graph&) = delete;
   Graph& operator=(Graph&& other) = delete;
-#else
-  Graph(const Graph&) = default;
-  Graph(Graph&& other)
-      : Base(std::move(other)),
-        currentRun_(std::move(other.currentRun_)),
-        lastRunIdx_(std::move(other.lastRunIdx_)),
-        callback_(std::move(other.callback_)) {}
 
-  Graph& operator=(const Graph&) = default;
-  Graph& operator=(Graph&& other) {
-    Base::operator=(std::move(other));
-    this->currentRun_ = std::move(other.currentRun_);
-    this->lastRunIdx_ = std::move(other.lastRunIdx_);
-    this->callback_ = std::move(other.callback_);
-    return *this;
-  }
-#endif
   /** \brief Set the callback handling procedure */
   void setCallbackMode(const CallbackPtr& callback =
                            CallbackPtr(new IgnoreCallbacks<V, E, R>())) {
@@ -110,14 +114,14 @@ class Graph : public virtual GraphBase<V, E, R> {
                           const EdgeTypeEnum& type = EdgeTypeEnum::Temporal,
                           bool manual = false);
 
-  /** \brief Acquire a lock object that blocks modifications */
+  /** \brief Acquires a lock object that blocks modifications. */
   UniqueLock guard() const { return UniqueLock(mtx_); }
-  /** \brief Manually lock the graph, preventing modifications */
+  /** \brief Manually locks the graph, preventing modifications. */
   void lock() const { mtx_.lock(); }
-  /** \brief Manually unlock the graph, allowing modifications */
+  /** \brief Manually unlocks the graph, allowing modifications. */
   void unlock() const { mtx_.unlock(); }
   /** \brief Get a reference to the mutex */
-  std::recursive_mutex& mutex() { return mtx_; }
+  std::recursive_mutex& mutex() const { return mtx_; }
 
  protected:
   /** \brief The current run */

@@ -1,9 +1,25 @@
-////////////////////////////////////////////////////////////////////////////////
-/// @brief image_conversions.h header file
-/// @details Image conversion functions including from RGB to grayscale or
-///          colour constant
-///////////////////////////////////////////////////////////////////////////////
+// Copyright 2021, Autonomous Space Robotics Lab (ASRL)
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
+/**
+ * \file image_conversions.hpp
+ * \brief
+ * \details Image conversion functions including from RGB to grayscale or colour
+ * constant
+ *
+ * \author Autonomous Space Robotics Lab (ASRL)
+ */
 #pragma once
 
 #include <vtr_vision/types.hpp>
@@ -18,7 +34,7 @@ enum class ImageConversion : uint8_t {
   GRAY_TO_UNDISTORTED = 3
 };
 
-std::string ImageConversionToString(const ImageConversion& conversion);
+std::string ImageConversionToString(const ImageConversion &conversion);
 ImageConversion StringToImageConversion(const std::string &conversion);
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -42,16 +58,19 @@ ChannelImages RGB2Grayscale(const ChannelImages &src);
 /// @param histogram_equalization Histogram Equalization flag.
 /// @return A color constant grayscale image.
 ////////////////////////////////////////////////////////////////////////////////
-Image RGB2ColorConstant(const Image &src,float &alpha, bool histogram_equalization);
+Image RGB2ColorConstant(const Image &src, float &alpha,
+                        bool histogram_equalization);
 
 ////////////////////////////////////////////////////////////////////////////////
-/// @brief Converts a channel of RGB images into a channel of color constant grayscale images.
+/// @brief Converts a channel of RGB images into a channel of color constant
+/// grayscale images.
 /// @param src The RGB source channel.
 /// @param alpha The color constant weight.
 /// @param histogram_equalization Histogram Equalization flag.
 /// @return A color constant grayscale image channel.
 ////////////////////////////////////////////////////////////////////////////////
-ChannelImages RGB2ColorConstant(const ChannelImages & src, float alpha, bool histogram_equalization);
+ChannelImages RGB2ColorConstant(const ChannelImages &src, float alpha,
+                                bool histogram_equalization);
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief Converts an RGB image into a grayscale image.
@@ -68,13 +87,16 @@ Image RGBCopy(const Image &src);
 ChannelImages RGBCopy(const ChannelImages &src);
 
 ////////////////////////////////////////////////////////////////////////////////
-/// @brief Converts a channel of grayscale images into a channel of undistorted grayscale images.
+/// @brief Converts a channel of grayscale images into a channel of undistorted
+/// grayscale images.
 /// @param src The grayscale source channel.
 /// @param intrinsics A vector of the intrinsics for each camera
 /// @param dists A vector of the five elements of distortion for each camera
 /// @return A color constant grayscale image channel.
 ////////////////////////////////////////////////////////////////////////////////
-ChannelImages Gray2Undistorted(const ChannelImages & src, const CameraIntrinsics & intrinsics, const CameraDistortions & dists);
+ChannelImages Gray2Undistorted(const ChannelImages &src,
+                               const CameraIntrinsics &intrinsics,
+                               const CameraDistortions &dists);
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief Converts an RGB image into a grayscale image.
@@ -90,5 +112,6 @@ Image Disparity(const Image &src);
 ////////////////////////////////////////////////////////////////////////////////
 ChannelImages Disparity(const ChannelImages &src);
 
-}
-}
+}  // namespace vision
+}  // namespace vtr
+

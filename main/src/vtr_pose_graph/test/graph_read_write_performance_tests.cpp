@@ -1,3 +1,24 @@
+// Copyright 2021, Autonomous Space Robotics Lab (ASRL)
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+/**
+ * \file graph_read_write_performance_tests.cpp
+ * \brief
+ * \details
+ *
+ * \author Autonomous Space Robotics Lab (ASRL)
+ */
 #include <vtr_logging/logging_init.hpp>
 
 #include <vtr_common/timing/stopwatch.hpp>
@@ -27,6 +48,8 @@ using namespace vtr::common;
  * Store and then make sure everything can be load back.
  */
 int main() {
+  vtr::logging::configureLogging();
+
   fs::path working_dir{fs::temp_directory_path() / "vtr_pose_graph_test"};
   fs::remove_all(working_dir);  // make sure the directoy is empty.
   fs::path graph_folder{"test_graph"};

@@ -1,3 +1,23 @@
+// Copyright 2021, Autonomous Space Robotics Lab (ASRL)
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+/**
+ * \file polar_processing.hpp
+ * \brief Polar processing utility functions
+ *
+ * \author Yuchen Wu, Autonomous Space Robotics Lab (ASRL)
+ */
 #pragma once
 
 #include <cstdint>
@@ -10,7 +30,7 @@
 
 #include <Eigen/Dense>
 
-#include <vtr_lidar/cloud/cloud.h>
+#include <vtr_lidar/cloud/cloud.hpp>
 #include <vtr_lidar/nanoflann/nanoflann.hpp>
 #include <vtr_lidar/pointmap/pointmap.hpp>
 
@@ -21,7 +41,7 @@ namespace lidar {
 using PointXYZ_KDTree = nanoflann::KDTreeSingleIndexAdaptor<
     nanoflann::L2_Simple_Adaptor<float, PointCloud>, PointCloud, 3>;
 
-void cart2Pol_(std::vector<PointXYZ>& xyz, bool rotational_effect = false);
+void cart2Pol_(std::vector<PointXYZ>& xyz);
 PointXYZ cart2pol(const PointXYZ& p);
 
 void pca_features(std::vector<PointXYZ>& points,
@@ -47,12 +67,17 @@ void extract_features_multi_thread(std::vector<PointXYZ>& points,
                                    float r_scale, int verbose);
 /**
  * \brief todo
+ * \param[in] points point cloud in cartesian
+ * \param[in] polar_pts point cloud in polar
+ * \param[in] normals point cloud normal
  * \param[in] r0 ideal distance for estimating the normal
+ * \param[in] theta0 maximum incidence angle for estimating the normal
+ * \param[out] scores a score for each point based on normal direction
  */
 void smartNormalScore(const std::vector<PointXYZ>& points,
                       const std::vector<PointXYZ>& polar_pts,
                       const std::vector<PointXYZ>& normals, const float& r0,
-                      std::vector<float>& scores);
+                      const float& theta0, std::vector<float>& scores);
 
 void smartICPScore(std::vector<PointXYZ>& polar_pts,
                    std::vector<float>& scores);

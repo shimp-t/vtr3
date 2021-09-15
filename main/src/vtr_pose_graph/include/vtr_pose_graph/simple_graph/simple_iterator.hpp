@@ -1,3 +1,24 @@
+// Copyright 2021, Autonomous Space Robotics Lab (ASRL)
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+/**
+ * \file simple_iterator.hpp
+ * \brief
+ * \details
+ *
+ * \author Autonomous Space Robotics Lab (ASRL)
+ */
 #pragma once
 
 #include <unordered_map>
@@ -40,9 +61,7 @@ struct NodeParent {
    * \brief Implicit conversion to SimpleEdge/SimpleVertex for indexing
    * convenience
    */
-  operator SimpleVertex() const {
-    return child;
-  }
+  operator SimpleVertex() const { return child; }
 
   operator SimpleEdge() const {
     return child < parent ? SimpleEdge(child, parent)
@@ -50,9 +69,7 @@ struct NodeParent {
   }
 
   /** \brief Get the SimpleVertex of this graph element */
-  const SimpleVertex &v() const {
-    return child;
-  }
+  const SimpleVertex &v() const { return child; }
 
   /** \brief Get the SimpleEdge from the current vertex to its ancestor */
   SimpleEdge e() const {
@@ -136,9 +153,7 @@ class SimpleGraphIterator
   SimpleGraphIterator operator++(int);
 
   /** \brief Query the state of the search queue */
-  inline bool empty() const {
-    return searchQueue_->empty();
-  }
+  inline bool empty() const { return searchQueue_->empty(); }
 
   /** \brief Get the top element (if it exists) or NULL */
   const NodeParent *topIfExists() const;

@@ -1,3 +1,24 @@
+// Copyright 2021, Autonomous Space Robotics Lab (ASRL)
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+/**
+ * \file mission_server_tests.cpp
+ * \brief
+ * \details
+ *
+ * \author Autonomous Space Robotics Lab (ASRL)
+ */
 #include <gtest/gtest.h>
 
 #include <vtr_logging/logging_init.hpp>
@@ -13,8 +34,7 @@ class TestMissionServer : public BaseMissionServer<TestGoalHandle> {
   using Base = BaseMissionServer<TestGoalHandle>;
 
   TestMissionServer(const StateMachine::Ptr& state)
-      : Base(state), state_idx(0), aborted(false), succeeded(false) {
-  }
+      : Base(state), state_idx(0), aborted(false), succeeded(false) {}
 
   /** \brief Callback when the state machine must abort a goal. */
   void stateAbort(const std::string& msg) override {
@@ -37,8 +57,7 @@ class TestMissionServer : public BaseMissionServer<TestGoalHandle> {
   }
 
   /** \brief Callback when the state machine changes state. */
-  void stateUpdate(double) override {
-  }
+  void stateUpdate(double) override {}
 
   // void clear() {
   //   state_idx = 0;

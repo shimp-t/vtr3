@@ -1,62 +1,76 @@
+// Copyright 2021, Autonomous Space Robotics Lab (ASRL)
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+/**
+ * \file navigator.hpp
+ * \brief Navigator class definition
+ *
+ * \author Yuchen Wu, Autonomous Space Robotics Lab (ASRL)
+ */
 #include <filesystem>
 #include <queue>
 
 #include <tf2_ros/transform_listener.h>
 
-// temp
-#include <vtr_path_tracker/base.h>
-#include <vtr_path_tracker/robust_mpc/mpc/mpc_base.h>
 #include <vtr_common/rosutils/transformations.hpp>
 #include <vtr_common/timing/time_utils.hpp>
 #include <vtr_common/utils/filesystem.hpp>
+#include <vtr_lgmath_extensions/conversions.hpp>
 #include <vtr_logging/logging.hpp>
 #include <vtr_mission_planning/ros_mission_server.hpp>
 #include <vtr_navigation/map_projector.hpp>
 #include <vtr_path_planning/simple_planner.hpp>
+#include <vtr_path_tracker/base.hpp>
+#include <vtr_path_tracker/robust_mpc/mpc/mpc_base.hpp>
 #include <vtr_pose_graph/index/rc_graph/rc_graph.hpp>
-#include <vtr_tactic/caches.hpp>
-#include <vtr_tactic/modules/ros_module_factory.hpp>
-#include <vtr_tactic/pipelines/ros_pipeline_factory.hpp>
+#include <vtr_tactic/cache.hpp>
+#include <vtr_tactic/pipelines/pipeline_factory.hpp>
 #include <vtr_tactic/publisher_interface.hpp>
 #include <vtr_tactic/tactic.hpp>
 #include <vtr_tactic/types.hpp>
 
-// camera specific
-#include <vtr_vision/messages/bridge.hpp>
-
-// common messages
+#include <std_msgs/msg/bool.hpp>
 #include <vtr_messages/msg/graph_path.hpp>
 #include <vtr_messages/msg/robot_status.hpp>
 #include <vtr_messages/msg/time_stamp.hpp>
-// lidar messages
+
+#ifdef VTR_ENABLE_LIDAR
+#include <vtr_lidar/pipeline.hpp>
+
 #include <sensor_msgs/msg/point_cloud2.hpp>
-#include <sensor_msgs/point_cloud2_iterator.hpp>
-#include <sensor_msgs/point_cloud_conversion.hpp>
-#include <std_msgs/msg/bool.hpp>
-// camera messages
+#endif
+
+#ifdef VTR_ENABLE_CAMERA
+#include <vtr_vision/messages/bridge.hpp>
+#include <vtr_vision/pipeline.hpp>
+
 #include <vtr_messages/msg/rig_images.hpp>
 #include <vtr_messages/srv/get_rig_calibration.hpp>
+#endif
 
-// common
+namespace vtr {
+namespace navigation {
+
 using PathTrackerMsg = std_msgs::msg::UInt8;
 using TimeStampMsg = vtr_messages::msg::TimeStamp;
 using PathMsg = vtr_messages::msg::GraphPath;
 using RobotStatusMsg = vtr_messages::msg::RobotStatus;
 using ResultMsg = std_msgs::msg::Bool;
 using ExampleDataMsg = std_msgs::msg::Bool;
-// lidar
-using PointCloudMsg = sensor_msgs::msg::PointCloud2;
-// camera
-using RigImagesMsg = vtr_messages::msg::RigImages;
-using RigCalibrationMsg = vtr_messages::msg::RigCalibration;
-using RigCalibrationSrv = vtr_messages::srv::GetRigCalibration;
 
-namespace fs = std::filesystem;
 using namespace vtr::tactic;
 using namespace vtr::pose_graph;
-
-namespace vtr {
-namespace navigation {
 
 class Navigator : public PublisherInterface {
  public:
@@ -77,20 +91,34 @@ class Navigator : public PublisherInterface {
   /// Expose internal blocks for testing and debugging
   const Tactic::Ptr tactic() const { return tactic_; }
   const RCGraph::Ptr graph() const { return graph_; }
+  const state::StateMachine::Ptr sm() const { return state_machine_; }
+  const std::string &robot_frame() const { return robot_frame_; }
+#ifdef VTR_ENABLE_LIDAR
+  const std::string &lidar_frame() const { return lidar_frame_; }
+  const lgmath::se3::TransformationWithCovariance &T_lidar_robot() const {
+    return T_lidar_robot_;
+  }
+#endif
+#ifdef VTR_ENABLE_CAMERA
+  const std::string &camera_frame() const { return camera_frame_; }
+  const lgmath::se3::TransformationWithCovariance &T_camera_robot() const {
+    return T_camera_robot_;
+  }
+#endif
 
  private:
   void process();
 
   /// Sensor specific stuff
-  // example
   void exampleDataCallback(const ExampleDataMsg::SharedPtr);
-  // lidar
-  void lidarCallback(const PointCloudMsg::SharedPtr msg);
-  // camera
-  void imageCallback(const RigImagesMsg::SharedPtr msg);
+#ifdef VTR_ENABLE_LIDAR
+  void lidarCallback(const sensor_msgs::msg::PointCloud2::SharedPtr msg);
+#endif
+#ifdef VTR_ENABLE_CAMERA
+  void imageCallback(const vtr_messages::msg::RigImages::SharedPtr msg);
   void fetchRigCalibration();
+#endif
 
- private:
   /** \brief ROS-handle for communication */
   const rclcpp::Node::SharedPtr node_;
 
@@ -126,21 +154,24 @@ class Navigator : public PublisherInterface {
   std::string robot_frame_;
   // example data
   rclcpp::Subscription<ExampleDataMsg>::SharedPtr example_data_sub_;
-  // lidar
+#ifdef VTR_ENABLE_LIDAR
   std::string lidar_frame_;
   /** \brief Lidar data subscriber */
-  rclcpp::Subscription<PointCloudMsg>::SharedPtr lidar_sub_;
+  rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr lidar_sub_;
   std::atomic<bool> pointcloud_in_queue_ = false;
   lgmath::se3::TransformationWithCovariance T_lidar_robot_;
-  // camera
+#endif
+#ifdef VTR_ENABLE_CAMERA
   std::string camera_frame_;
   /** \brief camera camera data subscriber */
-  rclcpp::Subscription<RigImagesMsg>::SharedPtr image_sub_;
-  rclcpp::Client<RigCalibrationSrv>::SharedPtr rig_calibration_client_;
+  rclcpp::Subscription<vtr_messages::msg::RigImages>::SharedPtr image_sub_;
+  rclcpp::Client<vtr_messages::srv::GetRigCalibration>::SharedPtr
+      rig_calibration_client_;
   std::atomic<bool> image_in_queue_ = false;
   /** \brief Calibration for the stereo rig */
   std::shared_ptr<vision::RigCalibration> rig_calibration_;
   lgmath::se3::TransformationWithCovariance T_camera_robot_;
+#endif
 
   /** \brief Pipeline running result publisher */
   rclcpp::Publisher<ResultMsg>::SharedPtr result_pub_;

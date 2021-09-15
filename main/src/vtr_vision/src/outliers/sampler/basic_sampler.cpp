@@ -1,17 +1,29 @@
-////////////////////////////////////////////////////////////////////////////////
-/// @brief BasicSampler.cpp Source file for the ASRL vision package
-/// @details This file defines the BaseSampler class, which provides
-///          verified samples for RANSAC
-///
-/// @author Kirk MacTavish, ASRL
-///////////////////////////////////////////////////////////////////////////////
+// Copyright 2021, Autonomous Space Robotics Lab (ASRL)
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-// ASRL
-#include "vtr_vision/outliers/sampler/basic_sampler.hpp"
-#include "vtr_vision/outliers/sampler/verify_sample_indices.hpp"
-
-// External
+/**
+ * \file basic_sampler.cpp
+ * \brief
+ * \details This file defines the BaseSampler class, which provides verified
+ * samples for RANSAC
+ *
+ * \author Kirk MacTavish, Autonomous Space Robotics Lab (ASRL)
+ */
 #include <random>
+
+#include <vtr_vision/outliers/sampler/basic_sampler.hpp>
+#include <vtr_vision/outliers/sampler/verify_sample_indices.hpp>
 
 namespace vtr {
 namespace vision {
@@ -28,7 +40,7 @@ void BasicSampler::setInputMatches(const SimpleMatches* matches) {
   // Save a ref to the matches
   matches_ = matches;
   // Re-seed the random engine
-#ifdef DETERMINISTIC_VTR
+#ifdef VTR_DETERMINISTIC
   setSeed(0);
 #else
   randomSeed();

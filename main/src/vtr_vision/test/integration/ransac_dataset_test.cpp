@@ -1,7 +1,28 @@
+// Copyright 2021, Autonomous Space Robotics Lab (ASRL)
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+/**
+ * \file ransac_dataset_test.cpp
+ * \brief
+ * \details
+ *
+ * \author Autonomous Space Robotics Lab (ASRL)
+ */
 #include <gtest/gtest.h>
 
 #include <lgmath/se3/Transformation.hpp>
-#include <vtr_storage/data_stream_reader.hpp>
+#include <vtr_storage/stream/data_stream_reader.hpp>
 
 #include <vtr_logging/logging_init.hpp>
 #include <vtr_messages/msg/image.hpp>
@@ -60,7 +81,8 @@ float stddev(std::vector<T> vec) {
 TEST(Vision, ransac) {
   fs::path dataset_dir{fs::current_path() / "sample_data"};
 
-  vtr::storage::DataStreamReader<RigImages, RigCalibration> stereo_stream(dataset_dir.string(), "front_xb3");
+  vtr::storage::DataStreamReader<RigImages, RigCalibration> stereo_stream(
+      dataset_dir.string(), "front_xb3");
 
   // make a random number generator and seed with current time
   std::default_random_engine eng(0);
@@ -79,7 +101,9 @@ TEST(Vision, ransac) {
     int sample = dist(eng);
 
     vtr_messages::msg::RigCalibration calibration_msg;
-    EXPECT_NO_THROW(calibration_msg = stereo_stream.fetchCalibration()->get<RigCalibration>());
+    EXPECT_NO_THROW(
+        calibration_msg =
+            stereo_stream.fetchCalibration()->get<RigCalibration>());
     auto rig_calibration = vtr::messages::copyCalibration(calibration_msg);
 
     // make an orb feature extractor configuration

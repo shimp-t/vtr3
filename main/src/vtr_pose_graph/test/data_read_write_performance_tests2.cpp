@@ -1,3 +1,24 @@
+// Copyright 2021, Autonomous Space Robotics Lab (ASRL)
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+/**
+ * \file data_read_write_performance_tests2.cpp
+ * \brief
+ * \details
+ *
+ * \author Autonomous Space Robotics Lab (ASRL)
+ */
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -8,9 +29,9 @@
 #include <vtr_messages/msg/rig_images.hpp>
 #include <vtr_messages/msg/time_stamp.hpp>
 #include <vtr_pose_graph/index/rc_graph/rc_graph.hpp>
-#include <vtr_storage/data_bubble.hpp>
-#include <vtr_storage/data_stream_reader.hpp>
-#include <vtr_storage/data_stream_writer.hpp>
+#include <vtr_storage/stream/data_bubble.hpp>
+#include <vtr_storage/stream/data_stream_reader.hpp>
+#include <vtr_storage/stream/data_stream_writer.hpp>
 
 namespace fs = std::filesystem;
 using namespace vtr::pose_graph;
@@ -22,6 +43,8 @@ using namespace vtr::common;
  * vertices.
  */
 int main() {
+  vtr::logging::configureLogging();
+
   int min = 1e3, max = 1e4, mul = 4, num_trial = 2;  // change this!!
   fs::path result_dir{fs::temp_directory_path() / "vtr_pose_graph_test_result"};
   fs::remove_all(result_dir);  // make sure the directoy is empty.

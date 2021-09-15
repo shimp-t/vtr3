@@ -1,3 +1,24 @@
+// Copyright 2021, Autonomous Space Robotics Lab (ASRL)
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+/**
+ * \file state_machine_tests.cpp
+ * \brief
+ * \details
+ *
+ * \author Autonomous Space Robotics Lab (ASRL)
+ */
 #include <gtest/gtest.h>
 
 #include <vtr_logging/logging_init.hpp>
@@ -20,14 +41,10 @@ class TestCallbacks : public StateMachineCallbacks {
  public:
   PTR_TYPEDEFS(TestCallbacks)
 
-  void stateChanged(const std::shared_ptr<state::BaseState>&) {
-  }
-  void stateSuccess() {
-  }
-  void stateAbort(const std::string&) {
-  }
-  void stateUpdate(double) {
-  }
+  void stateChanged(const std::shared_ptr<state::BaseState>&) {}
+  void stateSuccess() {}
+  void stateAbort(const std::string&) {}
+  void stateUpdate(double) {}
 };
 
 /** Convenience class to create one of every State. */
@@ -40,8 +57,7 @@ struct StateContainer {
         follow(new state::repeat::Follow()),
         teach_topo_loc(new state::teach::TopologicalLocalize()),
         branch(new state::teach::Branch()),
-        merge(new state::teach::Merge()) {
-  }
+        merge(new state::teach::Merge()) {}
 
   StateContainer(const state::BaseState& sm)
       : idle(new state::Idle(sm)),
@@ -51,8 +67,7 @@ struct StateContainer {
         follow(new state::repeat::Follow(sm)),
         teach_topo_loc(new state::teach::TopologicalLocalize(sm)),
         branch(new state::teach::Branch(sm)),
-        merge(new state::teach::Merge(sm)) {
-  }
+        merge(new state::teach::Merge(sm)) {}
 
   BaseState::Ptr idle;
 

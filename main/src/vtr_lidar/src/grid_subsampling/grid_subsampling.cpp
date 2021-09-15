@@ -1,3 +1,23 @@
+// Copyright 2021, Autonomous Space Robotics Lab (ASRL)
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+/**
+ * \file grid_subsampling.cpp
+ * \brief Grid subsampling utilities definition
+ *
+ * \author Yuchen Wu, Autonomous Space Robotics Lab (ASRL)
+ */
 #include <vtr_lidar/grid_subsampling/grid_subsampling.hpp>
 
 namespace vtr {
@@ -19,8 +39,10 @@ void gridSubsamplingCenters(const std::vector<PointXYZ>& original_points,
   PointXYZ originCorner = floor(minCorner * inv_dl) * sampleDl;
 
   // Dimensions of the grid
-  size_t sampleNX = (size_t)floor((maxCorner.x - originCorner.x) * inv_dl) + 1;
-  size_t sampleNY = (size_t)floor((maxCorner.y - originCorner.y) * inv_dl) + 1;
+  size_t sampleNX =
+      (size_t)std::floor((maxCorner.x - originCorner.x) * inv_dl) + 1;
+  size_t sampleNY =
+      (size_t)std::floor((maxCorner.y - originCorner.y) * inv_dl) + 1;
 
   // Create the sampled map
   // **********************
@@ -33,9 +55,9 @@ void gridSubsamplingCenters(const std::vector<PointXYZ>& original_points,
   i = 0;
   for (auto& p : original_points) {
     // Position of point in sample map
-    iX = (size_t)floor((p.x - originCorner.x) * inv_dl);
-    iY = (size_t)floor((p.y - originCorner.y) * inv_dl);
-    iZ = (size_t)floor((p.z - originCorner.z) * inv_dl);
+    iX = (size_t)std::floor((p.x - originCorner.x) * inv_dl);
+    iY = (size_t)std::floor((p.y - originCorner.y) * inv_dl);
+    iZ = (size_t)std::floor((p.z - originCorner.z) * inv_dl);
     mapIdx = iX + sampleNX * iY + sampleNX * sampleNY * iZ;
 
     // Fill the sample map

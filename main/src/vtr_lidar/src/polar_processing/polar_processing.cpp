@@ -1,33 +1,44 @@
+// Copyright 2021, Autonomous Space Robotics Lab (ASRL)
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+/**
+ * \file polar_processing.cpp
+ * \brief Polar processing utilities definition
+ *
+ * \author Yuchen Wu, Autonomous Space Robotics Lab (ASRL)
+ */
 #include <vtr_lidar/polar_processing/polar_processing.hpp>
 
 namespace vtr {
 namespace lidar {
 
-void cart2Pol_(std::vector<PointXYZ> &xyz, bool rotational_effect) {
+void cart2Pol_(std::vector<PointXYZ> &xyz) {
   // In place modification to carthesian coordinates
   for (auto &p : xyz) {
     float rho = sqrt(p.sq_norm());
-    float phi = atan2(p.y, p.x);
     float theta = atan2(sqrt(p.x * p.x + p.y * p.y), p.z);
+    float phi = atan2(p.y, p.x);
     p.x = rho;
     p.y = theta;
     p.z = phi + M_PI / 2;
-  }
-
-  if (rotational_effect) {
-    for (unsigned i = 1; i < xyz.size(); i++) {
-      if ((xyz[i].z - xyz[i - 1].z) > 1.5 * M_PI)
-        xyz[i].z -= 2 * M_PI;
-      else if ((xyz[i].z - xyz[i - 1].z) < -1.5 * M_PI)
-        xyz[i].z += 2 * M_PI;
-    }
   }
 }
 
 PointXYZ cart2pol(PointXYZ &p) {
   float rho = sqrt(p.sq_norm());
-  float phi = atan2(p.y, p.x);
   float theta = atan2(sqrt(p.x * p.x + p.y * p.y), p.z);
+  float phi = atan2(p.y, p.x);
   return PointXYZ(rho, theta, phi + M_PI / 2);
 }
 
@@ -79,7 +90,7 @@ void detect_outliers(std::vector<PointXYZ> &rtp, std::vector<float> &scores,
     for (auto &p : rtp) {
       if (scores[i] > -0.5) {
         // Get line index
-        l = (size_t)floor((p.y - theta0) / lidar_angle_res);
+        l = (size_t)std::floor((p.y - theta0) / lidar_angle_res);
 
         // Get jumps
         float dl1 = p.x - last_r[l];
@@ -258,12 +269,12 @@ void extract_features_multi_thread(std::vector<PointXYZ> &points,
 void smartNormalScore(const std::vector<PointXYZ> &points,
                       const std::vector<PointXYZ> &polar_pts,
                       const std::vector<PointXYZ> &normals, const float &r0,
-                      std::vector<float> &scores) {
+                      const float &theta0, std::vector<float> &scores) {
   // Parameters
   float S0 = 0.2;
   float S1 = 1.0 - S0;
   float a0 = M_PI / 2;       // Max possible angle for which score is zero
-  float a1 = 5 * M_PI / 12;  // if angle > a1, whatever radius, score is better
+  float a1 = M_PI * theta0;  // if angle > a1, whatever radius, score is better
                              // if angle is smaller (up to S0)
   float factor = S0 / (a0 - a1);
   float inv_sigma2 = 0.01f;
@@ -374,9 +385,9 @@ void compare_map_to_frame(std::vector<PointXYZ> &frame_points,
   VoxKey k0, k;
   for (auto &p : aligned_frame) {
     // Corresponding key
-    k0.x = (int)floor(p.x * inv_map_dl);
-    k0.y = (int)floor(p.y * inv_map_dl);
-    k0.z = (int)floor(p.z * inv_map_dl);
+    k0.x = (int)std::floor(p.x * inv_map_dl);
+    k0.y = (int)std::floor(p.y * inv_map_dl);
+    k0.z = (int)std::floor(p.z * inv_map_dl);
 
     // Update the adjacent cells
     for (k.x = k0.x - 1; k.x < k0.x + 2; k.x++) {
@@ -416,9 +427,9 @@ void compare_map_to_frame(std::vector<PointXYZ> &frame_points,
 
   // Dimensions of the grid
   size_t grid_n_theta =
-      (size_t)floor((maxCorner.y - originCorner.y) / theta_dl) + 1;
+      (size_t)std::floor((maxCorner.y - originCorner.y) / theta_dl) + 1;
   size_t grid_n_phi =
-      (size_t)floor((maxCorner.z - originCorner.z) / phi_dl) + 1;
+      (size_t)std::floor((maxCorner.z - originCorner.z) / phi_dl) + 1;
 
   // Initialize variables
   std::vector<float> frustrum_radiuses(grid_n_theta * grid_n_phi, -1.0);
@@ -440,8 +451,8 @@ void compare_map_to_frame(std::vector<PointXYZ> &frame_points,
   // Fill the frustrum radiuses
   for (auto &p : polar_frame) {
     // Position of point in grid
-    i_theta = (size_t)floor((p.y - originCorner.y) * inv_theta_dl);
-    i_phi = (size_t)floor((p.z - originCorner.z) * inv_phi_dl);
+    i_theta = (size_t)std::floor((p.y - originCorner.y) * inv_theta_dl);
+    i_phi = (size_t)std::floor((p.z - originCorner.z) * inv_phi_dl);
     gridIdx = i_theta + grid_n_theta * i_phi;
 
     // Update the radius in cell
@@ -500,8 +511,8 @@ void compare_map_to_frame(std::vector<PointXYZ> &frame_points,
     PointXYZ rtp = cart2pol(xyz);
 
     // Position of point in grid
-    i_theta = (size_t)floor((rtp.y - originCorner.y) * inv_theta_dl);
-    i_phi = (size_t)floor((rtp.z - originCorner.z) * inv_phi_dl);
+    i_theta = (size_t)std::floor((rtp.y - originCorner.y) * inv_theta_dl);
+    i_phi = (size_t)std::floor((rtp.z - originCorner.z) * inv_phi_dl);
     gridIdx = i_theta + grid_n_theta * i_phi;
 
     // Update movable prob

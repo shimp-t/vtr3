@@ -1,11 +1,35 @@
+// Copyright 2021, Autonomous Space Robotics Lab (ASRL)
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+/**
+ * \file ransac_demo.cpp
+ * \brief
+ * \details
+ *
+ * \author Autonomous Space Robotics Lab (ASRL)
+ */
+#include <filesystem>
+#include <fstream>
+#include <memory>
+
+#include <opencv2/opencv.hpp>
+
 #include <asrl/vision/gpusurf/GpuSurfDetector.hpp>
 #include <lgmath/se3/Transformation.hpp>
-#include <vtr_storage/data_stream_reader.hpp>
+#include <vtr_storage/stream/data_stream_reader.hpp>
 
 #include <vtr_logging/logging_init.hpp>
-#include <vtr_messages/msg/image.hpp>
-#include <vtr_messages/msg/rig_calibration.hpp>
-#include <vtr_messages/msg/rig_images.hpp>
 #include <vtr_vision/features/extractor/cuda/gpu_surf_feature_extractor.hpp>
 #include <vtr_vision/features/extractor/orb_feature_extractor.hpp>
 #include <vtr_vision/geometry/geometry_tools.hpp>
@@ -15,12 +39,9 @@
 #include <vtr_vision/sensors/stereo_transform_model.hpp>
 #include <vtr_vision/types.hpp>
 
-#include <filesystem>
-#include <fstream>
-#include <memory>
-
-#include <opencv2/opencv.hpp>
-
+#include <vtr_messages/msg/image.hpp>
+#include <vtr_messages/msg/rig_calibration.hpp>
+#include <vtr_messages/msg/rig_images.hpp>
 namespace fs = std::filesystem;
 using RigImages = vtr_messages::msg::RigImages;
 using RigCalibration = vtr_messages::msg::RigCalibration;

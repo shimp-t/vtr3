@@ -1,42 +1,39 @@
+// Copyright 2021, Autonomous Space Robotics Lab (ASRL)
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+/**
+ * \file rc_run.cpp
+ * \brief
+ * \details
+ *
+ * \author Autonomous Space Robotics Lab (ASRL)
+ */
 #include <filesystem>
 
 #include <vtr_pose_graph/index/rc_graph/rc_run.hpp>
-
-#if 0
-#include <iostream>
-#include <sstream>
-#include <string>
-
-#include <robochunk/base/NonUniformIndexDeserializer.h>
-#include <robochunk/base/NonUniformIndexSerializerDecorator.h>
-#include <robochunk/base/TimeSerializerDecorator.h>
-#include <robochunk/base/UniformIndexSerializerDecorator.h>
-
-#include <stdlib.h>
-
-//#include <asrl/pose_graph/index/RCGraph.hpp>
-#endif
 
 namespace fs = std::filesystem;
 
 namespace vtr {
 namespace pose_graph {
-#if 0
-void ensureFolder(const std::string& path) {
-  if (!robochunk::util::file_exists(robochunk::util::split_directory(path))) {
-    robochunk::util::create_directories(robochunk::util::split_directory(path));
-  }
-}
-#endif
 
 RCRun::RCRun()
     : RunBase<RCVertex, RCEdge>(),
       vertexStreamNames_(LockableFieldMapPtr(new LockableFieldMap())),
       edgeStreamNames_(LockableFieldMapPtrArray()),
-      /// robochunkStreams_(LockableStreamMapPtr(new LockableStreamMap())),
       rosbag_streams_(LockableDataStreamMapPtr(new LockableDataStreamMap())),
       filePath_(""),
-      /// msg_(asrl::graph_msgs::Run())
       msg_(),
       readOnly_(false),
       wasLoaded_(false) {
@@ -48,10 +45,8 @@ RCRun::RCRun(const IdType& runId, const IdType& graphId)
     : RunBase<RCVertex, RCEdge>(runId, graphId),
       vertexStreamNames_(LockableFieldMapPtr(new LockableFieldMap())),
       edgeStreamNames_(LockableFieldMapPtrArray()),
-      /// robochunkStreams_(LockableStreamMapPtr(new LockableStreamMap())),
       rosbag_streams_(LockableDataStreamMapPtr(new LockableDataStreamMap())),
       filePath_(""),
-      /// msg_(asrl::graph_msgs::Run()),
       msg_(),
       readOnly_(true),
       wasLoaded_(false) {
@@ -69,10 +64,8 @@ RCRun::RCRun(const std::string& filePath, const IdType& runId,
     : RunBase<RCVertex, RCEdge>(runId, graphId),
       vertexStreamNames_(LockableFieldMapPtr(new LockableFieldMap())),
       edgeStreamNames_(LockableFieldMapPtrArray()),
-      /// robochunkStreams_(LockableStreamMapPtr(new LockableStreamMap())),
       rosbag_streams_(LockableDataStreamMapPtr(new LockableDataStreamMap())),
       filePath_(filePath),
-      /// msg_(asrl::graph_msgs::Run()),
       msg_(),
       readOnly_(false),
       wasLoaded_(false) {
@@ -84,20 +77,14 @@ RCRun::RCRun(const std::string& filePath, const IdType& runId,
   msg_.vertex_rpath = "vertex";
   msg_.edge_rpaths.push_back("temporal_edge");
   msg_.edge_rpaths.push_back("spatial_edge");
-
-  /// robochunk::util::create_directories(
-  ///     robochunk::util::split_directory(filePath_));
-  /// //  saveIndex();
 }
 
 RCRun::RCRun(const std::string& filePath)
     : RunBase<RCVertex, RCEdge>(),
       vertexStreamNames_(LockableFieldMapPtr(new LockableFieldMap())),
       edgeStreamNames_(LockableFieldMapPtrArray()),
-      /// robochunkStreams_(LockableStreamMapPtr(new LockableStreamMap())),
       rosbag_streams_(LockableDataStreamMapPtr(new LockableDataStreamMap())),
       filePath_(filePath),
-      /// msg_(asrl::graph_msgs::Run()),
       msg_(),
       readOnly_(true),
       wasLoaded_(false),
@@ -108,6 +95,7 @@ RCRun::RCRun(const std::string& filePath)
 void RCRun::load(VertexPtrMapExtern& vertexDataMap,
                  EdgePtrMapExtern& edgeDataMap, const RunFilter& runFilter) {
   if (isEphemeral()) return;
+
   bool calc_manual = loadIndex();
   loadVertices(vertexDataMap);
   loadEdges(edgeDataMap, runFilter);
@@ -137,22 +125,33 @@ bool RCRun::loadIndex() {
   id_ = msg_.id;
   graphId_ = msg_.graph_id;
   robotId_ = msg_.robot_id;
+  /// \todo we assume that the contains manual flag always presents and is
+  /// always valid. But we ALWAYS COMPUTE MANUAL in load function.
+  manual_ = msg_.contains_manual;
+
+  std::stringstream ss;
+  ss << "Loading run index from message" << std::endl;
+  ss << "- run id (not used right now): " << msg_.id << std::endl;
+  ss << "- graph id (not used right now): " << msg_.graph_id << std::endl;
+  ss << "- robot id (not used right now): " << msg_.robot_id << std::endl;
+  ss << "- contains_manual: " << msg_.contains_manual << std::endl;
+  ss << "- vertex relative path: " << msg_.vertex_rpath << std::endl;
+  ss << "- edge relative paths: " << std::endl;
+  for (const auto& p : msg_.edge_rpaths) ss << "  - " << p << std::endl;
+  CLOG(DEBUG, "pose_graph") << ss.str();
+
   readOnly_ = true;
 
-  /// // Load the manual flag
-  /// if (msg_.has_containsmanual()) {
-  ///   manual_ = msg_.containsmanual();
-  ///   return false;
-  /// } else {
-  ///   // We cannot compute it here as we might not have loaded edges yet...
-  ///   manual_ = false;
-  ///   return true;
-  /// }
-  /// \todo (yuchen) different from above, now we assume that the contains
-  /// manual flag always presents and is always valid. But we ALWAYS COMPUTE
-  /// MANUAL in load function.
-  manual_ = msg_.contains_manual;
   return true;
+}
+
+void RCRun::loadVertices(VertexPtrMapExtern& vertexDataMap) {
+  if (isEphemeral()) return;
+
+  CLOG(DEBUG, "pose_graph") << "Loading vertices from message.";
+  loadDataInternal(vertexDataMap, vertices_, vertexStreamNames_,
+                   fs::path{filePath_} / msg_.vertex_rpath);
+  readOnly_ = true;
 }
 
 void RCRun::loadEdges(EdgePtrMapExtern& edgeDataMap,
@@ -160,6 +159,8 @@ void RCRun::loadEdges(EdgePtrMapExtern& edgeDataMap,
   if (isEphemeral()) return;
 
   for (unsigned i = 0; i < msg_.edge_rpaths.size(); ++i) {
+    CLOG(DEBUG, "pose_graph")
+        << "Loading edges of type " << i << " from message.";
     auto idx =
         loadHeaderInternal<RCEdge>(fs::path{filePath_} / msg_.edge_rpaths[i]);
 
@@ -174,14 +175,6 @@ void RCRun::loadEdges(EdgePtrMapExtern& edgeDataMap,
     }
   }
 
-  readOnly_ = true;
-}
-
-void RCRun::loadVertices(VertexPtrMapExtern& vertexDataMap) {
-  if (isEphemeral()) return;
-
-  loadDataInternal(vertexDataMap, vertices_, vertexStreamNames_,
-                   fs::path{filePath_} / msg_.vertex_rpath);
   readOnly_ = true;
 }
 
@@ -222,6 +215,8 @@ void RCRun::saveWorkingVertices() {
 #endif
 
 void RCRun::save(bool force) {
+  CLOG(DEBUG, "pose_graph") << "Saving run of id " << id();
+
   if (isEphemeral() || (readOnly_ && !force)) return;
 
   saveIndex(true);
@@ -234,6 +229,17 @@ void RCRun::saveIndex(bool force) {
 
   msg_.contains_manual = manual_;
 
+  std::stringstream ss;
+  ss << "Saving run index to message" << std::endl;
+  ss << "- run id (not used right now): " << msg_.id << std::endl;
+  ss << "- graph id (not used right now): " << msg_.graph_id << std::endl;
+  ss << "- robot id (not used right now): " << msg_.robot_id << std::endl;
+  ss << "- contains_manual: " << msg_.contains_manual << std::endl;
+  ss << "- vertex relative path: " << msg_.vertex_rpath << std::endl;
+  ss << "- edge relative paths: " << std::endl;
+  for (const auto& p : msg_.edge_rpaths) ss << "  - " << p << std::endl;
+  CLOG(DEBUG, "pose_graph") << ss.str();
+
   storage::DataStreamWriter<vtr_messages::msg::GraphRun> writer{
       fs::path{filePath_} / "run_index"};
   writer.write(msg_);
@@ -244,6 +250,7 @@ void RCRun::saveIndex(bool force) {
 void RCRun::saveVertices(bool force) {
   if (isEphemeral() || (readOnly_ && !force)) return;
 
+  CLOG(DEBUG, "pose_graph") << "Saving vertices to message.";
   saveDataInternal(vertices_, vertexStreamNames_,
                    fs::path{filePath_} / msg_.vertex_rpath);
 
@@ -252,10 +259,13 @@ void RCRun::saveVertices(bool force) {
 
 void RCRun::saveEdges(bool force) {
   if (isEphemeral() || (readOnly_ && !force)) return;
+
   for (unsigned int i = 0; i < edges_.size(); ++i) {
+    CLOG(DEBUG, "pose_graph") << "Saving edges of type " << i << " to message.";
     saveDataInternal(edges_[i], edgeStreamNames_[i],
                      fs::path{filePath_} / msg_.edge_rpaths[i]);
   }
+
   readOnly_ = true;
 }
 

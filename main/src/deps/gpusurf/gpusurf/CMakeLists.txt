@@ -17,6 +17,8 @@ SET(CUDA_NVCC_FLAGS -arch=compute_61 -code=sm_61 --std c++11 --default-stream pe
 SET(CUDA_VERBOSE_BUILD OFF)
 SET(CUDA_BUILD_TYPE Device)
 SET(CUDA_GENERATED_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/intermediate)
+
+set(OpenCV_DIR /usr/local/opencv_cuda/lib/cmake/opencv4)
 find_package(OpenCV REQUIRED)
 
 # Libraries
@@ -45,7 +47,7 @@ target_include_directories(${PROJECT_NAME}
 
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
 ament_export_dependencies(
-  cudpp
+  cudpp CUDA OpenCV
 )
 
 install(

@@ -1,8 +1,27 @@
-/// Helper classes for passing optional named arguments.
-/// CacheContainer.impl includes the reference-required functions so that
-/// the cache classes can be declared with incomplete types.
-/// Include it if you (a) don't care about that functionality or
-/// (b) are trying to explicitly instantiate the classes.
+// Copyright 2021, Autonomous Space Robotics Lab (ASRL)
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+/**
+ * \file cache_container.hpp
+ * \brief Helper classes for passing optional named arguments.
+ * \details cache_container.inl includes the reference-required functions so
+ * that the cache classes can be declared with incomplete types. Include it if
+ * you (a) don't care about that functionality or (b) are trying to explicitly
+ * instantiate the classes.
+ *
+ * \author Autonomous Space Robotics Lab (ASRL)
+ */
 #pragma once
 
 // #include <vtr_logging/logging.hpp>

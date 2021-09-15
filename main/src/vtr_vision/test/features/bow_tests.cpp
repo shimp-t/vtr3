@@ -1,8 +1,29 @@
+// Copyright 2021, Autonomous Space Robotics Lab (ASRL)
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+/**
+ * \file bow_tests.cpp
+ * \brief
+ * \details
+ *
+ * \author Autonomous Space Robotics Lab (ASRL)
+ */
 #include <gtest/gtest.h>
 
 #include <vtr_vision/features/bow/incremental_bow_trainer.hpp>
-#include <vtr_vision/features/bow/sparse_bow_descriptor.hpp>
 #include <vtr_vision/features/bow/sliding_window_bow_descriptor.hpp>
+#include <vtr_vision/features/bow/sparse_bow_descriptor.hpp>
 //#include <vtr_vision/types.hpp>
 #include <vtr_common/timing/simple_timer.hpp>
 
@@ -15,9 +36,9 @@
 using namespace vtr::vision;
 
 TEST(Vision, bow_features) {
-
   cv::FlannBasedMatcher matcher;
-  static const int r_sz = 1000*5, q_sz = 400, dims = 64, nn = 2;
+  static const int r_sz = 1000 * 5, q_sz = 400, dims = 64, nn = 2;
+  (void)nn;  /// \todo nn unused
   cv::Mat_<float> desc_r(r_sz, dims), desc_q(q_sz, dims), desc_q2(100, dims);
 
   std::cout << "rand" << std::endl;
@@ -28,8 +49,8 @@ TEST(Vision, bow_features) {
 
   std::cout << "add" << std::endl;
 
-  matcher.add(std::vector<cv::Mat>(1,desc_r));
-  //index.addPoints(desc_r_fl);
+  matcher.add(std::vector<cv::Mat>(1, desc_r));
+  // index.addPoints(desc_r_fl);
 
   std::cout << "train" << std::endl;
 
@@ -47,9 +68,9 @@ TEST(Vision, bow_features) {
 
   std::cout << "display" << std::endl;
 
-  for (const auto & a : matches) {
-    for (const auto & b : a) {
-      const cv::DMatch & c = b;
+  for (const auto& a : matches) {
+    for (const auto& b : a) {
+      const cv::DMatch& c = b;
       std::cout << c.distance << " (" << c.trainIdx << ") ";
     }
     std::cout << std::endl;
@@ -65,7 +86,7 @@ TEST(Vision, bow_features) {
   std::cout << "train bow matcher" << std::endl;
   timer.reset();
   cv::FlannBasedMatcher bow_matcher;
-  bow_matcher.add(std::vector<cv::Mat>(1,centres));
+  bow_matcher.add(std::vector<cv::Mat>(1, centres));
   bow_matcher.train();
   std::cout << timer.elapsedMs() << " ms" << std::endl;
 

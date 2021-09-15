@@ -1,3 +1,24 @@
+// Copyright 2021, Autonomous Space Robotics Lab (ASRL)
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+/**
+ * \file vertex_base.hpp
+ * \brief
+ * \details
+ *
+ * \author Autonomous Space Robotics Lab (ASRL)
+ */
 #pragma once
 
 #include <lgmath/se3/TransformationWithCovariance.hpp>
@@ -102,14 +123,10 @@ class VertexBase {
   void setTransform(const TransformType& T);
 
   /** \brief Flag indicating whether the vertex has a cached transform */
-  inline bool hasTransform() {
-    return T_vertex_world_ != nullptr;
-  }
+  inline bool hasTransform() { return T_vertex_world_ != nullptr; }
 
   /** \brief Get the cached vertex transform */
-  inline const TransformType& T() {
-    return *T_vertex_world_;
-  }
+  inline const TransformType& T() { return *T_vertex_world_; }
 
   /** \brief String output */
   friend std::ostream& operator<<(std::ostream& out, const VertexBase& v);
@@ -145,7 +162,9 @@ class VertexBase {
   IdType id_;
 
   /** \brief Array of indicent edge sets: [temporal<...>, spatial<...>] */
+#if false
   EdgeId::SetArray incidentEdges_;
+#endif
 
   /** \brief Array of neighbour sets: [temporal<...>, spatial<...>] */
   VertexIdSetArray neighbours_;

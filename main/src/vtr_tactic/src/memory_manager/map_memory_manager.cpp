@@ -1,14 +1,35 @@
+// Copyright 2021, Autonomous Space Robotics Lab (ASRL)
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+/**
+ * \file map_memory_manager.cpp
+ * \brief
+ * \details
+ *
+ * \author Autonomous Space Robotics Lab (ASRL)
+ */
 #include <vtr_tactic/memory_manager/map_memory_manager.hpp>
 
 namespace vtr {
 namespace tactic {
 
 bool MapMemoryManager::checkUpdate() {
-  std::lock_guard<std::recursive_mutex> lck(*chain_mutex_ptr_);
-  if (chain_.sequence().size() > 0 && chain_.trunkVertexId().isValid() &&
-      chain_.trunkVertexId() != trunk_id_) {
-    trunk_id_ = chain_.trunkVertexId();
-    twig_id_ = chain_.twigVertexId();
+  const auto lock = chain_->guard();
+  if (chain_->sequence().size() > 0 && chain_->trunkVertexId().isValid() &&
+      chain_->trunkVertexId() != trunk_id_) {
+    trunk_id_ = chain_->trunkVertexId();
+    twig_id_ = chain_->twigVertexId();
     return true;
   }
   return false;

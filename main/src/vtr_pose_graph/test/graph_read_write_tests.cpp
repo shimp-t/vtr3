@@ -1,3 +1,24 @@
+// Copyright 2021, Autonomous Space Robotics Lab (ASRL)
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+/**
+ * \file graph_read_write_tests.hpp
+ * \brief
+ * \details
+ *
+ * \author Autonomous Space Robotics Lab (ASRL)
+ */
 #include <gtest/gtest.h>
 
 #include <vtr_logging/logging_init.hpp>
@@ -30,11 +51,9 @@ class GraphReadWriteTest : public ::testing::Test {
   GraphReadWriteTest()
       : working_dir_(fs::temp_directory_path() / "vtr_pose_graph_test"),
         graph_index_file_("graph_index"),
-        robot_id_(666) {
-  }
+        robot_id_(666) {}
 
-  ~GraphReadWriteTest() override {
-  }
+  ~GraphReadWriteTest() override {}
 
   void SetUp() override {
     graph_.reset(new RCGraph(working_dir_ / graph_index_file_, 0));
@@ -106,9 +125,7 @@ class GraphReadWriteTest : public ::testing::Test {
     }
   }
 
-  void TearDown() override {
-    fs::remove_all(working_dir_);
-  }
+  void TearDown() override { fs::remove_all(working_dir_); }
 
  protected:
   fs::path working_dir_;
@@ -250,6 +267,7 @@ TEST_F(GraphReadWriteTest, MessageVertexMessage) {
   }
 }
 
+#if false
 TEST_F(GraphReadWriteTest, AddIndicesToVertex) {
   // add some stream indices, time interval
   RCVertex vertex;
@@ -283,6 +301,7 @@ TEST_F(GraphReadWriteTest, AddIndicesToVertex) {
   EXPECT_EQ(interval.idx1, (unsigned)200);
   EXPECT_EQ(interval.idx2, (unsigned)205);
 }
+#endif
 
 TEST_F(GraphReadWriteTest, TestOriginalGraph) {
   for (auto run : graph_->runs()) {
@@ -374,6 +393,7 @@ TEST_F(GraphReadWriteTest, SaveLoadSaveLoad) {
 }
 
 int main(int argc, char **argv) {
+  vtr::logging::configureLogging();
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }

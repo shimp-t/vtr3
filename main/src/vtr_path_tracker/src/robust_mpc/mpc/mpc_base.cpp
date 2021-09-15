@@ -1,6 +1,26 @@
+// Copyright 2021, Autonomous Space Robotics Lab (ASRL)
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-#include <vtr_path_tracker/robust_mpc/mpc/mpc_base.h>
-#include <vtr_path_tracker/robust_mpc/mpc/mpc_types.h>
+/**
+ * \file mpc_base.cpp
+ * \brief
+ * \details
+ *
+ * \author Autonomous Space Robotics Lab (ASRL)
+ */
+#include <vtr_path_tracker/robust_mpc/mpc/mpc_base.hpp>
+#include <vtr_path_tracker/robust_mpc/mpc/mpc_types.hpp>
 
 namespace vtr {
 namespace path_tracker {
@@ -104,14 +124,15 @@ void PathTrackerMPC::loadMpcParams() {
   // clang-format on
 }
 
-void PathTrackerMPC::notifyNewLeaf(const Chain &chain, const Stamp leaf_stamp,
-                                   const Vid live_vid) {
+void PathTrackerMPC::notifyNewLeaf(const Chain::ConstPtr &chain,
+                                   const Stamp leaf_stamp, const Vid live_vid) {
   vision_pose_.updateLeaf(chain, leaf_stamp, live_vid);
 }
 
 void PathTrackerMPC::notifyNewLeaf(
-    const Chain &chain, const steam::se3::SteamTrajInterface &trajectory,
-    const Vid live_vid, const uint64_t image_stamp) {
+    const Chain::ConstPtr &chain,
+    const steam::se3::SteamTrajInterface &trajectory, const Vid live_vid,
+    const uint64_t image_stamp) {
   const double time_now_ns = node_->now().nanoseconds();
   const bool trajectory_timed_out =
       (time_now_ns - image_stamp) > mpc_params_.extrapolate_timeout * 1e9;
@@ -166,7 +187,7 @@ Command PathTrackerMPC::controlStep() {
   }
 
   // Update time-delay compensation
-  /// \TODO: (old) Make sure this is safe for the first time-step before
+  /// \todo: (old) Make sure this is safe for the first time-step before
   /// experience_management is properly initialized with measurements
   CLOG(DEBUG, "path_tracker") << "=> Updating experience management";
   rclcpp::Duration transform_delta_t =
@@ -440,7 +461,12 @@ void PathTrackerMPC::loadConfigs() {
 
   // Next, load the desired path way-points from the localization chain into the
   // path object
+  CLOG(DEBUG, "path_tracker") << "[ChainLock Requested] loadConfigs";
+  chain_->lock();
+  CLOG(DEBUG, "path_tracker") << "[ChainLock Acquired] loadConfigs";
   path_->extractPathInformation(chain_);
+  chain_->unlock();
+  CLOG(DEBUG, "path_tracker") << "[ChainLock Released] loadConfigs";
 
   // Set the control mode and the desired speed at each vertex
   path_->getSpeedProfile();
@@ -556,9 +582,14 @@ bool PathTrackerMPC::checkPathComplete() {
 
 void PathTrackerMPC::getErrorToEnd(double &linear_distance,
                                    double &angular_distance) {
+  CLOG(DEBUG, "path_tracker") << "[ChainLock Requested] getErrorToEnd";
+  chain_->lock();
+  CLOG(DEBUG, "path_tracker") << "[ChainLock Acquired] getErrorToEnd";
   Transformation T_0_v = chain_->pose(vision_pose_.trunkSeqId()) *
                          vision_pose_.T_leaf_trunk().inverse();
   Transformation T_0_end = chain_->pose(path_->num_poses_ - 1);
+  chain_->unlock();
+  CLOG(DEBUG, "path_tracker") << "[ChainLock Released] getErrorToEnd";
   Eigen::Matrix<double, 6, 1> se3_end_v = (T_0_end.inverse() * T_0_v).vec();
 
   // linear_distance  = se3_end_v.head<3>().norm();  // this is the sqrt( ...^2)
@@ -1241,9 +1272,14 @@ void PathTrackerMPC::locateNearestPose(local_path_t &local_path,
                                        unsigned initialGuess,
                                        unsigned radiusForwards,
                                        unsigned radiusBackwards) {
+  CLOG(DEBUG, "path_tracker") << "[ChainLock Requested] locateNearestPose";
+  chain_->lock();
+  CLOG(DEBUG, "path_tracker") << "[ChainLock Acquired] locateNearestPose";
   tf2::Transform T_0_v = common::rosutils::toTfTransformMsg(
       chain_->pose(vision_pose_.trunkSeqId()) *
       vision_pose_.T_leaf_trunk().inverse());
+  chain_->unlock();
+  CLOG(DEBUG, "path_tracker") << "[ChainLock Released] locateNearestPose";
 
   unsigned bestGuess = initialGuess;
   bool forwardPoseSearch;

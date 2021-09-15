@@ -1,10 +1,29 @@
+// Copyright 2021, Autonomous Space Robotics Lab (ASRL)
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-#include <vtr_path_tracker/base.h>
+/**
+ * \file base.cpp
+ * \brief
+ * \details
+ *
+ * \author Autonomous Space Robotics Lab (ASRL)
+ */
+#include <thread>
 
 #include <vtr_common/timing/simple_timer.hpp>
 #include <vtr_logging/logging.hpp>
-
-#include <thread>
+#include <vtr_path_tracker/base.hpp>
 
 namespace vtr {
 namespace path_tracker {
@@ -12,7 +31,7 @@ namespace path_tracker {
 Base::Base(const std::shared_ptr<Graph> &graph,
            const std::shared_ptr<rclcpp::Node> &node,
            const std::string &param_prefix)
-    : node_(node), graph_(graph), param_prefix_(param_prefix) {
+    : node_(node), param_prefix_(param_prefix), graph_(graph) {
   CLOG(INFO, "path_tracker")
       << "Path tracker using namespace: " << param_prefix_;
   // clang-format off
@@ -43,7 +62,7 @@ Base::~Base() {
   stopAndJoin();
 }
 
-void Base::followPathAsync(const State &state, Chain &chain) {
+void Base::followPathAsync(const State &state, const Chain::Ptr &chain) {
   // We can't follow a new path if we're still following an old one.
   CLOG_IF(isRunning(), WARNING, "path_tracker")
       << "New path following objective set while still running.\n Discarding "
@@ -55,7 +74,7 @@ void Base::followPathAsync(const State &state, Chain &chain) {
   /// \todo yuchen: std::lock_guard<std::mutex> lock(state_mtx_);
   state_ = state;
   reset();
-  chain_ = std::make_shared<Chain>(chain);
+  chain_ = chain;
 
   control_loop_ = std::async(std::launch::async, &Base::controlLoop, this);
 }

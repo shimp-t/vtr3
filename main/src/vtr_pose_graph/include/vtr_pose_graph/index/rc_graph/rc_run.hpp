@@ -1,3 +1,24 @@
+// Copyright 2021, Autonomous Space Robotics Lab (ASRL)
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+/**
+ * \file rc_run.hpp
+ * \brief
+ * \details
+ *
+ * \author Autonomous Space Robotics Lab (ASRL)
+ */
 #pragma once
 
 #include <filesystem>
@@ -239,7 +260,6 @@ class RCRun : public RunBase<RCVertex, RCEdge> {
 
   void setRobotId(const IdType& robotId) {
     robotId_ = robotId;
-    /// msg_.set_robot_id(robotId_);
     msg_.robot_id = robotId_;
   }
 
@@ -295,12 +315,12 @@ class RCRun : public RunBase<RCVertex, RCEdge> {
   LockableFieldMapPtrArray edgeStreamNames_;
 
   /** \brief Map from field ids to data streams. */
-  /// LockableStreamMapPtr robochunkStreams_;
   LockableDataStreamMapPtr rosbag_streams_;
+
   /** \brief Location of the top-level run file */
   std::string filePath_;
+
   /** \brief Message structure containing run metadata */
-  /// asrl::graph_msgs::Run msg_;
   vtr_messages::msg::GraphRun msg_;
 
   /** \brief Flag to indicate if this run can be saved normally */

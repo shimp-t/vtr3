@@ -1,9 +1,30 @@
+// Copyright 2021, Autonomous Space Robotics Lab (ASRL)
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+/**
+ * \file base_pipeline.hpp
+ * \brief
+ * \details
+ *
+ * \author Autonomous Space Robotics Lab (ASRL)
+ */
 #pragma once
 
 #include <mutex>
 
 #include <vtr_logging/logging.hpp>  // for debugging only
-#include <vtr_tactic/caches.hpp>
+#include <vtr_tactic/cache.hpp>
 #include <vtr_tactic/modules/module_factory.hpp>
 #include <vtr_tactic/types.hpp>
 
@@ -27,10 +48,6 @@ class BasePipeline {
    * constructor.
    */
   const std::string &name() const { return name_; };
-
-  void setModuleFactory(const ModuleFactory::Ptr &module_factory) {
-    module_factory_ = module_factory;
-  }
 
   virtual void configFromROS(const rclcpp::Node::SharedPtr &,
                              const std::string &) {}
@@ -62,7 +79,7 @@ class BasePipeline {
 
  protected:
   /** \brief Module factory instance to help modularize code. */
-  ModuleFactory::Ptr module_factory_;
+  ModuleFactory::Ptr module_factory_ = std::make_shared<ModuleFactory>();
 
  private:
   /** \brief Name of the module assigned at runtime. */

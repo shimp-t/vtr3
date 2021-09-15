@@ -1,3 +1,24 @@
+// Copyright 2021, Autonomous Space Robotics Lab (ASRL)
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+/**
+ * \file composite.hpp
+ * \brief
+ * \details
+ *
+ * \author Autonomous Space Robotics Lab (ASRL)
+ */
 #pragma once
 
 #include <vtr_pose_graph/evaluator/evaluator_base.hpp>
@@ -26,8 +47,7 @@ class CompositeEval : public virtual DirectBase<RVAL, CompositeGraph<GRAPH>> {
   CompositeEval(const CompositeEval&) = default;
   CompositeEval(CompositeEval&&) = default;
 
-  virtual ~CompositeEval() {
-  }
+  virtual ~CompositeEval() {}
 
   CompositeEval& operator=(const CompositeEval&) = default;
   CompositeEval& operator=(CompositeEval&&) = default;
@@ -98,12 +118,10 @@ class CompositeEvalCaching
   }
 
   CompositeEvalCaching(const CompositeGraph<GRAPH>* graph, const BasePtr& eval)
-      : CompositeBase(graph, eval) {
-  }
+      : CompositeBase(graph, eval) {}
   CompositeEvalCaching(const CompositeEvalCaching&) = default;
 
-  virtual ~CompositeEvalCaching() {
-  }
+  virtual ~CompositeEvalCaching() {}
 
   CompositeEvalCaching& operator=(const CompositeEvalCaching&) = default;
 
@@ -132,11 +150,9 @@ class CompositeEvalWindowed
 
   CompositeEvalWindowed(const CompositeGraph<GRAPH>* graph, const BasePtr& eval,
                         const size_t& cacheSize)
-      : Base(cacheSize), CompositeBase(graph, eval) {
-  }
+      : Base(cacheSize), CompositeBase(graph, eval) {}
 
-  virtual ~CompositeEvalWindowed() {
-  }
+  virtual ~CompositeEvalWindowed() {}
 
   EXPLICIT_VIRTUAL_MOVE(CompositeEvalWindowed, Base, CompositeBase)
 };

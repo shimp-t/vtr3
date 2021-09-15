@@ -1,23 +1,28 @@
+// Copyright 2021, Autonomous Space Robotics Lab (ASRL)
 //
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
-//		0==========================0
-//		|    Local feature test    |
-//		0==========================0
+//     http://www.apache.org/licenses/LICENSE-2.0
 //
-//		version 1.0 :
-//			>
-//
-//---------------------------------------------------
-//
-//		Cloud source :
-//		Define usefull Functions/Methods
-//
-//----------------------------------------------------
-//
-//		Hugues THOMAS - 10/02/2017
-//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-#include "vtr_lidar/cloud/cloud.h"
+/**
+ * \file cloud.cpp
+ * \brief
+ * \details
+ *
+ * \author Hugues Thomas, Autonomous Space Robotics Lab (ASRL)
+ */
+#include <vtr_lidar/cloud/cloud.hpp>
+
+namespace vtr {
+namespace lidar {
 
 // Getters
 // *******
@@ -73,7 +78,7 @@ PointXYZ min_point(const PointXYZ A, const PointXYZ B) {
 }
 
 void filterPointCloud(std::vector<PointXYZ>& pts, std::vector<float>& scores,
-                       float filter_value) {
+                      float filter_value) {
   // Remove every points whose score is < filter_value
   auto pts_address = pts.data();
   pts.erase(
@@ -83,19 +88,6 @@ void filterPointCloud(std::vector<PointXYZ>& pts, std::vector<float>& scores,
                      }),
       pts.end());
 }
-
-// void filterFloatVector(std::vector<float>& vec, std::vector<float>& scores,
-//                         float filter_value) {
-//   // Remove every element whose score is < filter_value
-//   auto vec_address = vec.data();
-//   vec.erase(
-//       std::remove_if(vec.begin(), vec.end(),
-//                      [&scores, vec_address, filter_value](const float& f) {
-//                        return scores[(size_t)(&f - vec_address)] <
-//                        filter_value;
-//                      }),
-//       vec.end());
-// }
 
 void filterFloatVector(std::vector<float>& vec, float filter_value) {
   vec.erase(std::remove_if(
@@ -275,3 +267,6 @@ void load_cloud_normals(std::string& dataPath, std::vector<PointXYZ>& points,
 
   return;
 }
+
+}  // namespace lidar
+}  // namespace vtr

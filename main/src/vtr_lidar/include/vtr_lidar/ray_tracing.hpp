@@ -1,3 +1,23 @@
+// Copyright 2021, Autonomous Space Robotics Lab (ASRL)
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+/**
+ * \file ray_tracing.hpp
+ * \brief Ray tracing utilities; FrustumGrid class definition
+ *
+ * \author Yuchen Wu, Autonomous Space Robotics Lab (ASRL)
+ */
 #pragma once
 
 #include <vtr_lidar/polar_processing/polar_processing.hpp>
@@ -16,15 +36,17 @@ class FrustumGrid {
         points_(points) {
     /// Create points in polar coordinates
     std::vector<PointXYZ> polar_points(points);
-    vtr::lidar::cart2Pol_(polar_points);
+    cart2Pol_(polar_points);
     /// Insert into the frustum grid
     for (const auto& p : polar_points) {
       const auto k = getKey(p);
       if (frustum_grid_.count(k) == 0)
         frustum_grid_[k] = p.x;
       else
-        // always choose the further point
-        frustum_grid_.at(k) = std::max(p.x, frustum_grid_.at(k));
+        /// // always choose the further point
+        // frustum_grid_.at(k) = std::max(p.x, frustum_grid_.at(k));
+        /// always choose the closer point
+        frustum_grid_.at(k) = std::min(p.x, frustum_grid_.at(k));
     }
   }
 
@@ -40,7 +62,8 @@ class FrustumGrid {
 
   PixKey getKey(const PointXYZ& p) const {
     // Position of point in sample map
-    PixKey k((int)floor(p.y / theta_res_), (int)floor(p.z / phi_res_));
+    PixKey k((int)std::floor(p.y / theta_res_),
+             (int)std::floor(p.z / phi_res_));
     return k;
   }
 

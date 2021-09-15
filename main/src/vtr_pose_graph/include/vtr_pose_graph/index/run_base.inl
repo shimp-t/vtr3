@@ -1,3 +1,24 @@
+// Copyright 2021, Autonomous Space Robotics Lab (ASRL)
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+/**
+ * \file run_base.inl
+ * \brief
+ * \details
+ *
+ * \author Autonomous Space Robotics Lab (ASRL)
+ */
 #pragma once
 
 #include <vtr_pose_graph/index/run_base.hpp>
@@ -47,8 +68,7 @@ auto RunBase<V, E>::addVertex(const VertexIdType& v) -> const VertexPtr& {
       throw std::invalid_argument(
           "[RunBase::addVertex] Cannot add a vertex with a different run id");
 
-    if (vertices_.find(v) != vertices_.end())
-      return vertices_.at(v);
+    if (vertices_.find(v) != vertices_.end()) return vertices_.at(v);
 
     currentVertex_ = std::max(currentVertex_, v.minorId());
 
