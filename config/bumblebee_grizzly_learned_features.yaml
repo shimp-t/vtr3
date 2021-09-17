@@ -37,6 +37,11 @@
             stereoDisparityMinimum: 0.1
             stereoDisparityMaximum: 100.0
 
+    odometry:
+      ransac:
+        type: stereo_ransac
+        visualize_ransac_inliers: false
+
     localization:
       experience_triage:
         type: experience_triage
