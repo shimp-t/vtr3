@@ -15,22 +15,16 @@ windows:
     shell_command_before:
       - source ${VTRSRC}/main/install/setup.bash
     panes:
-<<<<<<< HEAD:launch/offline_vtr_camera.launch.yaml
-
-      - sleep 3 && ros2 launch vtr_navigation vtr_camera.launch.py scenario_params:=offline.yaml data_dir:=${VTRTEMP}/playback/camera clear_data_dir:=true use_sim_time:=true
-=======
-      - >
-        sleep 3 &&
+      - sleep 3 &&
         ros2 launch vtr_navigation vtr.launch.py
         base_params:=bumblebee_grizzly_default.yaml
-        data_dir:=${VTRTEMP}/playback/camera/bumblebee
-        clear_data_dir:=true
+        data_dir:=${VTRDATA}/temp
+        clear_data_dir:=false
         use_sim_time:=true
 
->>>>>>> main:launch/offline_bumblebee_grizzly.launch.yaml
       # - ros2 run vtr_mission_planning vtr_mission.py --help # backup way to send commands if UI not working
 
-      # - sleep 5 && ros2 run rviz2 rviz2 -d ${VTRSRC}/rviz/camera.rviz
+      - sleep 5 && ros2 run rviz2 rviz2 -d ${VTRSRC}/rviz/camera.rviz
       - htop
 
   - window_name: vtr_ui

@@ -19,7 +19,7 @@ windows:
         ros2 launch vtr_navigation vtr.launch.py
         base_params:=bumblebee_grizzly_default.yaml
         override_params:=bumblebee_grizzly_learned_features.yaml
-        data_dir:=${VTRDATA}/temp2
+        data_dir:=${VTRDATA}/experiments/2021-08-14/lighting-change-extended-layer16
         clear_data_dir:=false
 
         #override_params:=bumblebee_grizzly_learned_features.yaml

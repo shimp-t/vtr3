@@ -4,6 +4,18 @@
     ############ tactic configuration ############
     tactic:
       visualize: true
+
+    pipeline:
+      localization:
+        [
+          "recall",
+          "sub_map_extraction",
+          "experience_triage",
+          "migration",
+          "matcher",
+          "ransac",
+          "steam",
+        ]
     
     preprocessing:
       # conversion+extraction module
@@ -53,8 +65,11 @@
         descriptor_thresh_cpu: 0.7 #0.115
         descriptor_thresh_gpu: 100.0 #0.55
         match_on_gpu: false
-        visualize: true
+        visualize: false
         use_learned: true
+
+      ransac:
+        visualize_ransac_inliers: false
 
     ############ path tracker configuration ############
     path_tracker:
