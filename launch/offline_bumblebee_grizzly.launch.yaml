@@ -43,11 +43,3 @@ windows:
       - source ${VTRSRC}/robots/ros2/install/setup.bash
     panes:
       - ros2 launch utias_grizzly_description utias_grizzly_description.launch.py
-
-  - window_name: bumblebee
-    layout: main-horizontal
-    shell_command_before:
-      - source ${VTRSRC}/extra/install/setup.bash
-    panes:
-      - ros2 run vtr_bumblebee_xb3 BumblebeeCalibration ${VTRDATA}/experiments/2021-08-02/lighting-change/front-xb3/ front_xb3
-
