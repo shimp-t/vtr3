@@ -171,25 +171,18 @@ void StereoPipeline::runLocalization(QueryCache::Ptr &qdata0,
 
 void StereoPipeline::visualizeLocalization(QueryCache::Ptr &qdata0,
                                            const Graph::Ptr &graph) {
-  for (auto module : localization_) module->visualize(*qdata0, graph);
-}
+  // check if the visualization_thread is available
+  if (visualize_localization_thread_future_.valid()) {
+    std::future_status status = 
+        visualize_localization_thread_future_.wait_for(std::chrono::seconds(0));       
+    if (status != std::future_status::ready) return;
+  }
 
-// void StereoPipeline::visualizeLocalization(QueryCache::Ptr &qdata, 
-//                                            const Graph::Ptr &graph) {
-//   // create a new map cache and fill it out
-//   auto loc_data = std::make_shared<MapCache>();
-
-//   // check if the visualization_thread is available
-//   if (visualize_localization_thread_future_.valid()) {
-//     std::future_status status = visualize_localization_thread_future_.wait_for(std::chrono::seconds(0));       
-//     if (status != std::future_status::ready) return;
-//   }
-
-//   visualize_localization_thread_future_ =                        
-//       std::async(std::launch::async, [this, qdata, loc_data, graph]() {   
-//       for (auto module : localization_) module->visualize(*qdata, *loc_data, graph);
-//   });
-// } 
+  visualize_localization_thread_future_ =                        
+      std::async(std::launch::async, [this, qdata0, graph]() {   
+      for (auto module : localization_) module->visualize(*qdata0, graph);
+  });
+} 
 
 void StereoPipeline::processKeyframe(QueryCache::Ptr &qdata0,
                                      const Graph::Ptr &graph,
