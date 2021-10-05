@@ -42,9 +42,10 @@
             # modelPath: "/home/asrl/libtorch_example/data/feature_detector_snow_391_16_h16w16.pt"
             # modelPath: "/home/asrl/libtorch_example/data/feature_detector_dark_extend_395_32_h16w16.pt"
             # modelPath: "/home/asrl/libtorch_example/data/feature_detector_dark_extend_479_32_h16w16.pt"
-            modelPath: "/home/asrl/libtorch_example/data/feature_detector_dark_extend_585_16_h16w16.pt"
+            # modelPath: "/home/asrl/libtorch_example/data/feature_detector_dark_extend_585_16_h16w16.pt"
             # modelPath: "/home/asrl/libtorch_example/data/feature_detector_dark_165_32_h16w16.pt"
             # modelPath: "/home/asrl/libtorch_example/data/feature_detector_dark_62_16_h16w16.pt"
+            modelPath: "/home/sherry/ASRL/models/feature_detector_dark_extend_585_16_h16w16.pt"
 
             stereoDisparityMinimum: 0.1
             stereoDisparityMaximum: 100.0
@@ -66,6 +67,7 @@
         descriptor_thresh_gpu: 100.0 #0.55
         match_on_gpu: false
         visualize: false
+        # match_on_gpu: true #EDIT
         use_learned: true
 
       ransac:
@@ -73,5 +75,8 @@
 
     ############ path tracker configuration ############
     path_tracker:
-      target_linear_speed: [0.6, 0.7, 0.8, 0.9]
+      target_linear_speed: [0.8, 1.0, 1.2, 1.5]
+      # target_linear_speed: [0.8, 0.9, 1.0, 1.2]
+      # target_linear_speed: [0.5, 0.6, 0.7, 0.9]
+
 

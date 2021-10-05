@@ -3,7 +3,7 @@
     ############ system configuration ############
     # Data logging
     log_to_file: true
-    log_debug: false
+    log_debug: true
     log_enabled:
       [
         "navigator",
@@ -39,8 +39,8 @@
     ############ tactic configuration ############
     tactic:
       extrapolate_odometry: true # path tracker
-      localization_only_keyframe: true
-      localization_skippable: false
+      localization_only_keyframe: true #EDIT BY SHERRY
+      localization_skippable: false # false
       default_loc_cov: [1.0, 0.5, 0.5, 0.25, 0.25, 0.5]
       chain:
         min_cusp_distance: 1.5

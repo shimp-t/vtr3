@@ -18,7 +18,8 @@ windows:
       - sleep 3 &&
         ros2 launch vtr_navigation vtr.launch.py
         base_params:=bumblebee_grizzly_default.yaml
-        data_dir:=${VTRDATA}/temp
+        override_params:=bumblebee_grizzly_learned_features.yaml
+        data_dir:=${VTRDATA}/offline_learned_features
         clear_data_dir:=false
         use_sim_time:=true
 
