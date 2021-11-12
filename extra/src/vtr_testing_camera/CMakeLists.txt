@@ -38,6 +38,13 @@ ament_target_dependencies(${PROJECT_NAME}_localization
   vtr_common vtr_navigation vtr_logging
 )
 
+# image viewer
+add_executable(${PROJECT_NAME}_image_viewer src/image_viewer.cpp)
+ament_target_dependencies(${PROJECT_NAME}_image_viewer
+  rclcpp sensor_msgs
+  vtr_common vtr_navigation vtr_logging
+)
+
 install(
   DIRECTORY include/
   DESTINATION include
@@ -47,6 +54,7 @@ install(
   TARGETS
     ${PROJECT_NAME}_odometry
     ${PROJECT_NAME}_localization
+    ${PROJECT_NAME}_image_viewer
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}
