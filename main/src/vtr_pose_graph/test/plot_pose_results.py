@@ -252,6 +252,7 @@ def compare_paths(gps_poses, bad_gps, start, end):
         latest_match_ind = 0
         max_match_ind = len(teach_poses['x'])
 
+        num_counted = 0
         for j in range(len(repeat_poses['x'])):
 
             repeat_pose = np.array([repeat_poses['x'][j],
@@ -281,11 +282,15 @@ def compare_paths(gps_poses, bad_gps, start, end):
 
                 match_ind +=1
 
+            if min_dist > 2.0:
+                print(min_dist)
+                continue
+
+            num_counted += 1
             errors[i] = errors[i] + [min_dist]
-            latest_match_ind = min_dist_ind
             sum_sqr_error += (min_dist * min_dist)
 
-        rms[i] = math.sqrt(sum_sqr_error / len(repeat_poses['x']))
+        rms[i] = math.sqrt(sum_sqr_error / num_counted)
 
         print("RMS: {}".format(rms))
         print(time.time()-start)
@@ -314,20 +319,22 @@ if __name__ == "__main__":
 
     # ignore_runs = [5, 6, 14, 15, 16] #extended
 
-    ignore_runs = [6,7,10,14,15,16,17,18,24]
+    # ignore_runs = [6,7,10,14,15,16,17,18,24]
 
-    bad_gps = bad_gps + ignore_runs
+    # bad_gps = bad_gps + ignore_runs
 
-    # errors, rms = compare_paths(gps_poses, bad_gps,args.start, args.end) 
+    errors, rms = compare_paths(gps_poses, bad_gps,args.start, args.end) 
 
-    # results_dir = "{}/graph.index/repeats".format(args.path)
-    # pickle.dump(errors, open( "{}/gps_errors_{}_{}.p".format(results_dir, args.start, args.end), "wb"))
-    # pickle.dump(rms, open( "{}/gps_rms_{}_{}.p".format(results_dir, args.start, args.end), "wb"))
+    results_dir = "{}/graph.index/repeats".format(args.path)
+    pickle.dump(errors, open( "{}/gps_errors_{}_{}_new.p".format(results_dir, args.start, args.end), "wb"))
+    pickle.dump(rms, open( "{}/gps_rms_{}_{}_new.p".format(results_dir, args.start, args.end), "wb"))
 
-    errors = {}
+    print(rms)
+
+    # errors = {}
 
     # ignore_runs = [9,17, 18, 23] #extended
 
     # bad_gps = bad_gps + ignore_runs
 
-    plot_data(gps_poses, errors, bad_gps, plot_segments, args.path);
+    # plot_data(gps_poses, errors, bad_gps, plot_segments, args.path);

@@ -321,19 +321,19 @@ float ASRLFeatureMatcher::surfmatch(const float *d1, const float *d2,
 float ASRLFeatureMatcher::learnedfeaturematch(const float *d1, const float *d2, unsigned size) {
 
   //todo: check if this flag is/should be defined
-#if FAST_BUT_UNREADABLE
+// #if FAST_BUT_UNREADABLE
   // This code is run so often, that we need to optimize it:
   float score = 0.f;
   for (unsigned i = 0; i < size; ++i)
     score += d1[i]*d2[i];
-  #else
-  // Practically, it does the same as this more readable version:
-  typedef Eigen::Matrix<float,Eigen::Dynamic,1> MatrixType;
-  Eigen::Map<const MatrixType> m1(d1,(int)size);
-  Eigen::Map<const MatrixType> m2(d2,(int)size);
-  // size is the number of bytes used for the descriptor
-  float score =  m1.transpose()*m2;
-#endif
+//   #else
+//   // Practically, it does the same as this more readable version:
+//   typedef Eigen::Matrix<float,Eigen::Dynamic,1> MatrixType;
+//   Eigen::Map<const MatrixType> m1(d1,(int)size);
+//   Eigen::Map<const MatrixType> m2(d2,(int)size);
+//   // size is the number of bytes used for the descriptor
+//   float score =  m1.transpose()*m2;
+// #endif
   // LOG(INFO) << score;
   score = score / size;
   // LOG(INFO) << score;

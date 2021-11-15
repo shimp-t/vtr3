@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.dates import date2num
+from matplotlib.collections import LineCollection
 import datetime
 import argparse
 
@@ -253,39 +254,114 @@ def plot_inliers(avg_inliers, times, inliers, colours, results_dir):
     # plt.savefig('{}/avg_inliers_gps.png'.format(results_dir), bbox_inches='tight', format='png')
     # plt.close()
 
+    plt.rcParams['text.latex.preamble']=[r"\usepackage{lmodern}"]
+    params = {'text.usetex' : True,
+              'font.size' : 40,                   # Set font size to 11pt
+              'axes.labelsize': 40,               # -> axis labels
+              'legend.fontsize': 40,              # -> legends
+              'xtick.labelsize' : 40,
+              'ytick.labelsize' : 40,
+              'font.family' : 'lmodern',
+              'text.latex.unicode': True,
+              }
+    plt.rcParams.update(params) 
+
     # Plot cumulative distribution of inliers for each run
-    plt.figure(figsize=(20, 12)) #
-    # plt.figure()
-    # f.tight_layout(rect=[0, 0.03, 1, 0.95])
+    fig = plt.figure(figsize=(20, 12)) #
+    # fig.tight_layout(rect=[0, 0.03, 1, 0.95])
+    # fig, ax = plt.subplots(figsize=(30, 20))
+    # fig, axs = plt.subplots(1,2)
+    # fig.tight_layout(rect=[0, 0.03, 1, 0.95])
+    # fig.subplots_adjust(left=0.02, bottom=0.06, right=0.95, top=0.94, wspace=0.05)
     plot_lines = []
     labels = []
+    max_inliers = 0
+
+
+    noon = datetime.time(12, 0, 0)
+    time_diff = []
+    max_time = 0
+    min_time = 0
+    
+    for i in range(len(inliers)):
+
+        dateTimeA = datetime.datetime.combine(datetime.date.today(), noon)
+        dateTimeB = datetime.datetime.combine(datetime.date.today(), times[i].time())
+        dateTimeDifference = dateTimeA - dateTimeB
+        dateTimeDifferenceInHours = abs(dateTimeDifference.total_seconds() / 3600)
+
+        time_diff.append(dateTimeDifferenceInHours)
+
+        if dateTimeDifferenceInHours < min_time:
+            min_time = dateTimeDifferenceInHours
+
+        if dateTimeDifferenceInHours > max_time:
+            max_time = dateTimeDifferenceInHours
+
+    time_colors = []
+    for i in range(len(time_diff)):
+        diff_norm = (time_diff[i] - min_time) / (max_time - min_time)
+        time_colors.append(diff_norm)
+
+    time_colors = plt.cm.viridis(time_colors)
 
     for i in range(len(inliers)):
-        
+
         max_val = np.max(inliers[i])
+        if max_val > max_inliers:
+            max_inliers = max_val
         n_bins_vis_range = 50
         n_bins_total = int((n_bins_vis_range * max_val) / 696)
 
         values, base = np.histogram(inliers[i], bins=n_bins_total)
         unity_values = values / values.sum()
-        cumulative = np.cumsum(unity_values)
-        p = plt.plot(base[:-1], cumulative, linewidth=3)
+        cumulative = np.cumsum(np.flip(unity_values))
+        p = plt.plot(base[:-1], 1.0 - cumulative, linewidth=5, color=time_colors[i])
         plot_lines.append(p[0])
-        labels.append(times[i])
-        # labels.append(times[i].strftime('%H:%M'))
 
-    plt.axvline(x=20.0, color='red', linewidth='3', linestyle='--')
+    plt.axvline(x=6.0, color='red', linewidth='3', linestyle='--')
 
-    plt.legend(plot_lines, labels, prop={'size': 16})
-    plt.xlim([696, 0])
+    cmap = matplotlib.cm.viridis
+    # norm = matplotlib.colors.Normalize(vmin=0, vmax=1)
+
+    # cbar_ax = fig.add_axes([0.09, 0.06, 0.84, 0.02])
+
+    # cb1 = matplotlib.colorbar.ColorbarBase(cbar_ax, cmap=cmap,
+    #                             norm=norm,
+    #                             orientation='horizontal')
+
+    # cax = fig.add_axes([0, 0, 0.3, 0.01]) #has to be as a list - starts with x, y coordinates for start and then width and height in % of figure width
+    # cax, cbar_kwds = matplotlib.colorbar.make_axes(axs[1], location = 'right',
+    #                           fraction=0.5, shrink=0.5, aspect=20)
+    # norm = matplotlib.colors.Normalize(vmin =0, vmax =1)     
+    # matplotlib.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm, orientation='vertical')
+
+    plt.xlim([max_inliers, 0])
     plt.ylim([0, 1])
-    plt.xticks(fontsize=15)
-    plt.yticks(fontsize=15)
-    plt.grid(True, which='both', axis='both', color='gray', linestyle='-', linewidth=1)
-    plt.xlabel('Number of inliers', fontsize=20, weight='bold')
-    plt.ylabel('CDF over keyframes', fontsize=20, weight='bold')
-    plt.title('Distribution of keyframes with given number of inliers', fontsize=20, weight='bold')
-    plt.savefig('{}/cumulative_dist_inliers.png'.format(results_dir), bbox_inches='tight', format='png')
+    plt.xticks(fontsize=38)
+    plt.yticks(fontsize=38)
+    plt.grid(True, which='both', axis='both', color='gray', linestyle='-', 
+             linewidth=1)
+    plt.xlabel(r'\textbf{Number of inliers}', fontsize=50)
+    plt.ylabel(r'\textbf{Cumulative distribution, keyframes}', fontsize=50)
+    # plt.title(r'\textbf{Cumulative distribution of keyframes with number of inliers}', 
+               # fontsize=50)
+    plt.savefig('{}/inliers_cdf_exp2.png'.format(results_dir), 
+                bbox_inches='tight', format='png')
+    plt.close()
+
+
+    fig, ax = plt.subplots(figsize=(1, 12))
+    fig.subplots_adjust(bottom=0.5)
+
+    cmap = matplotlib.cm.viridis
+    norm = matplotlib.colors.Normalize(vmin=min_time, vmax=max_time)
+
+    cb1 = matplotlib.colorbar.ColorbarBase(ax, cmap=cmap,
+                                    norm=norm,
+                                    orientation='vertical')
+    plt.savefig('{}/colorbar.png'.format(results_dir), 
+                bbox_inches='tight', format='png')
     plt.close()
 
 def plot_data(info, path_segments, data_dir):

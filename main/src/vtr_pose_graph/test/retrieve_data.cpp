@@ -14,9 +14,13 @@
 namespace fs = std::filesystem;
 using namespace vtr::pose_graph;
 
-void ReadLocalizationResults(std::string graph_dir, std::string results_dir,
-                             int* num_fail_loc_all, int* num_fail_exp_all,
-                             int* num_fail_read_exp_all) {
+void ReadLocalizationResults(std::string graph_dir, 
+                             std::string results_dir,
+                             int* num_fail_loc_all, 
+                             int* num_fail_exp_all,
+                             int* num_fail_read_exp_all, 
+                             int* num_fail_read_loc_all,
+                             bool failed_run) {
 
   // Load the graph
   std::shared_ptr<RCGraph> graph;
@@ -55,13 +59,19 @@ void ReadLocalizationResults(std::string graph_dir, std::string results_dir,
   r_ind = 0;
   for (const auto& run : graph->runs()) {
 
+    LOG(INFO) << r_ind;
+
     if (r_ind > 0) {
       int num_fail = 0;
       int num_multiple_exp = 0;
       int num_cov_not_set = 0;
       int total_inliers = 0;
       float total_comp_time = 0.0;
+      int num_fail_read_exp = 0;
+      int num_fail_read_loc = 0;
       int num_vertices = run.second->vertices().size();
+
+      LOG(INFO) << "Num vertices: " << num_vertices; 
 
       for (int v_ind = 0; v_ind < num_vertices; v_ind++) {
 
@@ -96,7 +106,11 @@ void ReadLocalizationResults(std::string graph_dir, std::string results_dir,
               }
             } catch (const std::exception& e){
               LOG(ERROR) << "COULD NOT LOAD EXP MESSAGE";
-              *num_fail_read_exp_all++;
+              num_fail_read_exp++;
+            }
+
+            if (failed_run) {
+              LOG(INFO) << v_ind << ": " << msg->success;
             }
 
             pose_file << msg->keyframe_time << "," 
@@ -142,6 +156,7 @@ void ReadLocalizationResults(std::string graph_dir, std::string results_dir,
 
           } catch (const std::exception& e){
             LOG(ERROR) << "COULD NOT LOAD LOC STATUS MSG, run: " << r_ind << ", vert: " << v_ind;
+            num_fail_read_loc++;
             continue;
           }
 
@@ -154,24 +169,29 @@ void ReadLocalizationResults(std::string graph_dir, std::string results_dir,
       LOG(INFO) << "Num failed loc: " << num_fail;
       LOG(INFO) << "Num multiple exp: " << num_multiple_exp;
       LOG(INFO) << "Num cov not set: " << num_cov_not_set;
+      LOG(INFO) << "Num fail read loc: " << num_fail_read_loc;
+      LOG(INFO) << "Num fail read exp: " << num_fail_read_exp;
       LOG(INFO) << "Avg. num inliers: " << float(total_inliers) / num_vertices;
       LOG(INFO) << "Avg. comp_time: " << float(total_comp_time) / num_vertices;
 
       *num_fail_loc_all += num_fail;
       *num_fail_exp_all += num_multiple_exp;
-
-      pose_file.close();
-      cov_file.close();
-      info_file.close();
-      exp_file.close();
+      *num_fail_read_exp_all += num_fail_read_exp;
+      *num_fail_read_loc_all += num_fail_read_loc;
     }
     
-  r_ind++;
+    r_ind++;
   }
+  pose_file.close();
+  cov_file.close();
+  info_file.close();
+  exp_file.close();
 }
 
 // Run this twice. Second time tests retrieval from disk.
 int main(int argc, char** argv) {
+
+  vtr::logging::configureLogging();
 
   std::string path_name = argv[argc-2];
   int num_runs = atoi(argv[argc-1]);
@@ -182,23 +202,36 @@ int main(int argc, char** argv) {
   int num_fail_loc_all = 0;
   int num_fail_exp_all = 0;
   int num_fail_read_exp_all = 0;
-
-  std::vector<int> run_ids{8, 35, 174, 235, 328, 538, 587};
-  
-  for(int i = 0; i <= run_ids.size(); i++) {
+  int num_fail_read_loc_all = 0;
+ 
+  for(int i = 0; i <= num_runs; i++) {
     std::stringstream graph_dir;
     std::stringstream results_dir;
-    graph_dir << path_name << "/graph.index/repeats/" << run_ids[i] << "/graph.index";
-    results_dir << path_name << "/graph.index/repeats/" << run_ids[i] << "/results";
+    graph_dir << path_name << "/graph.index/repeats/" << i << "/graph.index";
+    results_dir << path_name << "/graph.index/repeats/" << i << "/results";
 
-    LOG(INFO) << "RUN: " << run_ids[i];
+    fs::path graph_dir_path{graph_dir.str()};
+    if(fs::exists(graph_dir_path)) {
 
-    ReadLocalizationResults(graph_dir.str(), results_dir.str(),
-                            &num_fail_loc_all, &num_fail_exp_all, 
-                            &num_fail_read_exp_all); 
+      LOG(INFO) << "RUN: " << i;
+
+      bool failed_run = false;
+      if ((i == 45) || (i == 51)) {
+        failed_run = true;
+      }
+
+      ReadLocalizationResults(graph_dir.str(), results_dir.str(),
+                              &num_fail_loc_all, &num_fail_exp_all, 
+                              &num_fail_read_exp_all, &num_fail_read_loc_all,
+                              failed_run);
+   } else {
+    LOG(ERROR) << "Path to graph does not exist: " << graph_dir.str();
+   }
+
   }
 
   LOG(INFO) << "Total failed loc: " << num_fail_loc_all;
   LOG(INFO) << "Total failed exp: " << num_fail_exp_all;
   LOG(INFO) << "Total failed read exp: " << num_fail_read_exp_all; 
+  LOG(INFO) << "Total failed read loc: " << num_fail_read_loc_all; 
 }

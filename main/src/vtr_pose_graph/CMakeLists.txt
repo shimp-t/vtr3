@@ -12,6 +12,7 @@ find_package(vtr_common REQUIRED)
 find_package(vtr_logging REQUIRED)
 find_package(vtr_messages REQUIRED)
 find_package(vtr_storage REQUIRED)
+find_package(vtr_tactic REQUIRED)
 
 # Libraries
 # interface
@@ -213,6 +214,84 @@ install(
     INCLUDES DESTINATION include
 )
 
+add_executable(feature_matching_test test/feature_matching_test.cpp)
+
+ament_target_dependencies(feature_matching_test
+    lgmath
+    vtr_common
+    vtr_logging
+    vtr_messages
+    vtr_storage
+    OpenCV
+)
+
+target_link_libraries(feature_matching_test ${PROJECT_NAME}_index)
+target_include_directories(feature_matching_test 
+    PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>)
+
+install(
+    TARGETS
+    feature_matching_test
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+    RUNTIME DESTINATION lib/${PROJECT_NAME}
+    INCLUDES DESTINATION include
+)
+
+add_executable(retrieve_vo_transforms test/retrieve_vo_transforms.cpp)
+
+ament_target_dependencies(retrieve_vo_transforms
+    lgmath
+    vtr_common
+    vtr_logging
+    vtr_messages
+    vtr_storage
+    vtr_tactic
+    OpenCV
+)
+
+target_link_libraries(retrieve_vo_transforms ${PROJECT_NAME}_index)
+target_include_directories(retrieve_vo_transforms 
+    PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>)
+
+install(
+    TARGETS
+    retrieve_vo_transforms
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+    RUNTIME DESTINATION lib/${PROJECT_NAME}
+    INCLUDES DESTINATION include
+)
+
+add_executable(retrieve_dist_on_vo test/retrieve_dist_on_vo.cpp)
+
+ament_target_dependencies(retrieve_dist_on_vo
+    lgmath
+    vtr_common
+    vtr_logging
+    vtr_messages
+    vtr_storage
+    vtr_tactic
+)
+
+target_link_libraries(retrieve_dist_on_vo ${PROJECT_NAME}_index)
+target_include_directories(retrieve_dist_on_vo 
+    PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>)
+
+install(
+    TARGETS
+    retrieve_dist_on_vo
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+    RUNTIME DESTINATION lib/${PROJECT_NAME}
+    INCLUDES DESTINATION include
+)
 
 if(BUILD_TESTING)
   find_package(cv_bridge REQUIRED)

@@ -1,22 +1,11 @@
 /**:
   ros__parameters:
 
-    ############ map projection configuration ############
-    # map_projection:
-    #   origin_lat: 43.78182 #43.78220
-    #   origin_lng: -79.46554 #-79.4661
-    #   origin_theta: 0.74 #1.3 # positive == clockwise
-    #   scale: 1.0
-
     ############ tactic configuration ############
     tactic:
       visualize: false
       localization_only_keyframe: true
       localization_skippable: false
-      map_mem:
-        enable: true
-        lookahead_distance: 15
-        vertex_life_span: 10
 
     pipeline:
       localization:
@@ -56,9 +45,9 @@
             # modelPath: "/home/asrl/libtorch_example/data/feature_detector_dark_extend_395_32_h16w16.pt"
             # modelPath: "/home/asrl/libtorch_example/data/feature_detector_dark_extend_479_32_h16w16.pt"
             # Lighting-change-extend-layer16
-            modelPath: "/home/asrl/libtorch_example/data/feature_detector_dark_extend_585_16_h16w16.pt"
+            # modelPath: "/home/asrl/libtorch_example/data/feature_detector_dark_extend_585_16_h16w16.pt"
             # Lighting-change
-            # modelPath: "/home/asrl/libtorch_example/data/feature_detector_dark_165_32_h16w16.pt"
+            modelPath: "/home/asrl/libtorch_example/data/feature_detector_dark_165_32_h16w16.pt"
             # modelPath: "/home/asrl/libtorch_example/data/feature_detector_dark_62_16_h16w16.pt"
 
             stereoDisparityMinimum: 0.1

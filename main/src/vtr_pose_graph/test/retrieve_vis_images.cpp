@@ -9,6 +9,7 @@
 
 #include <vtr_logging/logging_init.hpp>
 #include <vtr_messages/msg/image.hpp>
+#include <vtr_messages/msg/localization_status.hpp>
 #include <vtr_pose_graph/index/rc_graph/rc_graph.hpp>
 #include <vtr_pose_graph/path/path.hpp>
 #include "rclcpp/rclcpp.hpp"
@@ -59,14 +60,18 @@ void ReadVisualizationImages(std::string graph_dir, std::string results_dir) {
   LOG(INFO) << "Loaded graph has " << graph->vertices()->size() << " vertices";
 
   // Register the stream so we can read messages from it
+  std::string stream_name_loc = "results_localization";
   std::string stream_name = "front_xb3_visualization_images";
 
   int r_ind = 0;
   for (const auto& run : graph->runs()) {
     // We are iterating over the teach and one repeat, run_000000 and run_000001
-    if (r_ind == 1) { 
-      run.second->registerVertexStream<vtr_messages::msg::Image>(stream_name, 
+     
+    run.second->registerVertexStream<vtr_messages::msg::Image>(stream_name, 
                                                   true, RegisterMode::Existing);
+    if (r_ind > 0) {  
+      run.second->registerVertexStream<vtr_messages::msg::LocalizationStatus>(
+        stream_name_loc, true, RegisterMode::Existing);
     }
     r_ind++;
   }
@@ -80,14 +85,29 @@ void ReadVisualizationImages(std::string graph_dir, std::string results_dir) {
   r_ind = 0;
   for (const auto& run : graph->runs()) {
 
-    if (r_ind == 1) {
+    // if (r_ind > 0) {
       int num_vertices = run.second->vertices().size();
       
       for (int v_ind = 0; v_ind < num_vertices; v_ind++) {
 
-        auto v = graph->at(VertexId(r_ind, v_ind));
+        auto vertex_id = VertexId(r_ind, v_ind);
+        // auto single_uint64_id = vertex_id->uint64_t();
+        auto v = graph->at(vertex_id);
       
         try {
+
+          uint64_t q_id = 0;
+          uint64_t m_id = 0; 
+
+          if (r_ind > 0) {
+            v->load(stream_name_loc);
+            auto loc_msg = v->retrieveKeyframeData<vtr_messages::msg::LocalizationStatus>(
+               stream_name_loc);
+
+            q_id = loc_msg->query_id;
+            m_id = loc_msg->map_id;
+          }
+
           v->load(stream_name);
           auto ros_image = 
                   v->retrieveKeyframeData<vtr_messages::msg::Image>(stream_name);
@@ -96,8 +116,12 @@ void ReadVisualizationImages(std::string graph_dir, std::string results_dir) {
           cv::Mat display_image = setupDisplayImage(input_image);
                   
           std::stringstream img_file;
-          img_file << results_img_path.u8string() << "/" << r_ind << "_" 
-                                                         << v_ind << ".png";
+          img_file << results_img_path.u8string() << "/" 
+                                                  << q_id << "_"
+                                                  << r_ind << "_" 
+                                                  << v_ind << "_"
+                                                  << m_id << ".png";
+
           cv::imwrite(img_file.str(), display_image);
 
         } catch (const std::exception& e){
@@ -106,7 +130,7 @@ void ReadVisualizationImages(std::string graph_dir, std::string results_dir) {
             continue;
         }
       }
-    }
+    // }
     
     r_ind++;
   }
@@ -114,6 +138,8 @@ void ReadVisualizationImages(std::string graph_dir, std::string results_dir) {
 
 // Run this twice. Second time tests retrieval from disk.
 int main(int argc, char** argv) {
+
+  vtr::logging::configureLogging();
 
   std::string path_name = argv[argc-3];
   int start = atoi(argv[argc-2]);
@@ -129,10 +155,17 @@ int main(int argc, char** argv) {
     std::stringstream results_dir;
     graph_dir << path_name << "/graph.index/repeats/" << i << "/graph.index";
     results_dir << path_name << "/graph.index/repeats/" << i << "/results";
-    
-    LOG(INFO) << "graph_dir: " << graph_dir.str();
-    LOG(INFO) << "results_dir: " << results_dir.str();
 
-    ReadVisualizationImages(graph_dir.str(), results_dir.str()); 
+    fs::path graph_dir_path{graph_dir.str()};
+    LOG(INFO) << graph_dir_path;
+    if(fs::exists(graph_dir_path)) {
+    
+      LOG(INFO) << "graph_dir: " << graph_dir.str();
+      LOG(INFO) << "results_dir: " << results_dir.str();
+
+      ReadVisualizationImages(graph_dir.str(), results_dir.str()); 
+    } else {
+      LOG(ERROR) << "Path does not exist: " << graph_dir_path;
+    }
   }
 }

@@ -18,8 +18,8 @@ windows:
       - sleep 3 &&
         ros2 launch vtr_navigation vtr.launch.py
         base_params:=bumblebee_grizzly_default.yaml
-        override_params:=bumblebee_grizzly_learned_features.yaml
-        data_dir:=${VTRDATA}/experiments/2021-08-14/lighting-change-extended-layer16
+        override_params:=bumblebee_grizzly_learned_features_test.yaml
+        data_dir:=${VTRDATA}/experiments/2021-08-14/lighting-change-extended-layer16-new
         clear_data_dir:=false
 
       # - ros2 run vtr_mission_planning vtr_mission.py --help # backup way to send commands if UI not working

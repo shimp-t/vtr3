@@ -1,22 +1,11 @@
 /**:
   ros__parameters:
 
-    ############ map projection configuration ############
-    # map_projection:
-    #   origin_lat: 43.78182 #43.78220
-    #   origin_lng: -79.46554 #-79.4661
-    #   origin_theta: 0.74 #1.3 # positive == clockwise
-    #   scale: 1.0
-
     ############ tactic configuration ############
     tactic:
-      visualize: false
+      visualize: true
       localization_only_keyframe: true
       localization_skippable: false
-      map_mem:
-        enable: true
-        lookahead_distance: 15
-        vertex_life_span: 10
 
     pipeline:
       localization:
@@ -85,6 +74,8 @@
 
       ransac:
         visualize_ransac_inliers: true
+        min_inliers: 10
+        
 
     ############ path tracker configuration ############
     path_tracker:
@@ -94,6 +85,6 @@
       # target_linear_speed: [0.55, 0.7, 0.8, 0.9]
       # target_linear_speed: [0.55, 0.7, 0.85, 1.0]
 
-      weight_speed_input_mpc: 4.8       # 2. diff. btw. scheduled speed and commanded speed. 4 if driving slowly.
+      weight_speed_input_mpc: 5.0       # 2. diff. btw. scheduled speed and commanded speed. 4 if driving slowly.
       enable_slow_start: false          # Taper desired speed profile at the start of the path
 

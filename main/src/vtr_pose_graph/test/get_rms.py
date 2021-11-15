@@ -47,7 +47,7 @@ if __name__ == "__main__":
 
     sum_sqr_error = 0.0
 
-    print(errors_all_runs)
+    # print(errors_all_runs)
     print(len(errors_all_runs))
 
     max_err = 0
@@ -68,3 +68,16 @@ if __name__ == "__main__":
     rms = math.sqrt(sum_sqr_error / num)
 
     print("Total RMS: {}".format(rms))
+
+    files = ['gps_rms_0_10.p', 'gps_rms_11_20.p', 'gps_rms_21_30.p', 'gps_rms_31_40.p']
+
+    for name in files:
+        file_path = "{}/{}".format(results_dir, name)
+
+        with open(file_path, "rb") as input_file:
+            e = pickle.load(input_file)
+
+            for key in e.keys():
+                print("{} - {}".format(key, e[key]))
+
+
