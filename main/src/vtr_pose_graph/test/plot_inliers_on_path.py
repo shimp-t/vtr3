@@ -9,11 +9,11 @@ import datetime
 import argparse
 import os
 
-def load_data(data_dir, num_repeats, ignore_runs, failed_runs):
+def load_data(data_dir, start, end, ignore_runs, failed_runs):
 
     keyframe_info = {}
     
-    for i in range(1, num_repeats + 1):
+    for i in range(start, end + 1):
 
         results_dir = "{}/graph.index/repeats/{}/results".format(data_dir, i)
         
@@ -150,6 +150,9 @@ def plot_inliers(keyframe_info, data_dir):
     values = [q25, median, q75]
     names = ['Q1', 'Median', 'Q3']
 
+    # min_val = 0.0
+    # max_val = 540.0
+
     fig, axes = plt.subplots(nrows=1, ncols=3, figsize=(45, 12))
 
     count = 0
@@ -202,6 +205,10 @@ def plot_inliers(keyframe_info, data_dir):
 
     plt.savefig('{}/inliers_path.pdf'.format(results_dir), 
                 bbox_inches='tight', format='pdf')
+    plt.savefig('{}/inliers_path.png'.format(results_dir), 
+                bbox_inches='tight', format='png')
+    plt.savefig('{}/inliers_path.svg'.format(results_dir), 
+                bbox_inches='tight', format='svg')
     plt.close()
 
         
@@ -256,26 +263,38 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--path', default=None, type=str,
                         help='path to results dir (default: None)')
-    parser.add_argument('--numrepeats', default=None, type=int,
-                        help='number of repeats (default: None)')
+    parser.add_argument('--start', default=None, type=int,
+                        help='start repeat (default: None)')
+    parser.add_argument('--end', default=None, type=int,
+                        help='end repeat (default: None)')
 
     args = parser.parse_args()
 
     # ignore_runs = [6,7,10,14,15,16,17,18,24] # exp2
     # ignore_runs = [4,6,31,34,35,36,39,40,10,16,21,19] #exp1
+    # ignore_runs = [10, 15, 16] #exp2
+    # ignore_runs = [101] # seasonal
     ignore_runs = []
 
-    # failed_runs = {51:[[1, 3973]], 
-    #                52:[[1, 2268]], 
-    #                55:[[1, 5236], [5395, 6955], [7018, 7155]], 
-    #                56:[[2, 6330], [6408, 7806]], 
-    #                60:[[3, 6946], [6958, 7806]], 
-    #                64:[[3, 3979]], 
-    #                68:[[1, 5189], [5414, 7807]]}
+    failed_runs = {51:[[1, 3973]], 
+                   52:[[1, 2268]], 
+                   55:[[1, 5236], [5395, 6955], [7018, 7155]], 
+                   56:[[2, 6330], [6408, 7806]], 
+                   60:[[3, 6946], [6958, 7806]], 
+                   64:[[3, 3979]], 
+                   68:[[1, 5189], [5414, 7807]],
+                   72:[[1, 9000]],
+                   76:[[1, 9000]],
+                   78:[[1, 9000]],
+                   84:[[1, 9000]],
+                   85:[[1, 9000]],
+                   95:[[1, 9000]],
+                   102:[[1, 9000]],
+                   104:[[1, 9000]]}
     
-    failed_runs = {} 
+    # failed_runs = {} 
 
-    keyframe_info = load_data(args.path, args.numrepeats, ignore_runs, failed_runs)
+    keyframe_info = load_data(args.path, args.start, args.end, ignore_runs, failed_runs)
 
     plot_inliers(keyframe_info, args.path);
 

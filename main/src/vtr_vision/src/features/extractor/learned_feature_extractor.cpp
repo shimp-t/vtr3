@@ -4,12 +4,11 @@
 #include <vector>
 #include <stdexcept>
 
-#include <opencv2/opencv.hpp>
-#include <opencv2/core/core.hpp>
 #include <opencv2/calib3d/calib3d.hpp>
 #include <opencv2/cudastereo.hpp>
 
 #include <vtr_vision/features/extractor/learned_feature_extractor.hpp>
+#include <vtr_vision/features/extractor/superpoint.hpp>
 
 namespace vtr {
 namespace vision {
@@ -372,6 +371,47 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor>
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+// std::tuple<std::vector<cv::KeyPoint>, cv::Mat> 
+//                      LFE::extractLearnedFeaturesSparseSP(const cv::Mat &image) {
+
+//   //Crop the image
+//   cv::Mat image_cropped;
+//   image(cv::Rect(48, 0, 464, 384)).copyTo(image_cropped);
+
+//   // Make sure image memory is contigious before converting it to a tensor.
+//   if (!image_cropped.isContinuous()) {  
+//     LOG(INFO) << "Converting cv::Mat to torch::Tensor, memory isn't contigious";
+//     image_cropped = image_cropped.clone();
+//   }             
+
+//   // we're about to use the gpu, lock
+//   std::unique_lock<std::mutex> lock(gpu_mutex_);
+  
+//   std::shared_ptr<SuperPoint> model = std::make_shared<SuperPoint>();
+//   auto model = std::make_shared<SuperPoint>();
+//   torch::load(model, config_.model_path);
+
+//   // SPDetector detector(model);
+//   // detector.detect(image_cropped, true);
+
+//   std::vector<cv::KeyPoint> keypoints;
+//   cv::Mat point_descriptors_norm = SPdetect(model, image_cropped, keypoints, 0.01, true, true); // N x 256
+
+
+//   // vector<cv::KeyPoint> keypoints;
+//   // detector.getKeyPoints(0.01, 0, 464, 0, 384, keypoints, true);
+
+//   // cv::Mat point_descriptors_norm;
+//   // detector.computeDescriptors(keypoints, point_descriptors_norm);
+  
+//   // We're done with the gpu, unlock
+//   lock.unlock();
+
+//   return std::make_tuple(keypoints, point_descriptors_norm);
+
+// }
+
+////////////////////////////////////////////////////////////////////////////////
 Features LFE::learnedFeatureToFrame(const torch::Tensor &keypoints,
                                     const torch::Tensor &point_descriptors,
                                     const torch::Tensor &point_scores) {
@@ -538,7 +578,135 @@ ChannelFeatures LFE::learnedFeaturesToStereoKeypoints(
                                   point_desc_tensor_ptr);
 
   return channel;
+
 }
+
+// ChannelFeatures LFE::learnedFeaturesToStereoKeypointsSP(
+//                                        const std::vector<cv::KeyPoint> &keypoints, 
+//                                        const cv::Mat &point_descriptors,
+//                                        const torch::Tensor &point_scores,
+//                                        const torch::Tensor &point_disparities) {
+
+//   unsigned num_keypoints = keypoints.size();
+//   unsigned descriptor_size = point_descriptors.size[1];
+
+//   // LOG(ERROR) << "DESCRIPTOR SIZE" << descriptor_size;
+
+//   // set up the stereo feature output
+//   ChannelFeatures channel;
+//   channel.cameras.resize(2);
+//   auto &left_feat = channel.cameras[0];
+//   auto &right_feat = channel.cameras[1];
+//   auto cam_rng = {0, 1};
+//   for (auto &i : cam_rng) {
+//     channel.cameras[i].keypoints.reserve(num_keypoints);
+//     channel.cameras[i].feat_infos.reserve(num_keypoints);
+//     channel.cameras[i].feat_type.upright = false;
+//     channel.cameras[i].feat_type.impl = FeatureImpl::LEARNED_FEATURE;
+//     channel.cameras[i].feat_type.dims = descriptor_size;
+//     channel.cameras[i].feat_type.bytes_per_desc =
+//         channel.cameras[i].feat_type.dims * sizeof(float);
+//   }
+
+//   std::vector<long> valid_keypoints = {};
+//   int num_valid = 0;
+//   for (unsigned i = 0; i < num_keypoints; i++) {
+    
+//     // Check disparity to see if point is valid
+//     if ((point_disparities[i].item<float>() > 
+//          stereo_config_.stereoDisparityMinimum) && 
+//         (point_disparities[i].item<float>() < 
+//          stereo_config_.stereoDisparityMaximum)) {
+    
+//       //&&
+//         // (point_scores[i].item<float>() >= 5.0e-3)
+         
+//       valid_keypoints.emplace_back(i);
+//       num_valid++;
+       
+//       // set up the left keypoint
+//       left_feat.keypoints.emplace_back();
+//       auto &kpt_l = left_feat.keypoints.back();
+//       kpt_l.pt.x = keypoints[i].pt.x + 48.0;
+//       kpt_l.pt.y = keypoints[i].pt.y;
+//       kpt_l.angle = -1;
+//       kpt_l.octave = 0;
+//       kpt_l.response = point_scores[i].item<float>();
+//       kpt_l.size = -1; 
+
+//       // augment with data that isn't in the cv::KeyPoint struct
+//       double sigma_l = (1 << static_cast<int>(kpt_l.octave));
+//       bool laplacian_bit_l = static_cast<int>(kpt_l.response) & 0x1;
+//       left_feat.feat_infos.emplace_back(laplacian_bit_l,
+//                                         1.0 / std::pow(sigma_l, 2.0));
+
+//       auto &left_info = left_feat.feat_infos.back();
+//       left_info.covariance(0, 0) = 
+//                           (1 << kpt_l.octave)*(1 << kpt_l.octave);
+//       left_info.covariance(1, 1) = 
+//                           (1 << kpt_l.octave)*(1 << kpt_l.octave);
+//       left_info.covariance(0, 1) = 0.0;
+//       left_info.covariance(1, 0) = 0.0;
+
+//       // set up the matching right keypoint
+//       right_feat.keypoints.emplace_back();
+//       auto &kpt_r = right_feat.keypoints.back();
+//       kpt_r.pt.x = (keypoints[i].pt.x + 48.0) - 
+//                     point_disparities[i].item<float>();
+//       // kpt_r.pt.x = keypoints[0][0][i].item<float>() - 
+//       //              point_disparities[i].item<float>();
+//       kpt_r.pt.y = keypoints[i].pt.y;
+//       kpt_r.angle = -1;
+//       kpt_r.octave = 0;
+//       kpt_r.response = point_scores[i].item<float>();
+//       kpt_r.size = -1; 
+
+//       // augment with data that isn't in the cv::KeyPoint struct
+//       double sigma_r = (1 << static_cast<int>(kpt_r.octave));
+//       bool laplacian_bit_r = static_cast<int>(kpt_r.response) & 0x1;
+//       right_feat.feat_infos.emplace_back(laplacian_bit_r,
+//                                         1.0 / std::pow(sigma_r, 2.0));
+
+//       auto &right_info = right_feat.feat_infos.back();
+//       right_info.covariance(0, 0) = 
+//                           (1 << kpt_r.octave)*(1 << kpt_r.octave);
+//       right_info.covariance(1, 1) = 
+//                           (1 << kpt_r.octave)*(1 << kpt_r.octave);
+//       right_info.covariance(0, 1) = 0.0;
+//       right_info.covariance(1, 0) = 0.0;
+//     }  
+//   }
+
+//   // LOG(INFO) << "num_valid: " << num_valid;
+
+//   left_feat.descriptors =
+//       cv::Mat(left_feat.keypoints.size(), descriptor_size, CV_32F);
+//   auto *cv_data = (float *)left_feat.descriptors.data;
+//   auto *desc_data = point_descriptors.data;
+//   for (unsigned idx = 0; idx < num_keypoints; ++idx) {
+//     if (valid_keypoints[idx]) {
+//       memcpy(cv_data, &desc_data[idx * descriptor_size],
+//              sizeof(float) * descriptor_size);
+//       cv_data += 64;
+//     }
+//   }
+
+//   // auto options = torch::TensorOptions().dtype(torch::kLong);
+//   // torch::Tensor valid = torch::from_blob(valid_keypoints.data(), {num_valid}, 
+//   //                                        options);  
+
+//   // // Make sure memory for the tensor is contigious before converting to cv::Mat.
+//   // // Otherwise elements in the matrix may be ordered incorrectly.
+//   // torch::Tensor point_desc_valid = point_descriptors.index({valid, "..."});
+//   // auto point_desc_tensor_ptr = point_desc_valid.contiguous().data_ptr<float>();
+
+//   // // descriptors 256 x num 
+
+//   // left_feat.descriptors = cv::Mat(num_valid, descriptor_size, CV_32F, 
+//   //                                 point_desc_tensor_ptr);
+
+//   return channel;
+// }
 
 ////////////////////////////////////////////////////////////////////////////////
 ChannelExtra LFE::extractFeaturesExtra(const cv::Mat &image) {
@@ -600,6 +768,7 @@ Features LFE::extractFeatures(const cv::Mat &image) {
                                point_scores);
 }
 
+
 ////////////////////////////////////////////////////////////////////////////////
 ChannelFeatures LFE::extractStereoFeatures(const cv::Mat &left_img,
                                             const cv::Mat &right_img) {
@@ -618,6 +787,25 @@ ChannelFeatures LFE::extractStereoFeatures(const cv::Mat &left_img,
                                           point_scores, point_disparities);
 }
 
+// ////////////////////////////////////////////////////////////////////////////////
+// ChannelFeatures LFE::extractStereoFeatures(const cv::Mat &left_img,
+//                                             const cv::Mat &right_img) {
+ 
+//   auto outputs = extractLearnedFeaturesSparse(left_img);
+//   std::vector<cv::KeyPoint> keypoints = std::get<0>(outputs);
+//   cv::Mat point_descriptors = std::get<1>(outputs);
+
+
+//   // Get disparity
+//   torch::Tensor disparity = getDisparity(left_img, right_img, stereo_config_);
+//   torch::Tensor point_disparities = getKeypointDisparities(disparity, 
+//                                                           keypoints);
+//   torch::Tensor point_scores = torch::ones(disparity.size());
+
+//   return learnedFeaturesToStereoKeypoints(keypoints, point_descriptors, 
+//                                           point_scores, point_disparities);
+// }
+
 ////////////////////////////////////////////////////////////////////////////////
 ChannelFeatures LFE::extractStereoFeaturesDisp(const cv::Mat &left_img,
                                                const cv::Mat &disp) {
@@ -635,6 +823,32 @@ ChannelFeatures LFE::extractStereoFeaturesDisp(const cv::Mat &left_img,
   return learnedFeaturesToStereoKeypoints(keypoints, point_descriptors, 
                                           point_scores, point_disparities);
 }
+
+
+// ChannelFeatures LFE::extractStereoFeaturesDisp(const cv::Mat &left_img,
+//                                                const cv::Mat &disp) {
+  
+//   auto outputs = extractLearnedFeaturesSparseSP(left_img);
+//   std::vector<cv::KeyPoint> keypoints = std::get<0>(outputs);
+//   cv::Mat point_descriptors = std::get<1>(outputs);
+
+//   // Create a keypoint tensor so we can get the point disparities, B x 2 x N
+//   torch::Tensor keypoints_tensor = torch::zeros({1, 2, keypoints.size()});
+//   for (size_t i = 0; i < keypoints.size(); i++) {
+//       keypoints_tensor[0][0][i] = keypoints[i].pt.x;
+//       keypoints_tensor[0][1][i] = keypoints[i].pt.y;
+//   }
+
+//   // Get disparity for each keypoint
+//   torch::Tensor disparity = getDisparityTensor(disp);
+//   torch::Tensor point_disparities = getKeypointDisparities(disparity, 
+//                                                            keypoints_tensor);
+//   torch::Tensor point_scores = torch::ones(keypoints.size());
+
+//   // return channel;
+//   return learnedFeaturesToStereoKeypointsSP(keypoints, point_descriptors, 
+//                                             point_scores, point_disparities);
+// }
 
 ////////////////////////////////////////////////////////////////////////////////
 ChannelFeatures LFE::extractStereoFeaturesDispExtra(const cv::Mat &left_img,

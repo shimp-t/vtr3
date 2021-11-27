@@ -191,6 +191,9 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    gps_poses, gps_good_segments, bad_gps_runs = load_gps_poses(args.path, args.numrepeats)    
+    gps_poses, gps_good_segments, bad_gps_runs = load_gps_poses(args.path, args.numrepeats) 
+
+    bad_gps_runs = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 17, 18, 21, 22, 23, 24, 25, 26, 27, 28, 29]
+   
 
     plot_data(gps_poses, bad_gps_runs, gps_good_segments, args.only_good, args.path);

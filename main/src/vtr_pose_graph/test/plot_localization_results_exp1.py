@@ -126,12 +126,205 @@ def plot_quantile(times_all, inliers_all, day1_all, results_dir):
     #                    matplotlib.lines.Line2D([0], [0], color='cornflowerblue', lw=4, label='Day2: 09.08')]                   
     # plt.legend(handles=legend_elements, fontsize=40);
 
-    # plt.savefig('{}/inliers_quantline_lighting.png'.format(results_dir), bbox_inches='tight', format='png')
+    plt.savefig('{}/inliers_quantline_lighting.png'.format(results_dir), bbox_inches='tight', format='png')
     plt.savefig('{}/inliers_quantile_lighting.pdf'.format(results_dir), bbox_inches='tight', format='pdf')
+    plt.savefig('{}/inliers_quantile_lighting.svg'.format(results_dir), bbox_inches='tight', format='svg')
+    plt.close()
+
+# def plot_box_linear(times, inliers, day1, ignore_labels, results_dir):
+
+#     plt.rcParams['text.latex.preamble']=[r"\usepackage{lmodern}"]
+#     params = {'text.usetex' : True,
+#               'font.size' : 40,                   # Set font size to 11pt
+#               'axes.labelsize': 40,               # -> axis labels
+#               'legend.fontsize': 40,              # -> legends
+#               'xtick.labelsize' : 40,
+#               'ytick.labelsize' : 40,
+#               'font.family' : 'lmodern',
+#               'text.latex.unicode': True,
+#               }
+#     plt.rcParams.update(params) 
+
+#     ############### Plot box plot of inliers for each repeat ###################
+
+#     f = plt.figure(figsize=(30, 13))
+#     f.tight_layout(rect=[0, 0.03, 1, 0.95])
+
+#     times_sorted = times[:]
+#     inliers_map = {}
+#     day_map = {}
+#     for i in range(len(times)):
+#         inliers_map[times[i]] = inliers[i]
+#         day_map[times[i]] = day1[i]
+
+#     times_sorted.sort()
+
+#     inliers_day1 = []
+#     positions_day1 = [] 
+#     x_labels_day1 = []
+#     inliers_day2 = []
+#     positions_day2 = [] 
+#     x_labels_day2 = []
+    
+#     x = date2num(times)
+#     first = min(times)
+
+#     ind = 0
+#     for i in range(len(times_sorted)):
+#         if day_map[times_sorted[i]]:
+#             inliers_day1.append(inliers_map[times_sorted[i]])
+#             x_labels_day1.append(times_sorted[i].strftime('%H:%M'))
+#             positions_day1.append(i)
+#         else:
+#             inliers_day2.append(inliers_map[times_sorted[i]])
+#             x_labels_day2.append(times_sorted[i].strftime('%H:%M'))
+#             positions_day2.append(i)
+        
+#         ind += 1
+
+  
+#     p1 = plt.boxplot(inliers_day1, 
+#                     positions=positions_day1,
+#                     sym='', 
+#                     labels=x_labels_day1, 
+#                     patch_artist=True,
+#                     widths=0.6,
+#                     boxprops={'facecolor':'teal', 'linewidth':3},
+#                     whiskerprops={'color':'black', 'linewidth':3},
+#                     medianprops={'color':'black', 'linewidth':3})
+
+#     p2 = plt.boxplot(inliers_day2, 
+#                     positions=positions_day2,
+#                     sym='', 
+#                     labels=x_labels_day2, 
+#                     patch_artist=True,
+#                     widths=0.6,
+#                     boxprops={'facecolor':'cornflowerblue', 'linewidth':3},
+#                     whiskerprops={'color':'black', 'linewidth':3},
+#                     medianprops={'color':'black', 'linewidth':3})
+
+#     plt.axhline(y=6.0, color='red', linewidth='2', linestyle='--')
+           
+#     plt.xticks(rotation=-75)
+#     plt.xlabel(r'\textbf{Repeat time (hh:mm)}', fontsize=50) 
+#     plt.ylabel(r'\textbf{Number of inliers}', fontsize=50)
+#     plt.xticks(fontsize=36) 
+#     plt.yticks(fontsize=48) 
+#     plt.xlim([-0.5, len(times) - 0.5])
+#     # plt.xlim([-15.0, max(positions_day1) + 15.0])
+
+#     legend_elements = [matplotlib.lines.Line2D([0], [0], color='teal', lw=4, 
+#                                             label='Day 1: 03.08'),
+#                        matplotlib.lines.Line2D([0], [0], color='cornflowerblue', lw=4, 
+#                                             label='Day 2: 09.08')]                
+#     plt.legend(handles=legend_elements, fontsize=36, loc='upper right');
+
+#     plt.savefig('{}/inliers_box_lighting_linear.png'.format(results_dir), 
+#                 bbox_inches='tight', format='png')
+#     plt.savefig('{}/inliers_box_lighting_linear.pdf'.format(results_dir), 
+#                 bbox_inches='tight', format='pdf')
+#     plt.savefig('{}/inliers_box_lighting_linear.svg'.format(results_dir), 
+#                 bbox_inches='tight', format='svg')
+#     plt.close()
+
+def plot_box_linear(times, inliers, day1, ignore_labels, results_dir):
+
+    plt.rcParams['text.latex.preamble']=[r"\usepackage{lmodern}"]
+    params = {'text.usetex' : True,
+              'font.size' : 40,                   # Set font size to 11pt
+              'axes.labelsize': 40,               # -> axis labels
+              'legend.fontsize': 40,              # -> legends
+              'xtick.labelsize' : 40,
+              'ytick.labelsize' : 40,
+              'font.family' : 'lmodern',
+              'text.latex.unicode': True,
+              }
+    plt.rcParams.update(params) 
+
+    ############### Plot box plot of inliers for each repeat ###################
+
+    f = plt.figure(figsize=(30, 6))
+    f.tight_layout(rect=[0, 0.03, 1, 0.95])
+
+    times_sorted = times[:]
+    inliers_map = {}
+    day_map = {}
+    for i in range(len(times)):
+        inliers_map[times[i]] = inliers[i]
+        day_map[times[i]] = day1[i]
+
+    times_sorted.sort()
+
+    inliers_day1 = []
+    positions_day1 = [] 
+    x_labels_day1 = []
+    inliers_day2 = []
+    positions_day2 = [] 
+    x_labels_day2 = []
+    
+    x = date2num(times)
+    first = min(times)
+
+    ind = 0
+    for i in range(len(times_sorted)):
+        if day_map[times_sorted[i]]:
+            inliers_day1.append(inliers_map[times_sorted[i]])
+            x_labels_day1.append(times_sorted[i].strftime('%H:%M'))
+            positions_day1.append(i)
+        else:
+            inliers_day2.append(inliers_map[times_sorted[i]])
+            x_labels_day2.append(times_sorted[i].strftime('%H:%M'))
+            positions_day2.append(i)
+        
+        ind += 1
+
+  
+    p1 = plt.boxplot(inliers_day1, 
+                    positions=positions_day1,
+                    sym='', 
+                    labels=x_labels_day1, 
+                    patch_artist=True,
+                    widths=0.6,
+                    boxprops={'facecolor':'teal', 'linewidth':3},
+                    whiskerprops={'color':'black', 'linewidth':3},
+                    medianprops={'color':'black', 'linewidth':3})
+
+    p2 = plt.boxplot(inliers_day2, 
+                    positions=positions_day2,
+                    sym='', 
+                    labels=x_labels_day2, 
+                    patch_artist=True,
+                    widths=0.6,
+                    boxprops={'facecolor':'cornflowerblue', 'linewidth':3},
+                    whiskerprops={'color':'black', 'linewidth':3},
+                    medianprops={'color':'black', 'linewidth':3})
+
+    plt.axhline(y=6.0, color='red', linewidth='2', linestyle='--')
+           
+    plt.xticks(rotation=-75)
+    plt.xlabel(r'\textbf{Repeat time (hh:mm)}', fontsize=30) 
+    plt.ylabel(r'\textbf{Number of inliers}', fontsize=30)
+    plt.xticks(fontsize=28) 
+    plt.yticks(fontsize=28) 
+    plt.xlim([-0.5, len(times) - 0.5])
+    # plt.xlim([-15.0, max(positions_day1) + 15.0])
+
+    legend_elements = [matplotlib.lines.Line2D([0], [0], color='teal', lw=4, 
+                                            label='Day 1: 03.08'),
+                       matplotlib.lines.Line2D([0], [0], color='cornflowerblue', lw=4, 
+                                            label='Day 2: 09.08')]                
+    plt.legend(handles=legend_elements, fontsize=28, loc='upper right');
+
+    plt.savefig('{}/inliers_box_lighting_linear_narrow.png'.format(results_dir), 
+                bbox_inches='tight', format='png')
+    plt.savefig('{}/inliers_box_lighting_linear_narrow.pdf'.format(results_dir), 
+                bbox_inches='tight', format='pdf')
+    plt.savefig('{}/inliers_box_lighting_linear_narrow.svg'.format(results_dir), 
+                bbox_inches='tight', format='svg')
     plt.close()
 
 
-def plot_box(times, inliers, day1, results_dir):
+def plot_box(times, inliers, day1, results_dir, ignore_labels):
 
     plt.rcParams['text.latex.preamble']=[r"\usepackage{lmodern}"]
     params = {'text.usetex' : True,
@@ -164,20 +357,27 @@ def plot_box(times, inliers, day1, results_dir):
     for i in range(len(times)):
         if day1[i]:
             inliers_day1.append(inliers[i])
-            x_labels_day1.append(times[i].strftime('%H:%M'))
+            if ignore_labels[i]:
+                x_labels_day1.append('')
+            else:
+                x_labels_day1.append(times[i].strftime('%H:%M'))
             positions_day1.append((times[i] - first).seconds / 60.0)
         else:
             inliers_day2.append(inliers[i])
-            x_labels_day2.append(times[i].strftime('%H:%M'))
+            if ignore_labels[i]:
+                x_labels_day2.append('')
+            else:
+                x_labels_day2.append(times[i].strftime('%H:%M'))
             positions_day2.append((times[i] - first).seconds / 60.0)
         ind += 1
-   
+
+  
     p1 = plt.boxplot(inliers_day1, 
                     positions=positions_day1,
                     sym='', 
                     labels=x_labels_day1, 
                     patch_artist=True,
-                    widths=13.0,
+                    widths=10.0,
                     boxprops={'facecolor':'teal', 'linewidth':3},
                     whiskerprops={'color':'black', 'linewidth':3},
                     medianprops={'color':'black', 'linewidth':3})
@@ -187,10 +387,30 @@ def plot_box(times, inliers, day1, results_dir):
                     sym='', 
                     labels=x_labels_day2, 
                     patch_artist=True,
-                    widths=13.0,
+                    widths=10.0,
                     boxprops={'facecolor':'cornflowerblue', 'linewidth':3},
                     whiskerprops={'color':'black', 'linewidth':3},
                     medianprops={'color':'black', 'linewidth':3})
+
+    # p1 = plt.boxplot(inliers_day1, 
+    #                 positions=positions_day1,
+    #                 sym='', 
+    #                 labels=x_labels_day1, 
+    #                 patch_artist=True,
+    #                 widths=13.0,
+    #                 boxprops={'facecolor':'teal', 'linewidth':3},
+    #                 whiskerprops={'color':'black', 'linewidth':3},
+    #                 medianprops={'color':'black', 'linewidth':3})
+
+    # p2 = plt.boxplot(inliers_day2, 
+    #                 positions=positions_day2,
+    #                 sym='', 
+    #                 labels=x_labels_day2, 
+    #                 patch_artist=True,
+    #                 widths=13.0,
+    #                 boxprops={'facecolor':'cornflowerblue', 'linewidth':3},
+    #                 whiskerprops={'color':'black', 'linewidth':3},
+    #                 medianprops={'color':'black', 'linewidth':3})
    
     plt.axhline(y=6.0, color='red', linewidth='2', linestyle='--')
            
@@ -207,10 +427,12 @@ def plot_box(times, inliers, day1, results_dir):
                                             label='Day 2: 09.08')]                
     plt.legend(handles=legend_elements, fontsize=40, loc='upper right');
 
-    # plt.savefig('{}/inliers_box_lighting.png'.format(results_dir), 
-    #             bbox_inches='tight', format='png')
-    plt.savefig('{}/inliers_box_lighting.pdf'.format(results_dir), 
+    plt.savefig('{}/inliers_box_lighting_select.png'.format(results_dir), 
+                bbox_inches='tight', format='png')
+    plt.savefig('{}/inliers_box_lighting_select.pdf'.format(results_dir), 
                 bbox_inches='tight', format='pdf')
+    plt.savefig('{}/inliers_box_lighting_select.svg'.format(results_dir), 
+                bbox_inches='tight', format='svg')
     plt.close()
 
 
@@ -320,10 +542,12 @@ def plot_cdf(times_all, inliers_all, results_dir):
              linewidth=1)
     plt.xlabel(r'\textbf{Number of inliers}', fontsize=50)
     plt.ylabel(r'\textbf{CDF, keyframes}', fontsize=50)
-    # plt.savefig('{}/inliers_cdf_lighting.png'.format(results_dir), 
-    #             bbox_inches='tight', format='png')
+    plt.savefig('{}/inliers_cdf_lighting.png'.format(results_dir), 
+                bbox_inches='tight', format='png')
     plt.savefig('{}/inliers_cdf_lighting.pdf'.format(results_dir), 
                 bbox_inches='tight', format='pdf')
+    plt.savefig('{}/inliers_cdf_lighting.svg'.format(results_dir), 
+                bbox_inches='tight', format='svg')
     plt.close()
 
     fig, ax = plt.subplots(figsize=(1, 12))
@@ -340,14 +564,16 @@ def plot_cdf(times_all, inliers_all, results_dir):
     # cbar.set_ticks([min_time_diff, max_time_diff] + ticks)
     # # cbar.set_ticklabels([min_time_diff, max_time_diff] + ticklabels)
 
-    # plt.savefig('{}/inliers_cdf_colorbar_lighting.png'.format(results_dir), 
-    #             bbox_inches='tight', format='png')
+    plt.savefig('{}/inliers_cdf_colorbar_lighting.png'.format(results_dir), 
+                bbox_inches='tight', format='png')
     plt.savefig('{}/inliers_cdf_colorbar_lighting.pdf'.format(results_dir), 
                 bbox_inches='tight', format='pdf')
+    plt.savefig('{}/inliers_cdf_colorbar_lighting.svg'.format(results_dir), 
+                bbox_inches='tight', format='svg')
     plt.close()
 
 
-def plot_data(info, ignore_runs, data_dir):
+def plot_data(info, ignore_runs, data_dir, ignore_labels):
 
     avg_inliers = []
     inliers = []
@@ -356,10 +582,13 @@ def plot_data(info, ignore_runs, data_dir):
     times_all = []
     day1 = []
     day1_all = []
+    ignore_labels_box = []
 
     for i in info.keys():
 
         dt = datetime.datetime.fromtimestamp(info[i]["timestamp"][0] / 1e9) 
+
+        print("{} - {}".format(i, dt.strftime('%H:%M')))
 
         if dt.day == 9:
             if i not in ignore_runs:
@@ -378,18 +607,25 @@ def plot_data(info, ignore_runs, data_dir):
             avg_inliers.append(sum(info[i]["inliers_rgb"]) / float(len(info[i]["inliers_rgb"])))
             times.append(dt)
 
+            if i in ignore_labels:
+                ignore_labels_box.append(True)
+            else:
+                ignore_labels_box.append(False)
+
         inliers_all.append(info[i]["inliers_rgb"])
         times_all.append(dt)            
 
     results_dir = "{}/graph.index/repeats".format(data_dir)
 
-    plot_box(times, inliers, day1, results_dir)
+    # plot_box(times, inliers, day1, results_dir, ignore_labels_box)
 
-    plot_bar(avg_inliers, times, day1, results_dir)
+    plot_box_linear(times, inliers, day1, ignore_labels, results_dir)
 
-    plot_cdf(times_all, inliers_all, results_dir)
+    # plot_bar(avg_inliers, times, day1, results_dir)
 
-    plot_quantile(times_all, inliers_all, day1_all, results_dir)
+    # plot_cdf(times_all, inliers_all, results_dir)
+
+    # plot_quantile(times_all, inliers_all, day1_all, results_dir)
 
     # plot_comp_time(avg_comp_time, times, colours, results_dir)
 
@@ -403,9 +639,13 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    ignore_runs = [4,6,31,34,35,36,39,40,10,16,21,19] #exp1 
-    # ignore_runs = []
+    # ignore_runs = [4,6,31,34,35,36,39,40,10,16,21,19] #exp1, box width=16 ot 13?
+    # ignore_runs = [4, 34, 35, 36, 39] # box width = 10
+    ignore_runs = [] # box width = 6
+
+    # ignore_labels = [4, 10, 30, 32, 34, 35, 36, 39]
+    ignore_labels = [] 
     
     info = load_data(args.path, args.numrepeats)
 
-    plot_data(info, ignore_runs, args.path);
+    plot_data(info, ignore_runs, args.path, ignore_labels);

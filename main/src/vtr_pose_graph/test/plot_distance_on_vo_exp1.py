@@ -98,7 +98,7 @@ def load_data(data_dir, num_repeats, ignore_runs, failed_runs):
     return info
 
 
-def plot_dist(dist_all, dist, times, failed, failed_ind, success_ind, results_dir):
+def plot_dist(dist, times, results_dir):
 
     plt.rcParams['text.latex.preamble']=[r"\usepackage{lmodern}"]
     params = {'text.usetex' : True,
@@ -113,50 +113,53 @@ def plot_dist(dist_all, dist, times, failed, failed_ind, success_ind, results_di
     plt.rcParams.update(params) 
 
     
-    label_names = {'total': 'Whole path',
-                   'multis': 'Area in training data - off road',
-                   'dark': 'Area in training data - on road',
-                   'new1': 'Area outside training data - off road',
-                   'new2': 'Area outside training data - on road'}
-
     f = plt.figure(figsize=(20, 12)) #
     f.tight_layout(rect=[0, 0.03, 1, 0.95])
     plot_lines = []
     labels = []
-    max_val = 0
-    min_y = 0
+    max_val = 0.0
+    min_y = 1.0
 
-    for key in dist_all.keys():
-   
-        if max(dist_all[key]) > max_val:
-            max_val = max(dist_all[key])
+    for i in range(len(dist)):
+
+  
+        if max(dist[i]) > max_val:
+            max_val = max(dist[i])
         n_bins_vis_range = 50
         n_bins_total = 50
         # n_bins_total = int((n_bins_vis_range * max_val) / 696)
 
-        values, base = np.histogram(dist_all[key], bins=n_bins_total)
+        values, base = np.histogram(dist[i], bins=n_bins_total)
         unity_values = values / values.sum()
         cumulative = np.cumsum(unity_values)
-        p = plt.plot(base[:-1], cumulative, linewidth=5)
-        plot_lines.append(p[0])
-        labels.append(label_names[key])
 
-        if key == 'new1':
-            min_y = min(cumulative)
+        min_c = min(cumulative)
 
-    plt.legend(plot_lines, labels, prop={'size': 36})
+        if (min_c > 0.0):
+
+            p = plt.plot(base[:-1], cumulative, linewidth=5)
+            plot_lines.append(p[0])
+            # labels.append(times[i].strftime("%H:%M"))
+            labels.append(times[i].strftime('%d.%m-%H:%M'))           
+
+            if min_c < min_y:
+                min_y = min(cumulative)
+
+    plt.legend(plot_lines, labels, loc='lower right', prop={'size': 36})
     plt.xlim([0, max_val])
     plt.ylim([min_y, 1])
     plt.xticks(fontsize=38)
     plt.yticks(fontsize=38)
     plt.grid(True, which='both', axis='both', color='gray', linestyle='-', 
              linewidth=1)
-    plt.xlabel(r'\textbf{Total distance on VO (metres)}', fontsize=50)
-    plt.ylabel(r'\textbf{Cumulative distributon, keyframes}', fontsize=50)
-    # plt.title(r'\textbf{Cumulative distribution of repeats with distance driven on VO}', 
-    #            fontsize=50)
-    plt.savefig('{}/cdf_distance_vo_6_seasonal.png'.format(results_dir), 
+    plt.xlabel(r'\textbf{Distance on VO (metres)}', fontsize=50)
+    plt.ylabel(r'\textbf{CDF, keyframes}', fontsize=50)
+    plt.savefig('{}/cdf_distance_vo.png'.format(results_dir), 
                 bbox_inches='tight', format='png')
+    plt.savefig('{}/cdf_distance_vo.pdf'.format(results_dir), 
+                bbox_inches='tight', format='pdf')
+    plt.savefig('{}/cdf_distance_vo.svg'.format(results_dir), 
+                bbox_inches='tight', format='svg')
     plt.close()
 
     # Create the x-axis date labels
@@ -203,40 +206,20 @@ def plot_dist(dist_all, dist, times, failed, failed_ind, success_ind, results_di
 
 def plot_data(info, data_dir, failed_runs):
 
-    dist_all = {'total':[], 'multis':[], 'new1':[], 'dark':[], 'new2':[]}
-    dist = {'total':[], 'multis':[], 'new1':[], 'dark':[], 'new2':[]}
+    dist = []
     times = [] 
-    failed = []
-    failed_ind = []
-    success_ind = []
-
+    
     ind = 0
     for i in info.keys():
-
-        # if i == month_switch:
-        #     month_switch_ind = ind
-        
-        dt = datetime.datetime.fromtimestamp(info[i]["timestamp"] / 1e9)	
-
-        for key in info[i].keys():
-            if key != 'timestamp':
-                dist_all[key] += info[i][key] 
-                dist[key] += [info[i][key]] 
-           
+       
+        dist.append(info[i]['total'])
+        dt = datetime.datetime.fromtimestamp(info[i]["timestamp"] / 1e9)           
         times.append(dt)
-
-        if i in failed_runs.keys():
-            failed.append(True)
-            failed_ind.append(ind)
-        else:
-            failed.append(False)
-            success_ind.append(ind)
-
-        ind += 1 
+ 
 
     results_dir = "{}/graph.index/repeats".format(data_dir)
 
-    plot_dist(dist_all, dist, times, failed, failed_ind, success_ind, results_dir)
+    plot_dist(dist, times, results_dir)
 
 if __name__ == "__main__":
 
@@ -250,10 +233,11 @@ if __name__ == "__main__":
 
     failed_runs = {}
 
-    ignore_runs = []
+    # ignore_runs = [10, 15, 16] #exp2
+    ignore_runs = [101]
    
     info = load_data(args.path, args.numrepeats, ignore_runs, failed_runs)
 
-    # plot_data(info, args.path, failed_runs);
+    plot_data(info, args.path, failed_runs);
 
 

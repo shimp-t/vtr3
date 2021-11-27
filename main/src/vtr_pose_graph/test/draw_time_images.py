@@ -20,8 +20,8 @@ def draw_times(img_dir):
         
         img = Image.new("RGBA", img_base.size, (255,255,255,0))
         draw_img = ImageDraw.Draw(img)
-        x, y = 305,305
-        text = "{}:{}".format(numbers[-2], numbers[-1])
+        x, y = 95,305
+        text = "{}.{}-{}:{}".format(numbers[-4], numbers[-3], numbers[-2], numbers[-1])
         fnt = ImageFont.truetype("Pillow/Tests/fonts/FreeMono.ttf", 60)
         w, h = fnt.getsize(text)
         draw_img.rectangle((x, y, x + w + 10, y + h + 10), fill=(0, 0, 0, 150))

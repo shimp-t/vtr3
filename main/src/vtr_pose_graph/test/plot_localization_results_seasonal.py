@@ -7,12 +7,12 @@ import datetime
 import argparse
 import os
 
-def load_data(data_dir, num_repeats, ignore_runs, path_indicesces, failed_runs):
+def load_data(data_dir, start, end, ignore_runs, path_indicesces, failed_runs):
 
     info = {}
     path_segments = {'multis':{}, 'new1':{}, 'dark':{}, 'new2':{}}
 
-    for i in range(1, num_repeats + 1):
+    for i in range(start, end + 1):
 
 
         results_dir = "{}/graph.index/repeats/{}/results".format(data_dir, i)
@@ -93,67 +93,16 @@ def load_data(data_dir, num_repeats, ignore_runs, path_indicesces, failed_runs):
     return info, path_segments
 
 def plot_inliers_segments(avg_inliers_segments, inliers_segments, times, failed, 
-                          results_dir, month_switch_ind, success_ind, fail_ind):
+                          results_dir, month, success_ind, fail_ind):
 
     # Create the x-axis date labels
-    x_labels_sep = []
-    x_labels_oct = []
     x_labels = []
     for i in range(len(times)):
         x_labels.append(times[i].strftime('%d.%m-%H:%M'))
 
-        if i < month_switch_ind:
-            x_labels_sep.append(times[i].strftime('%d-%H:%M'))
-        else:
-            x_labels_oct.append(times[i].strftime('%d-%H:%M'))
-
     ############### Plot box plot of inliers for each repeat ###################
-    
-    ## Plot for september, off road ##
-    f = plt.figure(figsize=(30, 12))
-    f.tight_layout(rect=[0, 0.03, 1, 0.95])
-    
-    num_repeats = len(x_labels_sep)
 
-    p1 = plt.boxplot(inliers_segments['multis'][:month_switch_ind], 
-                    positions=list(range(0, 2 * num_repeats, 2)),
-                    sym='', 
-                    labels=x_labels_sep, 
-                    patch_artist=True,
-                    boxprops={'facecolor':'teal', 'linewidth':3},
-                    whiskerprops={'color':'black', 'linewidth':3},
-                    medianprops={'color':'black', 'linewidth':3})
-
-    p2 = plt.boxplot(inliers_segments['new1'][:month_switch_ind],
-                    positions=list(range(1, 2 * num_repeats, 2)), 
-                    sym='', 
-                    labels=[''] * num_repeats, 
-                    patch_artist=True,
-                    boxprops={'facecolor':'mediumturquoise', 'linewidth':3},
-                    whiskerprops={'color':'black', 'linewidth':3},
-                    medianprops={'color':'black', 'linewidth':3})
-    
-    plt.axhline(y=6.0, color='red', linewidth='2', linestyle='--')
-
-    plt.xticks(rotation=-80)
-    plt.xlabel(r'\textbf{Repeat time (day-hh:mm)}', fontsize=50) 
-    plt.ylabel(r'\textbf{Number of inliers}', fontsize=50)
-    plt.xticks(fontsize=38) 
-    plt.yticks(fontsize=48) 
-    plt.title(r'\textbf{Matched feature inliers for each repeat - off road - September}', 
-              fontsize=50)
-
-    legend_elements = [matplotlib.lines.Line2D([0], [0], color='teal', lw=4, 
-                                            label='Area in training data'),
-                       matplotlib.lines.Line2D([0], [0], color='mediumturquoise', lw=4, 
-                                            label='Area outside training data')]                
-    plt.legend(handles=legend_elements, fontsize=36, loc='upper right');
-
-    plt.savefig('{}/inliers_box_offroad_september.png'.format(results_dir), 
-                bbox_inches='tight', format='png')
-    plt.close()
-
-    ## Plot for October, off road, need to incorporate succesful/failed runs ##
+    ## Plot for off road
     inliers_success_multis = []
     inliers_fail_multis = []
     positions_success_multis = []
@@ -169,7 +118,7 @@ def plot_inliers_segments(avg_inliers_segments, inliers_segments, times, failed,
     
     ind = 0
     for i in range(len(times)):
-        if (i in success_ind) and (i >= month_switch_ind):
+        if (i in success_ind):
             inliers_success_multis.append(inliers_segments['multis'][i])
             inliers_success_new1.append(inliers_segments['new1'][i])
             x_labels_success.append(times[i].strftime('%d-%H:%M'))
@@ -177,7 +126,7 @@ def plot_inliers_segments(avg_inliers_segments, inliers_segments, times, failed,
             positions_success_new1.append(ind+1)
             ind += 2
     
-        if (i in fail_ind) and (i >= month_switch_ind):
+        if (i in fail_ind):
             inliers_fail_multis.append(inliers_segments['multis'][i])
             inliers_fail_new1.append(inliers_segments['new1'][i])
             x_labels_fail.append(times[i].strftime('%d-%H:%M'))
@@ -187,35 +136,43 @@ def plot_inliers_segments(avg_inliers_segments, inliers_segments, times, failed,
 
     f = plt.figure(figsize=(30, 12))
     f.tight_layout(rect=[0, 0.03, 1, 0.95])
+
+    if len(inliers_success_multis) > 0:
     
-    p1 = plt.boxplot(inliers_success_multis, 
-                    positions=positions_success_multis,
-                    sym='', 
-                    labels=x_labels_success, 
-                    patch_artist=True,
-                    boxprops={'facecolor':'teal', 'linewidth':3},
-                    whiskerprops={'color':'black', 'linewidth':3},
-                    medianprops={'color':'black', 'linewidth':3})
+        p1 = plt.boxplot(inliers_success_multis, 
+                        positions=positions_success_multis,
+                        sym='', 
+                        labels=x_labels_success, 
+                        patch_artist=True,
+                        boxprops={'facecolor':'teal', 'linewidth':3},
+                        whiskerprops={'color':'black', 'linewidth':3},
+                        medianprops={'color':'black', 'linewidth':3})
 
-    p2 = plt.boxplot(inliers_success_new1, 
-                    positions=positions_success_new1,
-                    sym='', 
-                    labels=[''] * len(positions_success_new1), 
-                    patch_artist=True,
-                    boxprops={'facecolor':'mediumturquoise', 'linewidth':3},
-                    whiskerprops={'color':'black', 'linewidth':3},
-                    medianprops={'color':'black', 'linewidth':3})
+    if len(inliers_success_new1) > 0:
 
-    p3 = plt.boxplot(inliers_fail_multis,
-                    positions=positions_fail_multis, 
-                    sym='', 
-                    labels=x_labels_fail, 
-                    patch_artist=True,
-                    boxprops={'facecolor':'firebrick', 'linewidth':3},
-                    whiskerprops={'color':'black', 'linewidth':3},
-                    medianprops={'color':'black', 'linewidth':3})
+        p2 = plt.boxplot(inliers_success_new1, 
+                        positions=positions_success_new1,
+                        sym='', 
+                        labels=[''] * len(positions_success_new1), 
+                        patch_artist=True,
+                        boxprops={'facecolor':'mediumturquoise', 'linewidth':3},
+                        whiskerprops={'color':'black', 'linewidth':3},
+                        medianprops={'color':'black', 'linewidth':3})
 
-    p4 = plt.boxplot(inliers_fail_new1,
+    if len(inliers_fail_multis) > 0:
+    
+        p3 = plt.boxplot(inliers_fail_multis,
+                        positions=positions_fail_multis, 
+                        sym='', 
+                        labels=x_labels_fail, 
+                        patch_artist=True,
+                        boxprops={'facecolor':'firebrick', 'linewidth':3},
+                        whiskerprops={'color':'black', 'linewidth':3},
+                        medianprops={'color':'black', 'linewidth':3})
+
+    if len(inliers_fail_new1) > 0:
+
+        p4 = plt.boxplot(inliers_fail_new1,
                     positions=positions_fail_new1, 
                     sym='', 
                     labels=[''] * len(positions_fail_new1), 
@@ -229,66 +186,24 @@ def plot_inliers_segments(avg_inliers_segments, inliers_segments, times, failed,
     plt.xticks(rotation=-80)
     plt.xlabel(r'\textbf{Repeat time (day-hh:mm)}', fontsize=50) 
     plt.ylabel(r'\textbf{Number of inliers}', fontsize=50)
-    plt.xticks(fontsize=38) 
+    plt.xticks(fontsize=38) # oct 32 
     plt.yticks(fontsize=48) 
-    plt.title(r'\textbf{Matched feature inliers for each repeat - off road - October}', 
-              fontsize=50)
 
     legend_elements = [matplotlib.lines.Line2D([0], [0], color='teal', lw=4, 
                                             label='Area in training data (success/fail)'),
                        matplotlib.lines.Line2D([0], [0], color='mediumturquoise', lw=4, 
                                             label='Area outside training data (success/fail)')]                
-    plt.legend(handles=legend_elements, fontsize=36, loc='upper right');
+    plt.legend(handles=legend_elements, fontsize=32, loc='upper right');
 
-    plt.savefig('{}/inliers_box_offroad_october.png'.format(results_dir), 
+    plt.savefig('{}/inliers_box_offroad_seasonal_{}.png'.format(results_dir, month), 
                 bbox_inches='tight', format='png')
+    plt.savefig('{}/inliers_box_offroad_seasonal_{}.pdf'.format(results_dir, month), 
+                bbox_inches='tight', format='pdf')
+    plt.savefig('{}/inliers_box_offroad_seasonal_{}.svg'.format(results_dir, month), 
+                bbox_inches='tight', format='svg')
     plt.close()
 
-    ## Plot for september, on road ##
-    f = plt.figure(figsize=(30, 12))
-    f.tight_layout(rect=[0, 0.03, 1, 0.95])
-    
-    num_repeats = len(x_labels_sep)
-
-    p1 = plt.boxplot(inliers_segments['dark'][:month_switch_ind], 
-                    positions=list(range(0, 2 * num_repeats, 2)),
-                    sym='', 
-                    labels=x_labels_sep, 
-                    patch_artist=True,
-                    boxprops={'facecolor':'teal', 'linewidth':3},
-                    whiskerprops={'color':'black', 'linewidth':3},
-                    medianprops={'color':'black', 'linewidth':3})
-
-    p2 = plt.boxplot(inliers_segments['new2'][:month_switch_ind],
-                    positions=list(range(1, 2 * num_repeats, 2)), 
-                    sym='', 
-                    labels=[''] * num_repeats, 
-                    patch_artist=True,
-                    boxprops={'facecolor':'mediumturquoise', 'linewidth':3},
-                    whiskerprops={'color':'black', 'linewidth':3},
-                    medianprops={'color':'black', 'linewidth':3})
-    
-    plt.axhline(y=6.0, color='red', linewidth='2', linestyle='--')
-
-    plt.xticks(rotation=-80)
-    plt.xlabel(r'\textbf{Repeat time (day-hh:mm)}', fontsize=50) 
-    plt.ylabel(r'\textbf{Number of inliers}', fontsize=50)
-    plt.xticks(fontsize=38) 
-    plt.yticks(fontsize=48) 
-    plt.title(r'\textbf{Matched feature inliers for each repeat - on road - September}', 
-              fontsize=50)
-
-    legend_elements = [matplotlib.lines.Line2D([0], [0], color='teal', lw=4, 
-                                            label='Area in training data'),
-                       matplotlib.lines.Line2D([0], [0], color='mediumturquoise', lw=4, 
-                                            label='Area outside training data')]                
-    plt.legend(handles=legend_elements, fontsize=36, loc='upper right');
-
-    plt.savefig('{}/inliers_box_onroad_september.png'.format(results_dir), 
-                bbox_inches='tight', format='png')
-    plt.close()
-
-    ## Plot for October, off road, need to incorporate succesful/failed runs ##
+    ## Plot for on road ##
     inliers_success_dark = []
     inliers_fail_dark = []
     positions_success_dark = []
@@ -304,7 +219,7 @@ def plot_inliers_segments(avg_inliers_segments, inliers_segments, times, failed,
     
     ind = 0
     for i in range(len(times)):
-        if (i in success_ind) and (i >= month_switch_ind):
+        if (i in success_ind):
             inliers_success_dark.append(inliers_segments['dark'][i])
             inliers_success_new2.append(inliers_segments['new2'][i])
             x_labels_success.append(times[i].strftime('%d-%H:%M'))
@@ -312,7 +227,7 @@ def plot_inliers_segments(avg_inliers_segments, inliers_segments, times, failed,
             positions_success_new2.append(ind+1)
             ind += 2
     
-        if (i in fail_ind) and (i >= month_switch_ind):
+        if (i in fail_ind):
             inliers_fail_dark.append(inliers_segments['dark'][i])
             inliers_fail_new2.append(inliers_segments['new2'][i])
             x_labels_fail.append(times[i].strftime('%d-%H:%M'))
@@ -322,215 +237,226 @@ def plot_inliers_segments(avg_inliers_segments, inliers_segments, times, failed,
 
     f = plt.figure(figsize=(30, 12))
     f.tight_layout(rect=[0, 0.03, 1, 0.95])
+
+    if len(inliers_success_dark) > 0:
     
-    p1 = plt.boxplot(inliers_success_dark, 
-                    positions=positions_success_dark,
-                    sym='', 
-                    labels=x_labels_success, 
-                    patch_artist=True,
-                    boxprops={'facecolor':'teal', 'linewidth':3},
-                    whiskerprops={'color':'black', 'linewidth':3},
-                    medianprops={'color':'black', 'linewidth':3})
+        p1 = plt.boxplot(inliers_success_dark, 
+                        positions=positions_success_dark,
+                        sym='', 
+                        labels=x_labels_success, 
+                        patch_artist=True,
+                        boxprops={'facecolor':'teal', 'linewidth':3},
+                        whiskerprops={'color':'black', 'linewidth':3},
+                        medianprops={'color':'black', 'linewidth':3})
 
-    p2 = plt.boxplot(inliers_success_new2, 
-                    positions=positions_success_new2,
-                    sym='', 
-                    labels=[''] * len(positions_success_new2), 
-                    patch_artist=True,
-                    boxprops={'facecolor':'mediumturquoise', 'linewidth':3},
-                    whiskerprops={'color':'black', 'linewidth':3},
-                    medianprops={'color':'black', 'linewidth':3})
+    if len(inliers_success_new2) > 0:
 
-    p3 = plt.boxplot(inliers_fail_dark,
-                    positions=positions_fail_dark, 
-                    sym='', 
-                    labels=x_labels_fail, 
-                    patch_artist=True,
-                    boxprops={'facecolor':'firebrick', 'linewidth':3},
-                    whiskerprops={'color':'black', 'linewidth':3},
-                    medianprops={'color':'black', 'linewidth':3})
+        p2 = plt.boxplot(inliers_success_new2, 
+                        positions=positions_success_new2,
+                        sym='', 
+                        labels=[''] * len(positions_success_new2), 
+                        patch_artist=True,
+                        boxprops={'facecolor':'mediumturquoise', 'linewidth':3},
+                        whiskerprops={'color':'black', 'linewidth':3},
+                        medianprops={'color':'black', 'linewidth':3})
 
-    p4 = plt.boxplot(inliers_fail_new2,
-                    positions=positions_fail_new2, 
-                    sym='', 
-                    labels=[''] * len(positions_fail_new2), 
-                    patch_artist=True,
-                    boxprops={'facecolor':'lightcoral', 'linewidth':3},
-                    whiskerprops={'color':'black', 'linewidth':3},
-                    medianprops={'color':'black', 'linewidth':3})
+    if len(inliers_fail_dark) > 0:
+
+        p3 = plt.boxplot(inliers_fail_dark,
+                        positions=positions_fail_dark, 
+                        sym='', 
+                        labels=x_labels_fail, 
+                        patch_artist=True,
+                        boxprops={'facecolor':'firebrick', 'linewidth':3},
+                        whiskerprops={'color':'black', 'linewidth':3},
+                        medianprops={'color':'black', 'linewidth':3})
+
+    if len(inliers_fail_new2) > 0:
+
+        p4 = plt.boxplot(inliers_fail_new2,
+                        positions=positions_fail_new2, 
+                        sym='', 
+                        labels=[''] * len(positions_fail_new2), 
+                        patch_artist=True,
+                        boxprops={'facecolor':'lightcoral', 'linewidth':3},
+                        whiskerprops={'color':'black', 'linewidth':3},
+                        medianprops={'color':'black', 'linewidth':3})
     
     plt.axhline(y=6.0, color='red', linewidth='2', linestyle='--')
 
     plt.xticks(rotation=-80)
     plt.xlabel(r'\textbf{Repeat time (day-hh:mm)}', fontsize=50) 
     plt.ylabel(r'\textbf{Number of inliers}', fontsize=50)
-    plt.xticks(fontsize=38) 
+    plt.xticks(fontsize=38) #oct 32 
     plt.yticks(fontsize=48) 
-    plt.title(r'\textbf{Matched feature inliers for each repeat - on road - October}', 
-              fontsize=50)
 
     legend_elements = [matplotlib.lines.Line2D([0], [0], color='teal', lw=4, 
                                             label='Area in training data (success/fail)'),
                        matplotlib.lines.Line2D([0], [0], color='mediumturquoise', lw=4, 
                                             label='Area outside training data (success/fail)')]                
-    plt.legend(handles=legend_elements, fontsize=36, loc='upper right');
+    plt.legend(handles=legend_elements, fontsize=32, loc='upper right');
 
-    plt.savefig('{}/inliers_box_onroad_october.png'.format(results_dir), 
+    plt.savefig('{}/inliers_box_onroad_seasonal_{}.png'.format(results_dir, month), 
                 bbox_inches='tight', format='png')
+    plt.savefig('{}/inliers_box_onroad_seasonal_{}.pdf'.format(results_dir, month), 
+                bbox_inches='tight', format='pdf')
+    plt.savefig('{}/inliers_box_onroad_seasonal_{}.svg'.format(results_dir, month), 
+                bbox_inches='tight', format='svg')
     plt.close()
 
     ############# Plot bar plot of average inliers for each repeat #############
     
-    ## September, off road ##
-    f = plt.figure(figsize=(30, 12))
-    f.tight_layout(rect=[0, 0.03, 1, 0.95])
+    # ## September, off road ##
+    # f = plt.figure(figsize=(30, 12))
+    # f.tight_layout(rect=[0, 0.03, 1, 0.95])
     
-    num_repeats = len(x_labels_sep)
-    p1 = plt.bar(list(range(0, 2 * num_repeats, 2)), 
-                 avg_inliers_segments['multis'][:month_switch_ind],
-                 tick_label=x_labels_sep)
-    p2 = plt.bar(list(range(1, 2 * num_repeats, 2)), 
-                 avg_inliers_segments['new1'][:month_switch_ind])
+    # num_repeats = len(x_labels_sep)
+    # p1 = plt.bar(list(range(0, 2 * num_repeats, 2)), 
+    #              avg_inliers_segments['multis'][:month_switch_ind],
+    #              tick_label=x_labels_sep)
+    # p2 = plt.bar(list(range(1, 2 * num_repeats, 2)), 
+    #              avg_inliers_segments['new1'][:month_switch_ind])
     
-    for i in range(len(p1)):
-        p1[i].set_color('teal')
-        p2[i].set_color('mediumturquoise')
+    # for i in range(len(p1)):
+    #     p1[i].set_color('teal')
+    #     p2[i].set_color('mediumturquoise')
 
-    plt.xticks(rotation=-80)
-    plt.xlabel(r'\textbf{Repeat time (day-hh:mm)}', fontsize=50) 
-    plt.ylabel(r'\textbf{Number of inliers}', fontsize=50)
-    plt.xticks(fontsize=30) 
-    plt.yticks(fontsize=48) 
-    plt.ylim([min(avg_inliers_segments['new1'][:month_switch_ind]) - 10, 
-              max(avg_inliers_segments['multis'][:month_switch_ind]) + 10])
-    plt.title(r'\textbf{Mean matched feature inliers for each repeat - off road - September}', 
-              fontsize=50)
+    # plt.xticks(rotation=-80)
+    # plt.xlabel(r'\textbf{Repeat time (day-hh:mm)}', fontsize=50) 
+    # plt.ylabel(r'\textbf{Number of inliers}', fontsize=50)
+    # plt.xticks(fontsize=30) 
+    # plt.yticks(fontsize=48) 
+    # plt.ylim([min(avg_inliers_segments['new1'][:month_switch_ind]) - 10, 
+    #           max(avg_inliers_segments['multis'][:month_switch_ind]) + 10])
+    # plt.title(r'\textbf{Mean matched feature inliers for each repeat - off road - September}', 
+    #           fontsize=50)
 
-    legend_elements = [matplotlib.lines.Line2D([0], [0], color='teal', lw=4, 
-                                            label='Area in training data'),
-                       matplotlib.lines.Line2D([0], [0], color='mediumturquoise', lw=4, 
-                                            label='Area outside training data')]                
-    plt.legend(handles=legend_elements, fontsize=36, loc='upper right');
+    # legend_elements = [matplotlib.lines.Line2D([0], [0], color='teal', lw=4, 
+    #                                         label='Area in training data'),
+    #                    matplotlib.lines.Line2D([0], [0], color='mediumturquoise', lw=4, 
+    #                                         label='Area outside training data')]                
+    # plt.legend(handles=legend_elements, fontsize=36, loc='upper right');
 
-    plt.savefig('{}/inliers_mean_offroad_september.png'.format(results_dir), 
-                bbox_inches='tight', format='png')
-    plt.close()
+    # plt.savefig('{}/inliers_mean_offroad_september.png'.format(results_dir), 
+    #             bbox_inches='tight', format='png')
+    # plt.close()
 
-    ## October, off road ##
-    f = plt.figure(figsize=(30, 12))
-    f.tight_layout(rect=[0, 0.03, 1, 0.95])
+    # ## October, off road ##
+    # f = plt.figure(figsize=(30, 12))
+    # f.tight_layout(rect=[0, 0.03, 1, 0.95])
     
-    num_repeats = len(x_labels_oct)
-    p1 = plt.bar(list(range(0, 2 * num_repeats, 2)), 
-                 avg_inliers_segments['multis'][month_switch_ind:],
-                 tick_label=x_labels_oct)
-    p2 = plt.bar(list(range(1, 2 * num_repeats, 2)), 
-                 avg_inliers_segments['new1'][month_switch_ind:])
+    # num_repeats = len(x_labels_oct)
+    # p1 = plt.bar(list(range(0, 2 * num_repeats, 2)), 
+    #              avg_inliers_segments['multis'][month_switch_ind:],
+    #              tick_label=x_labels_oct)
+    # p2 = plt.bar(list(range(1, 2 * num_repeats, 2)), 
+    #              avg_inliers_segments['new1'][month_switch_ind:])
     
-    for i in range(len(p1)):
-        if failed[month_switch_ind:][i]:
-            p1[i].set_color('firebrick')
-            p2[i].set_color('lightcoral')
-        else:
-            p1[i].set_color('teal')
-            p2[i].set_color('mediumturquoise')
+    # for i in range(len(p1)):
+    #     if failed[month_switch_ind:][i]:
+    #         p1[i].set_color('firebrick')
+    #         p2[i].set_color('lightcoral')
+    #     else:
+    #         p1[i].set_color('teal')
+    #         p2[i].set_color('mediumturquoise')
 
-    plt.xticks(rotation=-80)
-    plt.xlabel(r'\textbf{Repeat time (day-hh:mm)}', fontsize=50) 
-    plt.ylabel(r'\textbf{Number of inliers}', fontsize=50)
-    plt.xticks(fontsize=30) 
-    plt.yticks(fontsize=48) 
-    plt.ylim([min(avg_inliers_segments['new1'][month_switch_ind:]) - 10, 
-              max(avg_inliers_segments['multis'][month_switch_ind:]) + 10])
-    plt.title(r'\textbf{Mean matched feature inliers for each repeat - off road - October}', 
-              fontsize=50)
+    # plt.xticks(rotation=-80)
+    # plt.xlabel(r'\textbf{Repeat time (day-hh:mm)}', fontsize=50) 
+    # plt.ylabel(r'\textbf{Number of inliers}', fontsize=50)
+    # plt.xticks(fontsize=30) 
+    # plt.yticks(fontsize=48) 
+    # plt.ylim([min(avg_inliers_segments['new1'][month_switch_ind:]) - 10, 
+    #           max(avg_inliers_segments['multis'][month_switch_ind:]) + 10])
+    # plt.title(r'\textbf{Mean matched feature inliers for each repeat - off road - October}', 
+    #           fontsize=50)
 
-    legend_elements = [matplotlib.lines.Line2D([0], [0], color='teal', lw=4, 
-                                            label='Area in training data (success/fail)'),
-                       matplotlib.lines.Line2D([0], [0], color='mediumturquoise', lw=4, 
-                                            label='Area outside training data (success/fail)')]                
-    plt.legend(handles=legend_elements, fontsize=36, loc='upper right');
+    # legend_elements = [matplotlib.lines.Line2D([0], [0], color='teal', lw=4, 
+    #                                         label='Area in training data (success/fail)'),
+    #                    matplotlib.lines.Line2D([0], [0], color='mediumturquoise', lw=4, 
+    #                                         label='Area outside training data (success/fail)')]                
+    # plt.legend(handles=legend_elements, fontsize=36, loc='upper right');
 
-    plt.savefig('{}/inliers_mean_offroad_october.png'.format(results_dir), 
-                bbox_inches='tight', format='png')
-    plt.close()
+    # plt.savefig('{}/inliers_mean_offroad_october.png'.format(results_dir), 
+    #             bbox_inches='tight', format='png')
+    # plt.close()
 
-    ## September, on road ##
-    f = plt.figure(figsize=(30, 12))
-    f.tight_layout(rect=[0, 0.03, 1, 0.95])
+    # ## September, on road ##
+    # f = plt.figure(figsize=(30, 12))
+    # f.tight_layout(rect=[0, 0.03, 1, 0.95])
     
-    num_repeats = len(x_labels_sep)
-    p1 = plt.bar(list(range(0, 2 * num_repeats, 2)), 
-                 avg_inliers_segments['dark'][:month_switch_ind],
-                 tick_label=x_labels_sep)
-    p2 = plt.bar(list(range(1, 2 * num_repeats, 2)), 
-                 avg_inliers_segments['new2'][:month_switch_ind])
+    # num_repeats = len(x_labels_sep)
+    # p1 = plt.bar(list(range(0, 2 * num_repeats, 2)), 
+    #              avg_inliers_segments['dark'][:month_switch_ind],
+    #              tick_label=x_labels_sep)
+    # p2 = plt.bar(list(range(1, 2 * num_repeats, 2)), 
+    #              avg_inliers_segments['new2'][:month_switch_ind])
     
-    for i in range(len(p1)):
-        p1[i].set_color('teal')
-        p2[i].set_color('mediumturquoise')
+    # for i in range(len(p1)):
+    #     p1[i].set_color('teal')
+    #     p2[i].set_color('mediumturquoise')
 
-    plt.xticks(rotation=-80)
-    plt.xlabel(r'\textbf{Repeat time (day-hh:mm)}', fontsize=50) 
-    plt.ylabel(r'\textbf{Number of inliers}', fontsize=50)
-    plt.xticks(fontsize=30) 
-    plt.yticks(fontsize=48) 
-    plt.ylim([min(avg_inliers_segments['dark'][:month_switch_ind]) - 10, 
-              max(avg_inliers_segments['new2'][:month_switch_ind]) + 10])
-    plt.title(r'\textbf{Mean matched feature inliers for each repeat - on road - September}', 
-              fontsize=50)
+    # plt.xticks(rotation=-80)
+    # plt.xlabel(r'\textbf{Repeat time (day-hh:mm)}', fontsize=50) 
+    # plt.ylabel(r'\textbf{Number of inliers}', fontsize=50)
+    # plt.xticks(fontsize=30) 
+    # plt.yticks(fontsize=48) 
+    # plt.ylim([min(avg_inliers_segments['dark'][:month_switch_ind]) - 10, 
+    #           max(avg_inliers_segments['new2'][:month_switch_ind]) + 10])
+    # plt.title(r'\textbf{Mean matched feature inliers for each repeat - on road - September}', 
+    #           fontsize=50)
 
-    legend_elements = [matplotlib.lines.Line2D([0], [0], color='teal', lw=4, 
-                                            label='Area in training data'),
-                       matplotlib.lines.Line2D([0], [0], color='mediumturquoise', lw=4, 
-                                            label='Area outside training data')]                
-    plt.legend(handles=legend_elements, fontsize=36, loc='upper right');
+    # legend_elements = [matplotlib.lines.Line2D([0], [0], color='teal', lw=4, 
+    #                                         label='Area in training data'),
+    #                    matplotlib.lines.Line2D([0], [0], color='mediumturquoise', lw=4, 
+    #                                         label='Area outside training data')]                
+    # plt.legend(handles=legend_elements, fontsize=36, loc='upper right');
 
-    plt.savefig('{}/inliers_mean_onroad_september.png'.format(results_dir), 
-                bbox_inches='tight', format='png')
-    plt.close()
+    # plt.savefig('{}/inliers_mean_onroad_september.png'.format(results_dir), 
+    #             bbox_inches='tight', format='png')
+    # plt.close()
 
-    ## October, off road ##
-    f = plt.figure(figsize=(30, 12))
-    f.tight_layout(rect=[0, 0.03, 1, 0.95])
+    # ## October, off road ##
+    # f = plt.figure(figsize=(30, 12))
+    # f.tight_layout(rect=[0, 0.03, 1, 0.95])
     
-    num_repeats = len(x_labels_oct)
-    p1 = plt.bar(list(range(0, 2 * num_repeats, 2)), 
-                 avg_inliers_segments['dark'][month_switch_ind:],
-                 tick_label=x_labels_oct)
-    p2 = plt.bar(list(range(1, 2 * num_repeats, 2)), 
-                 avg_inliers_segments['new2'][month_switch_ind:])
+    # num_repeats = len(x_labels_oct)
+    # p1 = plt.bar(list(range(0, 2 * num_repeats, 2)), 
+    #              avg_inliers_segments['dark'][month_switch_ind:],
+    #              tick_label=x_labels_oct)
+    # p2 = plt.bar(list(range(1, 2 * num_repeats, 2)), 
+    #              avg_inliers_segments['new2'][month_switch_ind:])
     
-    for i in range(len(p1)):
-        if failed[month_switch_ind:][i]:
-            p1[i].set_color('firebrick')
-            p2[i].set_color('lightcoral')
-        else:
-            p1[i].set_color('teal')
-            p2[i].set_color('mediumturquoise')
+    # for i in range(len(p1)):
+    #     if failed[month_switch_ind:][i]:
+    #         p1[i].set_color('firebrick')
+    #         p2[i].set_color('lightcoral')
+    #     else:
+    #         p1[i].set_color('teal')
+    #         p2[i].set_color('mediumturquoise')
 
-    plt.xticks(rotation=-80)
-    plt.xlabel(r'\textbf{Repeat time (day-hh:mm)}', fontsize=50) 
-    plt.ylabel(r'\textbf{Number of inliers}', fontsize=50)
-    plt.xticks(fontsize=30) 
-    plt.yticks(fontsize=48) 
-    plt.ylim([min(avg_inliers_segments['dark'][month_switch_ind:]) - 10, 
-              max(avg_inliers_segments['new2'][month_switch_ind:]) + 10])
-    plt.title(r'\textbf{Mean matched feature inliers for each repeat - on road - October}', 
-              fontsize=50)
+    # plt.xticks(rotation=-80)
+    # plt.xlabel(r'\textbf{Repeat time (day-hh:mm)}', fontsize=50) 
+    # plt.ylabel(r'\textbf{Number of inliers}', fontsize=50)
+    # plt.xticks(fontsize=30) 
+    # plt.yticks(fontsize=48) 
+    # plt.ylim([min(avg_inliers_segments['dark'][month_switch_ind:]) - 10, 
+    #           max(avg_inliers_segments['new2'][month_switch_ind:]) + 10])
+    # plt.title(r'\textbf{Mean matched feature inliers for each repeat - on road - October}', 
+    #           fontsize=50)
 
-    legend_elements = [matplotlib.lines.Line2D([0], [0], color='teal', lw=4, 
-                                            label='Area in training data (success/fail)'),
-                       matplotlib.lines.Line2D([0], [0], color='mediumturquoise', lw=4, 
-                                            label='Area outside training data (success/fail)')]                
-    plt.legend(handles=legend_elements, fontsize=36, loc='upper right');
+    # legend_elements = [matplotlib.lines.Line2D([0], [0], color='teal', lw=4, 
+    #                                         label='Area in training data (success/fail)'),
+    #                    matplotlib.lines.Line2D([0], [0], color='mediumturquoise', lw=4, 
+    #                                         label='Area outside training data (success/fail)')]                
+    # plt.legend(handles=legend_elements, fontsize=36, loc='upper right');
 
-    plt.savefig('{}/inliers_mean_onroad_october.png'.format(results_dir), 
-                bbox_inches='tight', format='png')
-    plt.close()
+    # plt.savefig('{}/inliers_mean_onroad_october.png'.format(results_dir), 
+    #             bbox_inches='tight', format='png')
+    # plt.close()
+
 
 def plot_inliers(avg_inliers, times, inliers, colours, failed, fail_ind, 
-                 success_ind, results_dir, month_switch_ind, selected_runs):
+                 success_ind, results_dir, month, selected_runs):
 
     plt.rcParams['text.latex.preamble']=[r"\usepackage{lmodern}"]
     params = {'text.usetex' : True,
@@ -546,50 +472,6 @@ def plot_inliers(avg_inliers, times, inliers, colours, failed, fail_ind,
 
     ############### Plot box plot of inliers for each repeat ###################
     
-    ## September ##
-    f = plt.figure(figsize=(30, 13))
-    f.tight_layout(rect=[0, 0.03, 1, 0.95])
-
-    inliers_success = []
-    positions_success = [] 
-    x_labels_success = []
-    
-    ind = 0
-    for i in range(len(times)):
-        if (i in success_ind) and (i < month_switch_ind):
-            inliers_success.append(inliers[i])
-            x_labels_success.append(times[i].strftime('%d-%H:%M'))
-            positions_success.append(ind)
-            ind += 1
-    
-    p1 = plt.boxplot(inliers_success, 
-                    positions=positions_success,
-                    sym='', 
-                    labels=x_labels_success, 
-                    patch_artist=True,
-                    boxprops={'facecolor':'teal', 'linewidth':3},
-                    whiskerprops={'color':'black', 'linewidth':3},
-                    medianprops={'color':'black', 'linewidth':3})
-
-   
-    plt.axhline(y=6.0, color='red', linewidth='2', linestyle='--')
-            
-    plt.xticks(rotation=-75)
-    plt.xlabel(r'\textbf{Repeat time (day-hh:mm)}', fontsize=50) 
-    plt.ylabel(r'\textbf{Number of inliers}', fontsize=50)
-    plt.xticks(fontsize=30) 
-    plt.yticks(fontsize=48) 
-    plt.title(r'\textbf{Matched feature inliers - September', fontsize=50)
-
-    legend_elements = [matplotlib.lines.Line2D([0], [0], color='teal', lw=4, 
-                                            label='Successful run')]                
-    plt.legend(handles=legend_elements, fontsize=32, loc='upper right');
-
-    plt.savefig('{}/inliers_box_september_seasonal.png'.format(results_dir), 
-                bbox_inches='tight', format='png')
-    plt.close()
-
-    ## October ##
     f = plt.figure(figsize=(30, 13))
     f.tight_layout(rect=[0, 0.03, 1, 0.95])
 
@@ -600,47 +482,50 @@ def plot_inliers(avg_inliers, times, inliers, colours, failed, fail_ind,
     
     x_labels_success = []
     x_labels_fail = []
-    
+   
     ind = 0
     for i in range(len(times)):
-        if (i in success_ind) and (i >= month_switch_ind):
+        if (i in success_ind):
             inliers_success.append(inliers[i])
             x_labels_success.append(times[i].strftime('%d-%H:%M'))
             positions_success.append(ind)
             ind += 1
     
-        if (i in fail_ind) and (i >= month_switch_ind):
+        if (i in fail_ind):
             inliers_fail.append(inliers[i])
             x_labels_fail.append(times[i].strftime('%d-%H:%M'))
             positions_fail.append(ind)
             ind += 1
-    
-    p1 = plt.boxplot(inliers_success, 
-                    positions=positions_success,
-                    sym='', 
-                    labels=x_labels_success, 
-                    patch_artist=True,
-                    boxprops={'facecolor':'teal', 'linewidth':3},
-                    whiskerprops={'color':'black', 'linewidth':3},
-                    medianprops={'color':'black', 'linewidth':3})
 
-    p2 = plt.boxplot(inliers_fail, 
-                    positions=positions_fail,
-                    sym='', 
-                    labels=x_labels_fail, 
-                    patch_artist=True,
-                    boxprops={'facecolor':'firebrick', 'linewidth':3},
-                    whiskerprops={'color':'black', 'linewidth':3},
-                    medianprops={'color':'black', 'linewidth':3})
+    if len(inliers_success) > 0:
+    
+        p1 = plt.boxplot(inliers_success, 
+                        positions=positions_success,
+                        sym='', 
+                        labels=x_labels_success, 
+                        patch_artist=True,
+                        boxprops={'facecolor':'teal', 'linewidth':3},
+                        whiskerprops={'color':'black', 'linewidth':3},
+                        medianprops={'color':'black', 'linewidth':3})
+
+    if len(inliers_fail) > 0:
+
+        p2 = plt.boxplot(inliers_fail, 
+                        positions=positions_fail,
+                        sym='', 
+                        labels=x_labels_fail, 
+                        patch_artist=True,
+                        boxprops={'facecolor':'firebrick', 'linewidth':3},
+                        whiskerprops={'color':'black', 'linewidth':3},
+                        medianprops={'color':'black', 'linewidth':3})
     
     plt.axhline(y=6.0, color='red', linewidth='2', linestyle='--')
             
     plt.xticks(rotation=-75)
     plt.xlabel(r'\textbf{Repeat time (day-hh:mm)}', fontsize=50) 
     plt.ylabel(r'\textbf{Number of inliers}', fontsize=50)
-    plt.xticks(fontsize=30) 
+    plt.xticks(fontsize=38) #oct 32 
     plt.yticks(fontsize=48) 
-    plt.title(r'\textbf{Matched feature inliers - October', fontsize=50)
 
     legend_elements = [matplotlib.lines.Line2D([0], [0], color='teal', lw=4, 
                                             label='Successful run'),
@@ -648,113 +533,210 @@ def plot_inliers(avg_inliers, times, inliers, colours, failed, fail_ind,
                                             label='Run with failure')]                
     plt.legend(handles=legend_elements, fontsize=32, loc='upper right');
 
-    plt.savefig('{}/inliers_box_october_seasonal.png'.format(results_dir), 
+    plt.savefig('{}/inliers_box_seasonal_{}.png'.format(results_dir, month), 
                 bbox_inches='tight', format='png')
+    plt.savefig('{}/inliers_box_seasonal_{}.pdf'.format(results_dir, month), 
+                bbox_inches='tight', format='pdf')
+    plt.savefig('{}/inliers_box_seasonal_{}.svg'.format(results_dir, month), 
+                bbox_inches='tight', format='svg')
     plt.close()
+
+    ## November ##
+    # f = plt.figure(figsize=(30, 13))
+    # f.tight_layout(rect=[0, 0.03, 1, 0.95])
+
+    # inliers_success = []
+    # inliers_fail = []
+    # positions_success = []
+    # positions_fail = []  
+    
+    # x_labels_success = []
+    # x_labels_fail = []
+    
+    # ind = 0
+    # for i in range(len(times)):
+    #     if (i in success_ind) and (i >= month_switch_ind_nov):
+    #         inliers_success.append(inliers[i])
+    #         x_labels_success.append(times[i].strftime('%d-%H:%M'))
+    #         positions_success.append(ind)
+    #         ind += 1
+    
+    #     if (i in fail_ind) and (i >= month_switch_ind_nov):
+    #         inliers_fail.append(inliers[i])
+    #         x_labels_fail.append(times[i].strftime('%d-%H:%M'))
+    #         positions_fail.append(ind)
+    #         ind += 1
+    
+    # p1 = plt.boxplot(inliers_success, 
+    #                 positions=positions_success,
+    #                 sym='', 
+    #                 widths=0.5,
+    #                 labels=x_labels_success, 
+    #                 patch_artist=True,
+    #                 boxprops={'facecolor':'teal', 'linewidth':3},
+    #                 whiskerprops={'color':'black', 'linewidth':3},
+    #                 medianprops={'color':'black', 'linewidth':3})
+
+    # p2 = plt.boxplot(inliers_fail, 
+    #                 positions=positions_fail,
+    #                 widths=0.5,
+    #                 sym='', 
+    #                 labels=x_labels_fail, 
+    #                 patch_artist=True,
+    #                 boxprops={'facecolor':'firebrick', 'linewidth':3},
+    #                 whiskerprops={'color':'black', 'linewidth':3},
+    #                 medianprops={'color':'black', 'linewidth':3})
+    
+    # plt.axhline(y=6.0, color='red', linewidth='2', linestyle='--')
+            
+    # plt.xticks(rotation=-75)
+    # plt.xlabel(r'\textbf{Repeat time (day-hh:mm)}', fontsize=50) 
+    # plt.ylabel(r'\textbf{Number of inliers}', fontsize=50)
+    # plt.xticks(fontsize=30) 
+    # plt.yticks(fontsize=48) 
+
+    # legend_elements = [matplotlib.lines.Line2D([0], [0], color='teal', lw=4, 
+    #                                         label='Successful run'),
+    #                    matplotlib.lines.Line2D([0], [0], color='firebrick', lw=4, 
+    #                                         label='Run with failure')]                
+    # plt.legend(handles=legend_elements, fontsize=32, loc='upper right');
+
+    # plt.savefig('{}/inliers_box_november_seasonal.png'.format(results_dir), 
+    #             bbox_inches='tight', format='png')
+    # plt.savefig('{}/inliers_box_november_seasonal.pdf'.format(results_dir), 
+    #             bbox_inches='tight', format='pdf')
+    # plt.savefig('{}/inliers_box_november_seasonal.svg'.format(results_dir), 
+    #             bbox_inches='tight', format='svg')
+    # plt.close()
 
     ############# Plot bar plot of average inliers for each repeat #############
     
     ## September##
-    f = plt.figure(figsize=(30, 12))
-    f.tight_layout(rect=[0, 0.03, 1, 0.95])
+    # f = plt.figure(figsize=(30, 12))
+    # f.tight_layout(rect=[0, 0.03, 1, 0.95])
 
-    x_labels = []
-    for i in range(len(times)):
-        x_labels.append(times[i].strftime('%d-%H:%M'))
+    # x_labels = []
+    # for i in range(len(times)):
+    #     x_labels.append(times[i].strftime('%d-%H:%M'))
     
-    p = plt.bar(x_labels[:month_switch_ind], avg_inliers[:month_switch_ind])
+    # p = plt.bar(x_labels[:month_switch_ind], avg_inliers[:month_switch_ind])
 
-    for i in range(len(p)):
-        p[i].set_color('teal')
+    # for i in range(len(p)):
+    #     p[i].set_color('teal')
 
-    plt.xticks(rotation=-75)
-    plt.xlabel(r'\textbf{Repeat time (day.month-hh:mm)}', fontsize=50) 
-    plt.ylabel(r'\textbf{Number of inliers}', fontsize=50)
-    plt.xticks(fontsize=38) 
-    plt.yticks(fontsize=48) 
-    plt.ylim([min(avg_inliers) - 10, max(avg_inliers) + 10])
-    plt.title(r'\textbf{Mean matched feature inliers - September}', 
-              fontsize=50)
+    # plt.xticks(rotation=-75)
+    # plt.xlabel(r'\textbf{Repeat time (day.month-hh:mm)}', fontsize=50) 
+    # plt.ylabel(r'\textbf{Number of inliers}', fontsize=50)
+    # plt.xticks(fontsize=38) 
+    # plt.yticks(fontsize=48) 
+    # plt.ylim([min(avg_inliers) - 10, max(avg_inliers) + 10])
+    # plt.title(r'\textbf{Mean matched feature inliers - September}', 
+    #           fontsize=50)
 
-    legend_elements = [matplotlib.lines.Line2D([0], [0], color='teal', lw=4, 
-                                            label='Successful run')] 
-    plt.legend(handles=legend_elements, fontsize=32, loc='upper right'); 
+    # legend_elements = [matplotlib.lines.Line2D([0], [0], color='teal', lw=4, 
+    #                                         label='Successful run')] 
+    # plt.legend(handles=legend_elements, fontsize=32, loc='upper right'); 
 
-    plt.savefig('{}/inliers_mean_september_seasonal.png'.format(results_dir), 
-                bbox_inches='tight', format='png')
-    plt.close()
+    # plt.savefig('{}/inliers_mean_september_seasonal.png'.format(results_dir), 
+    #             bbox_inches='tight', format='png')
+    # plt.close()
 
-    failed_oct = []
-    for i in range(len(times)):
-        if (i >= month_switch_ind):
-            failed_oct.append(failed[i])
+    # failed_oct = []
+    # for i in range(len(times)):
+    #     if (i >= month_switch_ind):
+    #         failed_oct.append(failed[i])
 
-    f = plt.figure(figsize=(30, 12))
-    f.tight_layout(rect=[0, 0.03, 1, 0.95])
+    # f = plt.figure(figsize=(30, 12))
+    # f.tight_layout(rect=[0, 0.03, 1, 0.95])
     
-    p = plt.bar(x_labels[month_switch_ind:], avg_inliers[month_switch_ind:])
+    # p = plt.bar(x_labels[month_switch_ind:], avg_inliers[month_switch_ind:])
 
-    for i in range(len(p)):
-        if failed_oct[i]:
-            p[i].set_color('firebrick')
-        else:
-            p[i].set_color('teal')
+    # for i in range(len(p)):
+    #     if failed_oct[i]:
+    #         p[i].set_color('firebrick')
+    #     else:
+    #         p[i].set_color('teal')
 
-    plt.xticks(rotation=-75)
-    plt.xlabel(r'\textbf{Repeat time (day.month-hh:mm)}', fontsize=50) 
-    plt.ylabel(r'\textbf{Number of inliers}', fontsize=50)
-    plt.xticks(fontsize=38) 
-    plt.yticks(fontsize=48) 
-    plt.ylim([min(avg_inliers) - 10, max(avg_inliers) + 10])
-    plt.title(r'\textbf{Mean matched feature inliers - October', 
-              fontsize=50)
+    # plt.xticks(rotation=-75)
+    # plt.xlabel(r'\textbf{Repeat time (day.month-hh:mm)}', fontsize=50) 
+    # plt.ylabel(r'\textbf{Number of inliers}', fontsize=50)
+    # plt.xticks(fontsize=38) 
+    # plt.yticks(fontsize=48) 
+    # plt.ylim([min(avg_inliers) - 10, max(avg_inliers) + 10])
+    # plt.title(r'\textbf{Mean matched feature inliers - October', 
+    #           fontsize=50)
 
-    legend_elements = [matplotlib.lines.Line2D([0], [0], color='teal', lw=4, 
-                                            label='Successful run'),
-                       matplotlib.lines.Line2D([0], [0], color='firebrick', lw=4, 
-                                            label='Run with failure')] 
-    plt.legend(handles=legend_elements, fontsize=32, loc='upper right'); 
+    # legend_elements = [matplotlib.lines.Line2D([0], [0], color='teal', lw=4, 
+    #                                         label='Successful run'),
+    #                    matplotlib.lines.Line2D([0], [0], color='firebrick', lw=4, 
+    #                                         label='Run with failure')] 
+    # plt.legend(handles=legend_elements, fontsize=32, loc='upper right'); 
 
-    plt.savefig('{}/inliers_mean_october_seasonal.png'.format(results_dir), 
-                bbox_inches='tight', format='png')
-    plt.close()
+    # plt.savefig('{}/inliers_mean_october_seasonal.png'.format(results_dir), 
+    #             bbox_inches='tight', format='png')
+    # plt.close()
 
-    ########### Plot cumulative distribution of inliers for each run ###########
-    plt.figure(figsize=(20, 12)) #
+def plot_cdf(times_all, inliers_all, results_dir, month):
+
+    plt.rcParams['text.latex.preamble']=[r"\usepackage{lmodern}"]
+    params = {'text.usetex' : True,
+              'font.size' : 40,                   # Set font size to 11pt
+              'axes.labelsize': 40,               # -> axis labels
+              'legend.fontsize': 40,              # -> legends
+              'xtick.labelsize' : 40,
+              'ytick.labelsize' : 40,
+              'font.family' : 'lmodern',
+              'text.latex.unicode': True,
+              }
+    plt.rcParams.update(params) 
+
+    # ########### Plot cumulative distribution of inliers for each run ###########
+    f = plt.figure(figsize=(20, 12)) #
     f.tight_layout(rect=[0, 0.03, 1, 0.95])
     plot_lines = []
-    labels = []
     max_inliers = 0
 
-    # Create the date labels
-    x_labels = []
-    inliers_selected = []
-    print(selected_runs)
-    for i in range(len(times)):
-        if i in selected_runs:
-            x_labels.append(times[i].strftime('%d.%m-%H:%M'))
-            inliers_selected.append(inliers[i])
+    teach_time = datetime.datetime.combine(datetime.date(2021, 8, 14), 
+                          datetime.time(13, 26))
 
-    print(inliers_selected)
+    time_diffs = []
 
-    for i in range(len(inliers_selected)):
+    # Difference in t.o.d
+    for i in range(len(times_all)):
+        dt = times_all[i]
+        dt = dt.replace(day=14)
+        dt = dt.replace(month=8)
+        time_diffs.append((dt - teach_time).total_seconds() / (60.0 * 60.0))
+
+    # Difference in days
+    # for i in range(len(times_all)):
+    #     time_diffs.append((times_all[i] - teach_time).total_seconds() / (60.0 * 60.0 * 24.0))
+
+    time_diffs_norm = []
+    max_time_diff = max(time_diffs)
+    min_time_diff = min(time_diffs)
+    for i in range(len(times_all)):
+        time_diffs_norm.append((time_diffs[i] - min_time_diff) / (max_time_diff - min_time_diff))
+
+    cmap = matplotlib.cm.viridis
+
+    for i in range(len(inliers_all)):
         
-        max_val = np.max(inliers_selected[i])
+        max_val = np.max(inliers_all[i])
         if max_val > max_inliers:
             max_inliers = max_val
         n_bins_vis_range = 50
         n_bins_total = int((n_bins_vis_range * max_val) / 696)
 
-        values, base = np.histogram(inliers_selected[i], bins=n_bins_total)
+        values, base = np.histogram(inliers_all[i], bins=n_bins_total)
         unity_values = values / values.sum()
         cumulative = np.cumsum(np.flip(unity_values))
-        p = plt.plot(base[:-1], 1.0 - cumulative, linewidth=5)
+        p = plt.plot(base[:-1], 1.0 - cumulative, linewidth=5, color=cmap(time_diffs_norm[i]))
         plot_lines.append(p[0])
-        labels.append(x_labels[i])
 
     plt.axvline(x=6.0, color='red', linewidth='3', linestyle='--')
 
-    plt.legend(plot_lines, labels, prop={'size': 36})
+    # plt.legend(plot_lines, labels, prop={'size': 36})
     plt.xlim([max_inliers, 0])
     plt.ylim([0, 1])
     plt.xticks(fontsize=38)
@@ -762,14 +744,39 @@ def plot_inliers(avg_inliers, times, inliers, colours, failed, fail_ind,
     plt.grid(True, which='both', axis='both', color='gray', linestyle='-', 
              linewidth=1)
     plt.xlabel(r'\textbf{Number of inliers}', fontsize=50)
-    plt.ylabel(r'\textbf{Cumulative distribution, keyframes}', fontsize=50)
-    # plt.title(r'\textbf{Cumulative distribution of keyframes with number of inliers}', 
-               # fontsize=50)
-    plt.savefig('{}/inliers_cdf_seasonal.png'.format(results_dir), 
+    plt.ylabel(r'\textbf{CDF, keyframes}', fontsize=50)
+    plt.savefig('{}/inliers_cdf_tod_seasonal_{}.png'.format(results_dir, month), 
                 bbox_inches='tight', format='png')
+    plt.savefig('{}/inliers_cdf_tod_seasonal_{}.pdf'.format(results_dir, month), 
+                bbox_inches='tight', format='pdf')
+    plt.savefig('{}/inliers_cdf_tod_seasonal_{}.svg'.format(results_dir, month), 
+                bbox_inches='tight', format='svg')
     plt.close()
 
-def plot_data(info, path_segments, data_dir, failed_runs, month_switch, ignore_runs, selected_runs):
+    fig, ax = plt.subplots(figsize=(1, 12))
+    # fig.subplots_adjust(bottom=0.5)
+    norm = matplotlib.colors.Normalize(vmin=min(time_diffs), vmax=max(time_diffs))
+
+    cbar = matplotlib.colorbar.ColorbarBase(ax, cmap=cmap, norm=norm, orientation='vertical')
+    cbar.set_label('Hours')
+
+    # ticklabels = cbar.ax.get_ymajorticklabels()
+    # ticks = list(cbar.get_ticks())
+
+    # # Append the ticks (and their labels) for minimum and the maximum value
+    # cbar.set_ticks([min_time_diff, max_time_diff] + ticks)
+    # # cbar.set_ticklabels([min_time_diff, max_time_diff] + ticklabels)
+
+    plt.savefig('{}/inliers_cdf_tod_colorbar_seasonal_{}.png'.format(results_dir, month), 
+                bbox_inches='tight', format='png')
+    plt.savefig('{}/inliers_cdf_tod_colorbar_seasonal_{}.pdf'.format(results_dir, month), 
+                bbox_inches='tight', format='pdf')
+    plt.savefig('{}/inliers_cdf_tod_colorbar_seasonal_{}.svg'.format(results_dir, month), 
+                bbox_inches='tight', format='svg')
+    plt.close()
+
+
+def plot_data(info, path_segments, data_dir, failed_runs, month, ignore_runs, selected_runs):
 
     avg_inliers = []
     avg_inliers_segments = {'multis':[], 'new1':[], 'dark':[], 'new2':[]}
@@ -784,11 +791,7 @@ def plot_data(info, path_segments, data_dir, failed_runs, month_switch, ignore_r
     selected_ind = []
 
     ind = 0
-    month_switch_ind = 0
     for i in info.keys():
-
-        if i == month_switch:
-            month_switch_ind = ind
 
         inliers.append(np.asarray(info[i]["inliers_rgb"]))
         avg_inliers.append(sum(info[i]["inliers_rgb"]) / float(len(info[i]["inliers_rgb"])))
@@ -823,23 +826,29 @@ def plot_data(info, path_segments, data_dir, failed_runs, month_switch, ignore_r
 
     results_dir = "{}/graph.index/repeats".format(data_dir)
 
-    plot_inliers(avg_inliers, times, inliers, colours, failed, failed_ind, 
-                 success_ind, results_dir, month_switch_ind, selected_ind)
+    # plot_inliers(avg_inliers, times, inliers, colours, failed, failed_ind, 
+    #              success_ind, results_dir, month, selected_ind)
 
-    plot_inliers_segments(avg_inliers_segments, inliers_segments, times, failed, 
-                         results_dir, month_switch_ind, success_ind, failed_ind)
+    # plot_inliers_segments(avg_inliers_segments, inliers_segments, times, failed, 
+    #                      results_dir, month, success_ind, failed_ind)
+
+    # plot_cdf(times, inliers, results_dir, month)
 
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--path', default=None, type=str,
                         help='path to results dir (default: None)')
-    parser.add_argument('--numrepeats', default=None, type=int,
-                        help='number of repeats (default: None)')
+    parser.add_argument('--start', default=None, type=int,
+                        help='first repeats (default: None)')
+    parser.add_argument('--end', default=None, type=int,
+                        help='last repeats (default: None)')
+    parser.add_argument('--month', default=None, type=str,
+                        help='month (default: None)')
 
     args = parser.parse_args()
 
-    ignore_runs = []
+    ignore_runs = [101]
 
     selected_runs = [30, 43, 50, 54, 57, 60, 69]
 
@@ -849,16 +858,22 @@ if __name__ == "__main__":
                    56:[[2, 6330], [6408, 7806]], 
                    60:[[3, 6946], [6958, 7806]], 
                    64:[[3, 3979]], 
-                   68:[[1, 5189], [5414, 7807]]}
-
-    # ignore_runs = [51, 52, 64]
+                   68:[[1, 5189], [5414, 7807]],
+                   72:[[1, 9000]],
+                   76:[[1, 9000]],
+                   78:[[1, 9000]],
+                   84:[[1, 9000]],
+                   85:[[1, 9000]],
+                   95:[[1, 9000]],
+                   102:[[1, 9000]],
+                   104:[[1, 9000]]}
 
     path_indices = [468, 5504, 6083, 6553, 7108]
+   
+    info, path_segments = load_data(args.path, args.start, args.end, ignore_runs, path_indices, failed_runs)
 
-    october = 46
-    
-    info, path_segments = load_data(args.path, args.numrepeats, ignore_runs, path_indices, failed_runs)
+    plot_data(info, path_segments, args.path, failed_runs, args.month, ignore_runs, selected_runs);
 
-    plot_data(info, path_segments, args.path, failed_runs, october, ignore_runs, selected_runs);
+    #30/46/86 (sept/oct/nov)
 
 
