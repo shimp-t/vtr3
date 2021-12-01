@@ -49,9 +49,12 @@ install(
 add_executable(BumblebeeDriver src/bumblebee_main.cpp)
 target_link_libraries(BumblebeeDriver ${PROJECT_NAME} dc1394)
 
+add_executable(BumblebeeReplay src/xb3_replay.cpp)
+target_link_libraries(BumblebeeReplay ${PROJECT_NAME})
 
 install(TARGETS
   BumblebeeDriver
+  BumblebeeReplay
   DESTINATION lib/${PROJECT_NAME}
 )
 

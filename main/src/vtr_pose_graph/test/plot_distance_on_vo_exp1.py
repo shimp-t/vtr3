@@ -34,6 +34,8 @@ def load_data(data_dir, num_repeats, ignore_runs, failed_runs):
 
         info_file_path = "{}/dist.csv".format(results_dir) 
 
+        total_dist = 0.0
+
         with open(info_file_path) as csv_file:
 
             csv_reader = csv.reader(csv_file, delimiter=',')
@@ -81,6 +83,7 @@ def load_data(data_dir, num_repeats, ignore_runs, failed_runs):
                         cumulative += dist_on_vo
                         assert(dist_on_vo >= 0.0)
                         total_vo += 1
+                        total_dist += dist_on_vo
                         print(dist_on_vo)
                         print(cumulative)
                         print('============')
@@ -93,7 +96,7 @@ def load_data(data_dir, num_repeats, ignore_runs, failed_runs):
 
                 first = False
 
-        print("{}-{}-{}".format(i, total_vo, total_loc)) 
+        print("{}-{}-{}-{}".format(i, total_vo, total_loc, total_dist)) 
 
     return info
 
@@ -234,10 +237,11 @@ if __name__ == "__main__":
     failed_runs = {}
 
     # ignore_runs = [10, 15, 16] #exp2
-    ignore_runs = [101]
-   
+    # ignore_runs = [101]
+    ignore_runs = []
+
     info = load_data(args.path, args.numrepeats, ignore_runs, failed_runs)
 
-    plot_data(info, args.path, failed_runs);
+    # plot_data(info, args.path, failed_runs);
 
 

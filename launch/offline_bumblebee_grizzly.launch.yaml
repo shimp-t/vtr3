@@ -19,7 +19,7 @@ windows:
         ros2 launch vtr_navigation vtr.launch.py
         base_params:=bumblebee_grizzly_default.yaml
         override_params:=bumblebee_grizzly_learned_features.yaml
-        data_dir:=${VTRDATA}/experiments/2021-11-11/parking
+        data_dir:=${VTRDATA}/test
         clear_data_dir:=false
         use_sim_time:=true
 

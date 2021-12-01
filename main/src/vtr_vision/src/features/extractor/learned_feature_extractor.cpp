@@ -10,6 +10,8 @@
 #include <vtr_vision/features/extractor/learned_feature_extractor.hpp>
 #include <vtr_vision/features/extractor/superpoint.hpp>
 
+#include <chrono>
+
 namespace vtr {
 namespace vision {
 
@@ -341,7 +343,13 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor>
 
   // Convert to input type expected by the model and pass to the forward method.
   auto inputs = std::vector<torch::jit::IValue>{image_tensor.to(at::kCUDA)};
+  
+  auto start = std::chrono::high_resolution_clock::now();
   auto outputs = detector_.forward(inputs).toTuple();
+  auto stop = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+  
+  LOG(ERROR) << "Time: " << duration.count();
 
   // Keypoints, dense descriptors, and dense scores (one per pixel).
   torch::Tensor keypoints = outputs->elements()[0].toTensor(); 

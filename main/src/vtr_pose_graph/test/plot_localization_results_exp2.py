@@ -476,7 +476,7 @@ def plot_box_surf_linear(times, inliers_learned, inliers_surf, day, ignore_label
     ############### Plot box plot of inliers for each repeat ###################
 
     # f = plt.figure(figsize=(30, 13)) # org
-    f = plt.figure(figsize=(30, 7)) # narrow
+    f = plt.figure(figsize=(30, 6)) # narrow
     f.tight_layout(rect=[0, 0.03, 1, 0.95])
 
     times_sorted = times[:]
