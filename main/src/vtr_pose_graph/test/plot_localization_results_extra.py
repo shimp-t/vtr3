@@ -70,8 +70,8 @@ def plot_box_linear(times, inliers, day1, ignore_labels, results_dir):
 
     ############### Plot box plot of inliers for each repeat ###################
 
-    # f = plt.figure(figsize=(30, 13))
-    f = plt.figure(figsize=(15, 6))
+    f = plt.figure(figsize=(30, 13))
+    # f = plt.figure(figsize=(15, 6))
     f.tight_layout(rect=[0, 0.03, 1, 0.95])
 
     times_sorted = times[:]
@@ -132,10 +132,10 @@ def plot_box_linear(times, inliers, day1, ignore_labels, results_dir):
     # plt.ylabel(r'\textbf{Number of inliers}', fontsize=50)
     # plt.xticks(fontsize=36) 
     # plt.yticks(fontsize=48) 
-    plt.xlabel(r'\textbf{Repeat time (hh:mm)}', fontsize=30) 
-    plt.ylabel(r'\textbf{Number of inliers}', fontsize=30)
-    plt.xticks(fontsize=28) 
-    plt.yticks(fontsize=28) 
+    plt.xlabel(r'\textbf{Repeat time (hh:mm)}', fontsize=32) 
+    plt.ylabel(r'\textbf{Number of inliers}', fontsize=32)
+    plt.xticks(fontsize=32) 
+    plt.yticks(fontsize=32) 
 
     plt.xlim([-0.5, len(times) - 0.5])
     # plt.xlim([-15.0, max(positions_day1) + 15.0])
@@ -145,13 +145,13 @@ def plot_box_linear(times, inliers, day1, ignore_labels, results_dir):
                        matplotlib.lines.Line2D([0], [0], color='cornflowerblue', lw=4, 
                                             label='Day 2: 12.11')]                
     # plt.legend(handles=legend_elements, fontsize=36, loc='upper right');
-    plt.legend(handles=legend_elements, fontsize=28, loc='upper right');
+    plt.legend(handles=legend_elements, fontsize=32, loc='upper right');
 
-    plt.savefig('{}/inliers_box_extra_linear_narrow.png'.format(results_dir), 
+    plt.savefig('{}/inliers_box_extra_linear.png'.format(results_dir), 
                 bbox_inches='tight', format='png')
-    plt.savefig('{}/inliers_box_extra_linear_narrow.pdf'.format(results_dir), 
+    plt.savefig('{}/inliers_box_extra_linear.pdf'.format(results_dir), 
                 bbox_inches='tight', format='pdf')
-    plt.savefig('{}/inliers_box_extra_linear_narrow.svg'.format(results_dir), 
+    plt.savefig('{}/inliers_box_extra_linear.svg'.format(results_dir), 
                 bbox_inches='tight', format='svg')
     plt.close()
 
@@ -215,12 +215,12 @@ def plot_cdf(times_all, inliers_all, results_dir):
     # plt.legend(plot_lines, labels, prop={'size': 36})
     plt.xlim([max_inliers, 0])
     plt.ylim([0, 1])
-    plt.xticks(fontsize=38)
-    plt.yticks(fontsize=38)
+    plt.xticks(fontsize=32)
+    plt.yticks(fontsize=32)
     plt.grid(True, which='both', axis='both', color='gray', linestyle='-', 
              linewidth=1)
-    plt.xlabel(r'\textbf{Number of inliers}', fontsize=50)
-    plt.ylabel(r'\textbf{CDF, keyframes}', fontsize=50)
+    plt.xlabel(r'\textbf{Number of inliers}', fontsize=32)
+    plt.ylabel(r'\textbf{CDF, keyframes}', fontsize=32)
     plt.savefig('{}/inliers_cdf_extra.png'.format(results_dir), 
                 bbox_inches='tight', format='png')
     plt.savefig('{}/inliers_cdf_extra.pdf'.format(results_dir), 

@@ -151,7 +151,8 @@ def plot_inliers(keyframe_info, data_dir):
     names = ['Q1', 'Median', 'Q3']
 
     # min_val = 0.0
-    # max_val = 540.0
+    # max_val = 540.0 # september
+    # print(max_val)
 
     fig, axes = plt.subplots(nrows=1, ncols=3, figsize=(45, 12))
 
@@ -179,19 +180,19 @@ def plot_inliers(keyframe_info, data_dir):
         # line_segments.set_clim(0 , max(num_inliers))
 
         if count == 1:
-            ax.set_xlabel(r'\textbf{x (m)}', fontsize=40)
+            ax.set_xlabel(r'\textbf{x (metres)}', fontsize=38)
         elif count == 0:
-            ax.set_ylabel(r'\textbf{y (m)}', fontsize=40)
-        # ax.tick_params(axis='x', labelsize=50)
-        # ax.tick_params(axis='y', labelsize=50)
+            ax.set_ylabel(r'\textbf{y (metres)}', fontsize=38)
+        ax.tick_params(axis='x', labelsize=38)
+        ax.tick_params(axis='y', labelsize=38)
         # plt.sci(line_segments)
 
         if count == 1:
-            ax.set_title(r'\textbf{Median}', fontsize=50)
+            ax.set_title(r'\textbf{Median}', fontsize=38)
         elif count == 0:
-            ax.set_title(r'\textbf{Q1}', fontsize=50)
+            ax.set_title(r'\textbf{Q1}', fontsize=38)
         else:
-            ax.set_title(r'\textbf{Q3}', fontsize=50)
+            ax.set_title(r'\textbf{Q3}', fontsize=38)
         
         count += 1
 
@@ -200,8 +201,8 @@ def plot_inliers(keyframe_info, data_dir):
     # fig.colorbar(im, cax=cbar_ax)
 
     axcb = fig.colorbar(sc, cax=cbar_ax)
-    axcb.set_label(r'\textbf{Number of inliers}', fontsize=50)
-    axcb.ax.tick_params(labelsize=48)
+    axcb.set_label(r'\textbf{Number of inliers}', fontsize=38)
+    axcb.ax.tick_params(labelsize=38)
 
     plt.savefig('{}/inliers_path.pdf'.format(results_dir), 
                 bbox_inches='tight', format='pdf')
@@ -273,8 +274,8 @@ if __name__ == "__main__":
     # ignore_runs = [6,7,10,14,15,16,17,18,24] # exp2
     # ignore_runs = [4,6,31,34,35,36,39,40,10,16,21,19] #exp1
     # ignore_runs = [10, 15, 16] #exp2
-    # ignore_runs = [101] # seasonal
-    ignore_runs = []
+    ignore_runs = [101] # seasonal
+    # ignore_runs = []
 
     failed_runs = {51:[[1, 3973]], 
                    52:[[1, 2268]], 

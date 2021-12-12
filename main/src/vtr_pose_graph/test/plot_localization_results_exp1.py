@@ -109,17 +109,17 @@ def plot_quantile(times_all, inliers_all, day1_all, results_dir):
     plt.plot(time_day2, median_day2, color='cornflowerblue', marker='o', linewidth=3, markersize=10, label='Day 2: 09.08') 
     plt.fill_between(time_day2, quart_25_day2, quart_75_day2, alpha = .2,color = 'cornflowerblue')
 
-    plt.legend(fontsize=40)   
+    plt.legend(fontsize=32)   
     
     myFmt = matplotlib.dates.DateFormatter('%H:%M')
     ax = plt.axes()
     ax.xaxis.set_major_formatter(myFmt)
 
     # plt.xlim([min(times) - datetime.timedelta(minutes=10), max(times) + datetime.timedelta(minutes=10)])
-    plt.xlabel(r'\textbf{Repeat time (hh:mm)}', fontsize=50) 
-    plt.ylabel(r'\textbf{Number of inliers}', fontsize=50)
-    plt.xticks(fontsize=48) 
-    plt.yticks(fontsize=48) 
+    plt.xlabel(r'\textbf{Repeat time (hh:mm)}', fontsize=32) 
+    plt.ylabel(r'\textbf{Number of inliers}', fontsize=32)
+    plt.xticks(fontsize=32) 
+    plt.yticks(fontsize=32) 
     # plt.ylim([min(avg_inliers) - 10, max(avg_inliers) + 10])
 
     # legend_elements = [matplotlib.lines.Line2D([0], [0], color='teal', lw=4, label='Day1: 03.08'),
@@ -243,7 +243,8 @@ def plot_box_linear(times, inliers, day1, ignore_labels, results_dir):
 
     ############### Plot box plot of inliers for each repeat ###################
 
-    f = plt.figure(figsize=(30, 6))
+    # f = plt.figure(figsize=(30, 6)) # narrow
+    f = plt.figure(figsize=(30, 13))
     f.tight_layout(rect=[0, 0.03, 1, 0.95])
 
     times_sorted = times[:]
@@ -302,10 +303,14 @@ def plot_box_linear(times, inliers, day1, ignore_labels, results_dir):
     plt.axhline(y=6.0, color='red', linewidth='2', linestyle='--')
            
     plt.xticks(rotation=-75)
-    plt.xlabel(r'\textbf{Repeat time (hh:mm)}', fontsize=30) 
-    plt.ylabel(r'\textbf{Number of inliers}', fontsize=30)
-    plt.xticks(fontsize=28) 
-    plt.yticks(fontsize=28) 
+    # plt.xlabel(r'\textbf{Repeat time (hh:mm)}', fontsize=30) 
+    # plt.ylabel(r'\textbf{Number of inliers}', fontsize=30)
+    # plt.xticks(fontsize=28) 
+    # plt.yticks(fontsize=28) 
+    plt.xlabel(r'\textbf{Repeat time (hh:mm)}', fontsize=32) 
+    plt.ylabel(r'\textbf{Number of inliers}', fontsize=32)
+    plt.xticks(fontsize=32) 
+    plt.yticks(fontsize=32) 
     plt.xlim([-0.5, len(times) - 0.5])
     # plt.xlim([-15.0, max(positions_day1) + 15.0])
 
@@ -313,13 +318,14 @@ def plot_box_linear(times, inliers, day1, ignore_labels, results_dir):
                                             label='Day 1: 03.08'),
                        matplotlib.lines.Line2D([0], [0], color='cornflowerblue', lw=4, 
                                             label='Day 2: 09.08')]                
-    plt.legend(handles=legend_elements, fontsize=28, loc='upper right');
+    plt.legend(handles=legend_elements, fontsize=32, loc='upper right');
+    # plt.legend(handles=legend_elements, fontsize=28, loc='upper right'); # narrow
 
-    plt.savefig('{}/inliers_box_lighting_linear_narrow.png'.format(results_dir), 
+    plt.savefig('{}/inliers_box_lighting_linear.png'.format(results_dir), 
                 bbox_inches='tight', format='png')
-    plt.savefig('{}/inliers_box_lighting_linear_narrow.pdf'.format(results_dir), 
+    plt.savefig('{}/inliers_box_lighting_linear.pdf'.format(results_dir), 
                 bbox_inches='tight', format='pdf')
-    plt.savefig('{}/inliers_box_lighting_linear_narrow.svg'.format(results_dir), 
+    plt.savefig('{}/inliers_box_lighting_linear.svg'.format(results_dir), 
                 bbox_inches='tight', format='svg')
     plt.close()
 
@@ -536,12 +542,12 @@ def plot_cdf(times_all, inliers_all, results_dir):
     # plt.legend(plot_lines, labels, prop={'size': 36})
     plt.xlim([max_inliers, 0])
     plt.ylim([0, 1])
-    plt.xticks(fontsize=38)
-    plt.yticks(fontsize=38)
+    plt.xticks(fontsize=32)
+    plt.yticks(fontsize=32)
     plt.grid(True, which='both', axis='both', color='gray', linestyle='-', 
              linewidth=1)
-    plt.xlabel(r'\textbf{Number of inliers}', fontsize=50)
-    plt.ylabel(r'\textbf{CDF, keyframes}', fontsize=50)
+    plt.xlabel(r'\textbf{Number of inliers}', fontsize=32)
+    plt.ylabel(r'\textbf{CDF, keyframes}', fontsize=32)
     plt.savefig('{}/inliers_cdf_lighting.png'.format(results_dir), 
                 bbox_inches='tight', format='png')
     plt.savefig('{}/inliers_cdf_lighting.pdf'.format(results_dir), 
@@ -623,9 +629,9 @@ def plot_data(info, ignore_runs, data_dir, ignore_labels):
 
     # plot_bar(avg_inliers, times, day1, results_dir)
 
-    # plot_cdf(times_all, inliers_all, results_dir)
+    plot_cdf(times_all, inliers_all, results_dir)
 
-    # plot_quantile(times_all, inliers_all, day1_all, results_dir)
+    plot_quantile(times_all, inliers_all, day1_all, results_dir)
 
     # plot_comp_time(avg_comp_time, times, colours, results_dir)
 

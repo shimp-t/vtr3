@@ -84,10 +84,8 @@ void ReadLocalizationResults(std::string graph_dir, std::string results_dir,
         stream_name_loc, true, RegisterMode::Existing);
       run.second->registerVertexStream<vtr_messages::msg::RigObservations>(
         stream_name_obs, true, RegisterMode::Existing);
-      LOG(ERROR) << "here0";
       run.second->registerVertexStream<vtr_messages::msg::Matches>(
         stream_name_match, true, RegisterMode::Existing);
-      LOG(ERROR) << "here1";
     }
     r_ind++;
   }
@@ -117,60 +115,62 @@ void ReadLocalizationResults(std::string graph_dir, std::string results_dir,
 
       for (int v_ind = 0; v_ind < num_vertices; v_ind++) {
 
-        // try {
+        LOG(INFO) << "Vertex "<<  v_ind << " / " << num_vertices;
+
+        try {
           auto v = graph->at(VertexId(r_ind, v_ind));
         
-          // try {
+          try {
             v->load(stream_name_loc);
             auto msg = v->retrieveKeyframeData<vtr_messages::msg::LocalizationStatus>(
               stream_name_loc);
 
-            cv::Mat img;
-            if (store_img) {
-              /// Playback images
-              vtr::storage::DataStreamReader<vtr_messages::msg::RigImages, vtr_messages::msg::RigCalibration> stereo_stream(
-                  vtr::common::utils::expand_user(vtr::common::utils::expand_env(image_dir)),"front_xb3");             
+            // cv::Mat img;
+            // if (store_img) {
+            //   /// Playback images
+            //   vtr::storage::DataStreamReader<vtr_messages::msg::RigImages, vtr_messages::msg::RigCalibration> stereo_stream(
+            //       vtr::common::utils::expand_user(vtr::common::utils::expand_env(image_dir)),"front_xb3");             
 
-              bool seek_success = stereo_stream.seekByIndex(static_cast<int32_t>(start_index));
-              if (!seek_success) {
-                LOG(ERROR) << "Seek failed!";
-                return;
-              }
+            //   bool seek_success = stereo_stream.seekByIndex(static_cast<int32_t>(start_index));
+            //   if (!seek_success) {
+            //     LOG(ERROR) << "Seek failed!";
+            //     return;
+            //   }
 
-              vtr_messages::msg::RigImages rig_images;
-              bool found_img = false;
-              int idx = start_index;
-              while (idx < stop_index) {
-                auto storage_msg = stereo_stream.readNextFromSeek();
-                if (!storage_msg) {
-                  LOG(ERROR) << "Storage msg is nullptr! " << idx;
-                  idx++;
-                  continue;
-                }
-                rig_images = storage_msg->template get<vtr_messages::msg::RigImages>();
-                auto timestamp = rig_images.channels[0].cameras[0].stamp.nanoseconds_since_epoch;
-                if (timestamp >= msg->keyframe_time) {
-                  int diff1 = timestamp - msg->keyframe_time;
-                  if (diff1 > 0) {
-                    LOG(INFO) << "Diff: " << diff1;
-                    num_diff_im++;
-                  }
-                  found_img = true;
-                  start_index = idx; 
-                  break;
-                }
-                idx++;
-              }
+            //   vtr_messages::msg::RigImages rig_images;
+            //   bool found_img = false;
+            //   int idx = start_index;
+            //   while (idx < stop_index) {
+            //     auto storage_msg = stereo_stream.readNextFromSeek();
+            //     if (!storage_msg) {
+            //       LOG(ERROR) << "Storage msg is nullptr! " << idx;
+            //       idx++;
+            //       continue;
+            //     }
+            //     rig_images = storage_msg->template get<vtr_messages::msg::RigImages>();
+            //     auto timestamp = rig_images.channels[0].cameras[0].stamp.nanoseconds_since_epoch;
+            //     if (timestamp >= msg->keyframe_time) {
+            //       int diff1 = timestamp - msg->keyframe_time;
+            //       if (diff1 > 0) {
+            //         LOG(INFO) << "Diff: " << diff1;
+            //         num_diff_im++;
+            //       }
+            //       found_img = true;
+            //       start_index = idx; 
+            //       break;
+            //     }
+            //     idx++;
+            //   }
 
-              if (!found_img) {
-                LOG(ERROR) << "Couldn't find matching image";
-                continue;
-              }
+            //   if (!found_img) {
+            //     LOG(ERROR) << "Couldn't find matching image";
+            //     continue;
+            //   }
 
-              // auto img_msg = vis_msg->channels[0].cameras[0];
-              auto input_image = wrapImage(rig_images.channels[0].cameras[0]);
-              img = setupDisplayImage(input_image);
-            }
+            //   // auto img_msg = vis_msg->channels[0].cameras[0];
+            //   auto input_image = wrapImage(rig_images.channels[0].cameras[0]);
+            //   img = setupDisplayImage(input_image);
+            // }
               
             try {
               v->load(stream_name_match);
@@ -211,25 +211,30 @@ void ReadLocalizationResults(std::string graph_dir, std::string results_dir,
                     obs_file << "," << keypoints[k_ind].position.x
                              << "," << keypoints[k_ind].position.y;
 
-                    if (store_img) {
-                      // Draw keypoints in image.
-                      cv::Point img_point(keypoints[k_ind].position.x, keypoints[k_ind].position.y);
-                      cv::Scalar ptColor(0, 0, 255);
-                      cv::circle(img, img_point, 3.0, ptColor, 2.0);
-                    }
+                    // if (store_img) {
+                    //   // Draw keypoints in image.
+                    //   cv::Point img_point(keypoints[k_ind].position.x, keypoints[k_ind].position.y);
+                    //   cv::Scalar ptColor(0, 0, 255);
+                    //   cv::circle(img, img_point, 3.0, ptColor, 2.0);
+                    // }
                   }
                 }
               }
 
               obs_file << "\n";  
 
-              if (store_img) {
-                std::stringstream img_file;
-                img_file << results_img_path.u8string() << "/" << v_ind << ".png";
-                // fs::path img_path = fs::path{results_img_path / std::to_string(v_ind) /".png"};
-                // std::string img_path_str{img_path.u8string()};
-                cv::imwrite(img_file.str(), img);
-              }
+              // delete rgb_channel_obs;
+              // delete keypoints;
+              // delete landmarks;
+              // delete inlier_matches;
+
+              // if (store_img) {
+              //   std::stringstream img_file;
+              //   img_file << results_img_path.u8string() << "/" << v_ind << ".png";
+              //   // fs::path img_path = fs::path{results_img_path / std::to_string(v_ind) /".png"};
+              //   // std::string img_path_str{img_path.u8string()};
+              //   cv::imwrite(img_file.str(), img);
+              // }
 
             } catch (const std::exception& e){
               LOG(ERROR) << "COULD NOT LOAD OBSERVATION MESSAGE: " << v_ind << "/" << num_vertices;
@@ -242,15 +247,15 @@ void ReadLocalizationResults(std::string graph_dir, std::string results_dir,
             total_inliers += msg->inlier_channel_matches[0];
             LOG(INFO) << "Number images not matched: " << num_diff_im;
 
-        //   } catch (const std::exception& e){
-        //     LOG(ERROR) << "COULD NOT LOAD LOC STATUS MSG, run: " << r_ind << ", vert: " << v_ind;
-        //     continue;
-        //   }
+          } catch (const std::exception& e){
+            LOG(ERROR) << "COULD NOT LOAD LOC STATUS MSG, run: " << r_ind << ", vert: " << v_ind;
+            continue;
+          }
 
-        // } catch (const std::exception& e){
-        //   LOG(ERROR) << "COULD NOT LOAD VERTEX, run: " << r_ind << ", vert: " << v_ind;
-        //   continue;
-        // }
+        } catch (const std::exception& e){
+          LOG(ERROR) << "COULD NOT LOAD VERTEX, run: " << r_ind << ", vert: " << v_ind;
+          continue;
+        }
       }
       
       LOG(INFO) << "Num failed loc: " << num_fail;

@@ -115,8 +115,10 @@ def load_data(data_dir_learned, data_dir_surf,  num_repeats, ignore_runs_learned
         else:
             info_surf[i]["timestamp"] = info_learned[i]["timestamp"]
 
-        dt = datetime.datetime.fromtimestamp(info_learned[i]["timestamp"][0] / 1e9) 
-        print("{}-{}".format(i, dt.strftime('%H:%M')))
+        dt_start = datetime.datetime.fromtimestamp(info_learned[i]["timestamp"][0] / 1e9) 
+        dt_end = datetime.datetime.fromtimestamp(info_learned[i]["timestamp"][-1] / 1e9) 
+        dt_diff = (dt_end - dt_start).total_seconds() / 60.0
+        print("{}-{}-{}-{}".format(i, dt_start.strftime('%H:%M'), dt_end.strftime('%H:%M'), round(dt_diff)))
 
     return info_learned, info_surf, path_segments
 
@@ -189,17 +191,17 @@ def plot_quantile(times_all, inliers_all, day_all, results_dir):
     plt.plot(time_day3, median_day3, color='slateblue', marker='o', linewidth=3, markersize=10, label='Day 3: 20.08') 
     plt.fill_between(time_day3, quart_25_day3, quart_75_day3, alpha = .2,color = 'slateblue')
 
-    plt.legend(fontsize=40)   
+    plt.legend(fontsize=32)   
     
     myFmt = matplotlib.dates.DateFormatter('%H:%M')
     ax = plt.axes()
     ax.xaxis.set_major_formatter(myFmt)
 
     # plt.xlim([min(times) - datetime.timedelta(minutes=10), max(times) + datetime.timedelta(minutes=10)])
-    plt.xlabel(r'\textbf{Repeat time (hh:mm)}', fontsize=50) 
-    plt.ylabel(r'\textbf{Number of inliers}', fontsize=50)
-    plt.xticks(fontsize=48) 
-    plt.yticks(fontsize=48) 
+    plt.xlabel(r'\textbf{Repeat time (hh:mm)}', fontsize=32) 
+    plt.ylabel(r'\textbf{Number of inliers}', fontsize=32)
+    plt.xticks(fontsize=32) 
+    plt.yticks(fontsize=32) 
     # plt.ylim([min(avg_inliers) - 10, max(avg_inliers) + 10])
 
     # legend_elements = [matplotlib.lines.Line2D([0], [0], color='teal', lw=4, label='Day1: 03.08'),
@@ -475,8 +477,8 @@ def plot_box_surf_linear(times, inliers_learned, inliers_surf, day, ignore_label
 
     ############### Plot box plot of inliers for each repeat ###################
 
-    # f = plt.figure(figsize=(30, 13)) # org
-    f = plt.figure(figsize=(30, 6)) # narrow
+    f = plt.figure(figsize=(30, 13)) # org
+    # f = plt.figure(figsize=(30, 6)) # narrow
     f.tight_layout(rect=[0, 0.03, 1, 0.95])
 
     times_sorted = times[:]
@@ -582,10 +584,14 @@ def plot_box_surf_linear(times, inliers_learned, inliers_surf, day, ignore_label
     # plt.yticks(fontsize=48) 
 
     # narrow
-    plt.xlabel(r'\textbf{Repeat time (hh:mm)}', fontsize=30) 
-    plt.ylabel(r'\textbf{Number of inliers}', fontsize=30)
-    plt.xticks(fontsize=28) 
-    plt.yticks(fontsize=28) 
+    # plt.xlabel(r'\textbf{Repeat time (hh:mm)}', fontsize=30)  # narrow
+    # plt.ylabel(r'\textbf{Number of inliers}', fontsize=30)
+    plt.xlabel(r'\textbf{Repeat time (hh:mm)}', fontsize=32) 
+    plt.ylabel(r'\textbf{Number of inliers}', fontsize=32)
+    # plt.xticks(fontsize=28) #narrow
+    # plt.yticks(fontsize=28) 
+    plt.xticks(fontsize=32) 
+    plt.yticks(fontsize=32) 
 
     plt.xlim([-0.5, len(times) - 0.5])
     # plt.xlim([-15.0, max(positions_day1) + 15.0])
@@ -599,13 +605,14 @@ def plot_box_surf_linear(times, inliers_learned, inliers_surf, day, ignore_label
                        matplotlib.lines.Line2D([0], [0], color='gold', lw=4, 
                                             label='SURF')]                
     # plt.legend(handles=legend_elements, fontsize=36, loc='upper right'); #org
-    plt.legend(handles=legend_elements, fontsize=28, loc='upper right'); # narrow
+    plt.legend(handles=legend_elements, fontsize=32, loc='upper right'); 
+    # plt.legend(handles=legend_elements, fontsize=28, loc='upper right'); # narrow
 
-    plt.savefig('{}/inliers_box_generalization_surf_linear_narrow.png'.format(results_dir), 
+    plt.savefig('{}/inliers_box_generalization_surf_linear.png'.format(results_dir), 
                 bbox_inches='tight', format='png')
-    plt.savefig('{}/inliers_box_generalization_surf_linear_narrow.pdf'.format(results_dir), 
+    plt.savefig('{}/inliers_box_generalization_surf_linear.pdf'.format(results_dir), 
                 bbox_inches='tight', format='pdf')
-    plt.savefig('{}/inliers_box_generalization_surf_linear_narrow.svg'.format(results_dir), 
+    plt.savefig('{}/inliers_box_generalization_surf_linear.svg'.format(results_dir), 
                 bbox_inches='tight', format='svg')
     plt.close()
 
@@ -656,8 +663,8 @@ def plot_box_segments(inliers_segments, times, results_dir):
     ############### Plot box plot of inliers for each repeat ###################
     
     ## Plot for off-road ##
-    # f = plt.figure(figsize=(30, 12))
-    f = plt.figure(figsize=(30, 6))
+    f = plt.figure(figsize=(30, 13))
+    # f = plt.figure(figsize=(30, 6))
     f.tight_layout(rect=[0, 0.03, 1, 0.95])
     
     num_repeats = len(x_labels)
@@ -691,30 +698,30 @@ def plot_box_segments(inliers_segments, times, results_dir):
     # plt.xticks(fontsize=38) 
     # plt.yticks(fontsize=48) 
 
-    plt.xlabel(r'\textbf{Repeat time (hh:mm)}', fontsize=30) 
-    plt.ylabel(r'\textbf{Number of inliers}', fontsize=30)
-    plt.xticks(fontsize=28) 
-    plt.yticks(fontsize=28) 
+    plt.xlabel(r'\textbf{Repeat time (hh:mm)}', fontsize=32) 
+    plt.ylabel(r'\textbf{Number of inliers}', fontsize=32)
+    plt.xticks(fontsize=32) 
+    plt.yticks(fontsize=23) 
 
     legend_elements = [matplotlib.lines.Line2D([0], [0], color='teal', lw=4, 
                                             label='Area in training data'),
                        matplotlib.lines.Line2D([0], [0], color='mediumturquoise', lw=4, 
                                             label='Area outside training data')]                
     # plt.legend(handles=legend_elements, fontsize=36, loc='upper right');
-    plt.legend(handles=legend_elements, fontsize=28, loc='upper right');
+    plt.legend(handles=legend_elements, fontsize=32, loc='upper right');
 
-    plt.savefig('{}/inliers_box_offroad_generalization_narrow.png'.format(results_dir), 
+    plt.savefig('{}/inliers_box_offroad_generalization_linear.png'.format(results_dir), 
                 bbox_inches='tight', format='png')
-    plt.savefig('{}/inliers_box_offroad_generalization_narrow.pdf'.format(results_dir), 
+    plt.savefig('{}/inliers_box_offroad_generalization_linear.pdf'.format(results_dir), 
                 bbox_inches='tight', format='pdf')
-    plt.savefig('{}/inliers_box_offroad_generalization_narrow.svg'.format(results_dir), 
+    plt.savefig('{}/inliers_box_offroad_generalization_linear.svg'.format(results_dir), 
                 bbox_inches='tight', format='svg')
     plt.close()
 
     
     ## Plot for on-road ##
-    # f = plt.figure(figsize=(30, 12))
-    f = plt.figure(figsize=(30, 6))
+    f = plt.figure(figsize=(30, 13))
+    # f = plt.figure(figsize=(30, 6))
     f.tight_layout(rect=[0, 0.03, 1, 0.95])
 
     p1 = plt.boxplot(inliers_dark, 
@@ -743,23 +750,23 @@ def plot_box_segments(inliers_segments, times, results_dir):
     # plt.xticks(fontsize=38) 
     # plt.yticks(fontsize=48) 
 
-    plt.xlabel(r'\textbf{Repeat time (hh:mm)}', fontsize=30) 
-    plt.ylabel(r'\textbf{Number of inliers}', fontsize=30)
-    plt.xticks(fontsize=28) 
-    plt.yticks(fontsize=28) 
+    plt.xlabel(r'\textbf{Repeat time (hh:mm)}', fontsize=32) 
+    plt.ylabel(r'\textbf{Number of inliers}', fontsize=32)
+    plt.xticks(fontsize=32) 
+    plt.yticks(fontsize=32) 
 
     legend_elements = [matplotlib.lines.Line2D([0], [0], color='teal', lw=4, 
                                             label='Area in training data'),
                        matplotlib.lines.Line2D([0], [0], color='mediumturquoise', lw=4, 
                                             label='Area outside training data')]                
     # plt.legend(handles=legend_elements, fontsize=36, loc='upper right');
-    plt.legend(handles=legend_elements, fontsize=28, loc='upper right');
+    plt.legend(handles=legend_elements, fontsize=32, loc='upper right');
 
-    plt.savefig('{}/inliers_box_onroad_generalization_narrow.png'.format(results_dir), 
+    plt.savefig('{}/inliers_box_onroad_generalization_linear.png'.format(results_dir), 
                 bbox_inches='tight', format='png')
-    plt.savefig('{}/inliers_box_onroad_generalization_narrow.pdf'.format(results_dir), 
+    plt.savefig('{}/inliers_box_onroad_generalization_linear.pdf'.format(results_dir), 
                 bbox_inches='tight', format='pdf')
-    plt.savefig('{}/inliers_box_onroad_generalization_narrow.svg'.format(results_dir), 
+    plt.savefig('{}/inliers_box_onroad_generalization_linear.svg'.format(results_dir), 
                 bbox_inches='tight', format='svg')
     plt.close()
 
@@ -818,12 +825,12 @@ def plot_cdf(times_all, inliers_all, results_dir):
     # plt.legend(plot_lines, labels, prop={'size': 36})
     plt.xlim([max_inliers, 0])
     plt.ylim([0, 1])
-    plt.xticks(fontsize=38)
-    plt.yticks(fontsize=38)
+    plt.xticks(fontsize=32)
+    plt.yticks(fontsize=32)
     plt.grid(True, which='both', axis='both', color='gray', linestyle='-', 
              linewidth=1)
-    plt.xlabel(r'\textbf{Number of inliers}', fontsize=50)
-    plt.ylabel(r'\textbf{CDF, keyframes}', fontsize=50)
+    plt.xlabel(r'\textbf{Number of inliers}', fontsize=32)
+    plt.ylabel(r'\textbf{CDF, keyframes}', fontsize=32)
     plt.savefig('{}/inliers_cdf_generalization.png'.format(results_dir), 
                 bbox_inches='tight', format='png')
     plt.savefig('{}/inliers_cdf_generalization.pdf'.format(results_dir), 
@@ -980,7 +987,7 @@ def plot_data(info_learned, info_surf, info_segments, ignore_labels, data_dir_le
 
     results_dir = "{}/graph.index/repeats".format(data_dir_learned)
 
-    # plot_cdf(times_learned, inliers_learned, results_dir)
+    plot_cdf(times_learned, inliers_learned, results_dir)
 
     # plot_bar(avg_inliers_learned, avg_inliers_surf, times_learned, times_surf, day, results_dir)
 
@@ -990,9 +997,9 @@ def plot_data(info_learned, info_surf, info_segments, ignore_labels, data_dir_le
 
     plot_box_surf_linear(times_learned, inliers_learned, inliers_surf, day, ignore_labels_box, results_dir)
 
-    # plot_box_segments(inliers_segments, times_learned, results_dir)
+    plot_box_segments(inliers_segments, times_learned, results_dir)
 
-    # plot_quantile(times_learned, inliers_learned, day, results_dir)
+    plot_quantile(times_learned, inliers_learned, day, results_dir)
 
     # plot_inliers(avg_inliers_learned, avg_inliers_surf, times_learned, times_surf, colours_learned, colours_surf, results_dir)
 
@@ -1011,7 +1018,7 @@ if __name__ == "__main__":
     # ignore_runs = [5,6,9,10,14, 15, 16, 17, 18, 23] # exp2 wrong
     # ignore_runs_learned = [6,7,10,14,15,16,17,18,24] # exp2 w=17
     ignore_runs_learned = [10,15,16] # exp2 w =6 ?
-    ignore_runs_surf = [6,7,8,10,11,12,13,14,15,16,17,18,20,21,22,24,29] # exp2 surf
+    ignore_runs_surf = [6,7,8,10,11,12,13,15,16,17,20,21,22,29] # exp2 surf
     # ignore_labels = [6, 7, 17, 18, 24]
     ignore_labels = []
 
@@ -1025,4 +1032,4 @@ if __name__ == "__main__":
                                                        ignore_runs_surf, 
                                                        path_indices)
 
-    plot_data(info_learned, info_surf, info_segments, ignore_labels, args.path, args.path_surf);
+    # plot_data(info_learned, info_surf, info_segments, ignore_labels, args.path, args.path_surf);

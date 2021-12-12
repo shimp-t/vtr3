@@ -87,8 +87,10 @@ def load_data(data_dir, start, end, ignore_runs, path_indicesces, failed_runs):
 
                 first = False
 
-        dt = datetime.datetime.fromtimestamp(info[i]["timestamp"][0] / 1e9) 
-        print("{}-{}".format(i, dt))
+        dt_start = datetime.datetime.fromtimestamp(info[i]["timestamp"][0] / 1e9) 
+        dt_end = datetime.datetime.fromtimestamp(info[i]["timestamp"][-1] / 1e9) 
+        dt_diff = (dt_end - dt_start).total_seconds() / 60.0
+        print("{}-{}-{}-{}".format(i, dt_start.strftime('%H:%M'), dt_end.strftime('%H:%M'), round(dt_diff)))
 
     return info, path_segments
 
@@ -134,7 +136,7 @@ def plot_inliers_segments(avg_inliers_segments, inliers_segments, times, failed,
             positions_fail_new1.append(ind+1)
             ind += 2
 
-    f = plt.figure(figsize=(30, 12))
+    f = plt.figure(figsize=(30, 13))
     f.tight_layout(rect=[0, 0.03, 1, 0.95])
 
     if len(inliers_success_multis) > 0:
@@ -184,10 +186,10 @@ def plot_inliers_segments(avg_inliers_segments, inliers_segments, times, failed,
     plt.axhline(y=6.0, color='red', linewidth='2', linestyle='--')
 
     plt.xticks(rotation=-80)
-    plt.xlabel(r'\textbf{Repeat time (day-hh:mm)}', fontsize=50) 
-    plt.ylabel(r'\textbf{Number of inliers}', fontsize=50)
-    plt.xticks(fontsize=38) # oct 32 
-    plt.yticks(fontsize=48) 
+    plt.xlabel(r'\textbf{Repeat time (day-hh:mm)}', fontsize=32) 
+    plt.ylabel(r'\textbf{Number of inliers}', fontsize=32)
+    plt.xticks(fontsize=32) # oct 32 
+    plt.yticks(fontsize=32) 
 
     legend_elements = [matplotlib.lines.Line2D([0], [0], color='teal', lw=4, 
                                             label='Area in training data (success/fail)'),
@@ -235,7 +237,7 @@ def plot_inliers_segments(avg_inliers_segments, inliers_segments, times, failed,
             positions_fail_new2.append(ind+1)
             ind += 2
 
-    f = plt.figure(figsize=(30, 12))
+    f = plt.figure(figsize=(30, 13))
     f.tight_layout(rect=[0, 0.03, 1, 0.95])
 
     if len(inliers_success_dark) > 0:
@@ -285,10 +287,10 @@ def plot_inliers_segments(avg_inliers_segments, inliers_segments, times, failed,
     plt.axhline(y=6.0, color='red', linewidth='2', linestyle='--')
 
     plt.xticks(rotation=-80)
-    plt.xlabel(r'\textbf{Repeat time (day-hh:mm)}', fontsize=50) 
-    plt.ylabel(r'\textbf{Number of inliers}', fontsize=50)
-    plt.xticks(fontsize=38) #oct 32 
-    plt.yticks(fontsize=48) 
+    plt.xlabel(r'\textbf{Repeat time (day-hh:mm)}', fontsize=32) 
+    plt.ylabel(r'\textbf{Number of inliers}', fontsize=32)
+    plt.xticks(fontsize=32) #oct 32 
+    plt.yticks(fontsize=32) 
 
     legend_elements = [matplotlib.lines.Line2D([0], [0], color='teal', lw=4, 
                                             label='Area in training data (success/fail)'),
@@ -522,10 +524,10 @@ def plot_inliers(avg_inliers, times, inliers, colours, failed, fail_ind,
     plt.axhline(y=6.0, color='red', linewidth='2', linestyle='--')
             
     plt.xticks(rotation=-75)
-    plt.xlabel(r'\textbf{Repeat time (day-hh:mm)}', fontsize=50) 
-    plt.ylabel(r'\textbf{Number of inliers}', fontsize=50)
-    plt.xticks(fontsize=38) #oct 32 
-    plt.yticks(fontsize=48) 
+    plt.xlabel(r'\textbf{Repeat time (day-hh:mm)}', fontsize=32) 
+    plt.ylabel(r'\textbf{Number of inliers}', fontsize=32)
+    plt.xticks(fontsize=32) #oct 32 
+    plt.yticks(fontsize=42) 
 
     legend_elements = [matplotlib.lines.Line2D([0], [0], color='teal', lw=4, 
                                             label='Successful run'),
@@ -702,15 +704,15 @@ def plot_cdf(times_all, inliers_all, results_dir, month):
     time_diffs = []
 
     # Difference in t.o.d
-    for i in range(len(times_all)):
-        dt = times_all[i]
-        dt = dt.replace(day=14)
-        dt = dt.replace(month=8)
-        time_diffs.append((dt - teach_time).total_seconds() / (60.0 * 60.0))
+    # for i in range(len(times_all)):
+    #     dt = times_all[i]
+    #     dt = dt.replace(day=14)
+    #     dt = dt.replace(month=8)
+    #     time_diffs.append((dt - teach_time).total_seconds() / (60.0 * 60.0))
 
     # Difference in days
-    # for i in range(len(times_all)):
-    #     time_diffs.append((times_all[i] - teach_time).total_seconds() / (60.0 * 60.0 * 24.0))
+    for i in range(len(times_all)):
+        time_diffs.append((times_all[i] - teach_time).total_seconds() / (60.0 * 60.0 * 24.0))
 
     time_diffs_norm = []
     max_time_diff = max(time_diffs)
@@ -739,17 +741,17 @@ def plot_cdf(times_all, inliers_all, results_dir, month):
     # plt.legend(plot_lines, labels, prop={'size': 36})
     plt.xlim([max_inliers, 0])
     plt.ylim([0, 1])
-    plt.xticks(fontsize=38)
-    plt.yticks(fontsize=38)
+    plt.xticks(fontsize=32)
+    plt.yticks(fontsize=32)
     plt.grid(True, which='both', axis='both', color='gray', linestyle='-', 
              linewidth=1)
-    plt.xlabel(r'\textbf{Number of inliers}', fontsize=50)
-    plt.ylabel(r'\textbf{CDF, keyframes}', fontsize=50)
-    plt.savefig('{}/inliers_cdf_tod_seasonal_{}.png'.format(results_dir, month), 
+    plt.xlabel(r'\textbf{Number of inliers}', fontsize=32)
+    plt.ylabel(r'\textbf{CDF, keyframes}', fontsize=32)
+    plt.savefig('{}/inliers_cdf_tod_seasonal_days.png'.format(results_dir), 
                 bbox_inches='tight', format='png')
-    plt.savefig('{}/inliers_cdf_tod_seasonal_{}.pdf'.format(results_dir, month), 
+    plt.savefig('{}/inliers_cdf_tod_seasonal_days.pdf'.format(results_dir), 
                 bbox_inches='tight', format='pdf')
-    plt.savefig('{}/inliers_cdf_tod_seasonal_{}.svg'.format(results_dir, month), 
+    plt.savefig('{}/inliers_cdf_tod_seasonal_days.svg'.format(results_dir), 
                 bbox_inches='tight', format='svg')
     plt.close()
 
@@ -758,7 +760,7 @@ def plot_cdf(times_all, inliers_all, results_dir, month):
     norm = matplotlib.colors.Normalize(vmin=min(time_diffs), vmax=max(time_diffs))
 
     cbar = matplotlib.colorbar.ColorbarBase(ax, cmap=cmap, norm=norm, orientation='vertical')
-    cbar.set_label('Hours')
+    cbar.set_label('Days')
 
     # ticklabels = cbar.ax.get_ymajorticklabels()
     # ticks = list(cbar.get_ticks())
@@ -767,11 +769,11 @@ def plot_cdf(times_all, inliers_all, results_dir, month):
     # cbar.set_ticks([min_time_diff, max_time_diff] + ticks)
     # # cbar.set_ticklabels([min_time_diff, max_time_diff] + ticklabels)
 
-    plt.savefig('{}/inliers_cdf_tod_colorbar_seasonal_{}.png'.format(results_dir, month), 
+    plt.savefig('{}/inliers_cdf_tod_colorbar_seasonal_days.png'.format(results_dir), 
                 bbox_inches='tight', format='png')
-    plt.savefig('{}/inliers_cdf_tod_colorbar_seasonal_{}.pdf'.format(results_dir, month), 
+    plt.savefig('{}/inliers_cdf_tod_colorbar_seasonal_days.pdf'.format(results_dir), 
                 bbox_inches='tight', format='pdf')
-    plt.savefig('{}/inliers_cdf_tod_colorbar_seasonal_{}.svg'.format(results_dir, month), 
+    plt.savefig('{}/inliers_cdf_tod_colorbar_seasonal_days.svg'.format(results_dir), 
                 bbox_inches='tight', format='svg')
     plt.close()
 
@@ -826,11 +828,11 @@ def plot_data(info, path_segments, data_dir, failed_runs, month, ignore_runs, se
 
     results_dir = "{}/graph.index/repeats".format(data_dir)
 
-    # plot_inliers(avg_inliers, times, inliers, colours, failed, failed_ind, 
-    #              success_ind, results_dir, month, selected_ind)
+    plot_inliers(avg_inliers, times, inliers, colours, failed, failed_ind, 
+                 success_ind, results_dir, month, selected_ind)
 
-    # plot_inliers_segments(avg_inliers_segments, inliers_segments, times, failed, 
-    #                      results_dir, month, success_ind, failed_ind)
+    plot_inliers_segments(avg_inliers_segments, inliers_segments, times, failed, 
+                         results_dir, month, success_ind, failed_ind)
 
     # plot_cdf(times, inliers, results_dir, month)
 

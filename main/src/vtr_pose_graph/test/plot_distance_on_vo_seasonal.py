@@ -34,8 +34,6 @@ def load_data(data_dir, num_repeats, ignore_runs, failed_runs):
 
         info_file_path = "{}/dist.csv".format(results_dir) 
 
-        total_dist = 0.0
-
         with open(info_file_path) as csv_file:
 
             csv_reader = csv.reader(csv_file, delimiter=',')
@@ -83,7 +81,6 @@ def load_data(data_dir, num_repeats, ignore_runs, failed_runs):
                         cumulative += dist_on_vo
                         assert(dist_on_vo >= 0.0)
                         total_vo += 1
-                        total_dist += dist_on_vo
                         print(dist_on_vo)
                         print(cumulative)
                         print('============')
@@ -96,7 +93,7 @@ def load_data(data_dir, num_repeats, ignore_runs, failed_runs):
 
                 first = False
 
-        print("{}-{}-{}-{}".format(i, total_vo, total_loc, total_dist)) 
+        print("{}-{}-{}".format(i, total_vo, total_loc)) 
 
     return info
 
@@ -115,6 +112,29 @@ def plot_dist(dist, times, results_dir):
               }
     plt.rcParams.update(params) 
 
+    teach_time = datetime.datetime.combine(datetime.date(2021, 8, 14), 
+                          datetime.time(13, 26))
+
+    time_diffs = []
+
+    # Difference in t.o.d
+    # for i in range(len(times)):
+    #     dt = times[i]
+    #     dt = dt.replace(day=14)
+    #     dt = dt.replace(month=8)
+    #     time_diffs.append((dt - teach_time).total_seconds() / (60.0 * 60.0))
+
+    # Difference in days
+    for i in range(len(times)):
+        time_diffs.append((times[i] - teach_time).total_seconds() / (60.0 * 60.0 * 24.0))
+
+    time_diffs_norm = []
+    max_time_diff = max(time_diffs)
+    min_time_diff = min(time_diffs)
+    for i in range(len(times)):
+        time_diffs_norm.append((time_diffs[i] - min_time_diff) / (max_time_diff - min_time_diff))
+
+    cmap = matplotlib.cm.viridis
     
     f = plt.figure(figsize=(20, 12)) #
     f.tight_layout(rect=[0, 0.03, 1, 0.95])
@@ -140,72 +160,51 @@ def plot_dist(dist, times, results_dir):
 
         if (min_c > 0.0):
 
-            p = plt.plot(base[:-1], cumulative, linewidth=5)
-            plot_lines.append(p[0])
-            # labels.append(times[i].strftime("%H:%M"))
-            labels.append(times[i].strftime('%d.%m-%H:%M'))           
+            p = plt.plot(base[:-1], cumulative, linewidth=5, color=cmap(time_diffs_norm[i]))
+            plot_lines.append(p[0])       
 
             if min_c < min_y:
                 min_y = min(cumulative)
 
-    plt.legend(plot_lines, labels, loc='lower right', prop={'size': 36})
     plt.xlim([0, max_val])
     plt.ylim([min_y, 1])
-    plt.xticks(fontsize=38)
-    plt.yticks(fontsize=38)
+    plt.xticks(fontsize=32)
+    plt.yticks(fontsize=32)
     plt.grid(True, which='both', axis='both', color='gray', linestyle='-', 
              linewidth=1)
-    plt.xlabel(r'\textbf{Distance on VO (metres)}', fontsize=50)
-    plt.ylabel(r'\textbf{CDF, keyframes}', fontsize=50)
-    plt.savefig('{}/cdf_distance_vo.png'.format(results_dir), 
+    plt.xlabel(r'\textbf{Distance on VO (metres)}', fontsize=32)
+    plt.ylabel(r'\textbf{CDF, keyframes}', fontsize=32)
+    plt.savefig('{}/cdf_distance_vo_days.png'.format(results_dir), 
                 bbox_inches='tight', format='png')
-    plt.savefig('{}/cdf_distance_vo.pdf'.format(results_dir), 
+    plt.savefig('{}/cdf_distance_vo_days.pdf'.format(results_dir), 
                 bbox_inches='tight', format='pdf')
-    plt.savefig('{}/cdf_distance_vo.svg'.format(results_dir), 
+    plt.savefig('{}/cdf_distance_vo_days.svg'.format(results_dir), 
                 bbox_inches='tight', format='svg')
     plt.close()
 
-    # Create the x-axis date labels
-    # x_labels = []
-    # for i in range(len(times)):
-    #     x_labels.append(times[i].strftime('%d.%m-%H:%M'))
 
-    # f = plt.figure(figsize=(20, 12)) #
-    # f.tight_layout(rect=[0, 0.03, 1, 0.95])
-    # plot_lines = []
-    # labels = []
+    fig, ax = plt.subplots(figsize=(1, 12))
+    # fig.subplots_adjust(bottom=0.5)
+    norm = matplotlib.colors.Normalize(vmin=min(time_diffs), vmax=max(time_diffs))
 
-    # # for key in dist.keys():
+    cbar = matplotlib.colorbar.ColorbarBase(ax, cmap=cmap, norm=norm, orientation='vertical')
+    cbar.set_label('Hours')
 
-    # for i in range(0, len(dist['total'],), 2):
-    #     print(min(dist[key][i]))
-       
-    #     # max_val = np.max(dist)
-    #     n_bins_vis_range = 50
-    #     n_bins_total = 50
-    #     # n_bins_total = int((n_bins_vis_range * max_val) / 696)
+    # ticklabels = cbar.ax.get_ymajorticklabels()
+    # ticks = list(cbar.get_ticks())
 
-    #     values, base = np.histogram(dist[key][i], bins=n_bins_total)
-    #     unity_values = values / values.sum()
-    #     cumulative = np.cumsum(unity_values)
-    #     p = plt.plot(base[:-1], cumulative, linewidth=3)
-    #     plot_lines.append(p[0])
-    #     labels.append(x_labels[i])
+    # # Append the ticks (and their labels) for minimum and the maximum value
+    # cbar.set_ticks([min_time_diff, max_time_diff] + ticks)
+    # # cbar.set_ticklabels([min_time_diff, max_time_diff] + ticklabels)
 
-    # plt.legend(plot_lines, labels, prop={'size': 36})
-    # plt.xlim([0, 1])
-    # # plt.ylim([0.7, 1])
-    # plt.xticks(fontsize=38)
-    # plt.yticks(fontsize=38)
-    # plt.grid(True, which='both', axis='both', color='gray', linestyle='-', 
-    #          linewidth=1)
-    # plt.xlabel(r'\textbf{Total distance on VO (metres)}', fontsize=50)
-    # plt.ylabel(r'\textbf{Cumulative distributon, keyframes}', fontsize=50)
-    # # plt.title(r'\textbf{Cumulative distribution of repeats with distance driven on VO}', 
-    # #            fontsize=50)
-    # plt.savefig('{}/cdf_distance_vo_20_repeats_seasonal.png'.format(results_dir), 
-    #             bbox_inches='tight', format='png')
-    # plt.close()
+    plt.savefig('{}/cdf_vo_colorbar_seasonal_days.png'.format(results_dir), 
+                bbox_inches='tight', format='png')
+    plt.savefig('{}/cdf_vo_colorbar_seasonal_days.pdf'.format(results_dir), 
+                bbox_inches='tight', format='pdf')
+    plt.savefig('{}/cdf_vo_colorbar_seasonal_days.svg'.format(results_dir), 
+                bbox_inches='tight', format='svg')
+    plt.close()
+
 
 def plot_data(info, data_dir, failed_runs):
 
@@ -237,11 +236,8 @@ if __name__ == "__main__":
     failed_runs = {}
 
     # ignore_runs = [10, 15, 16] #exp2
-    # ignore_runs = [101]
-    ignore_runs = []
-
+    ignore_runs = [101]
+   
     info = load_data(args.path, args.numrepeats, ignore_runs, failed_runs)
 
-    # plot_data(info, args.path, failed_runs);
-
-
+    plot_data(info, args.path, failed_runs);

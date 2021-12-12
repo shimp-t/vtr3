@@ -20,11 +20,21 @@ def draw_times(img_dir):
         
         img = Image.new("RGBA", img_base.size, (255,255,255,0))
         draw_img = ImageDraw.Draw(img)
-        x, y = 95,305
-        text = "{}.{}-{}:{}".format(numbers[-4], numbers[-3], numbers[-2], numbers[-1])
+        x, y = 205, 305
+        # x, y = 305,305
+        # x, y = 95,305
+        # text = "{}-{}:{}".format(numbers[-3], numbers[-2], numbers[-1])
+        text = "{}-{}:{}".format(numbers[-4], numbers[-3], numbers[-2])
+        # text = "{}:{}".format(numbers[-2], numbers[-1])
+        # text = "{}.{}-{}:{}".format(numbers[-4], numbers[-3], numbers[-2], numbers[-1])
         fnt = ImageFont.truetype("Pillow/Tests/fonts/FreeMono.ttf", 60)
         w, h = fnt.getsize(text)
-        draw_img.rectangle((x, y, x + w + 10, y + h + 10), fill=(0, 0, 0, 150))
+        # if (numbers[-4] == '14') and (numbers[-3] == '08'):
+        # if (numbers[-4] == '11') and (numbers[-3] == '09') and (numbers[-2] == '52'):
+        if (numbers[-4] == '11') and (numbers[-3] == '11') and (numbers[-2] == '34'):
+            draw_img.rectangle([(x, y), (x + w + 10, y + h + 10)], fill=(0, 0, 255, 150))
+        else:
+            draw_img.rectangle([(x, y), (x + w + 10, y + h + 10)], fill=(0, 0, 0, 150))
         draw_img.multiline_text((x,y), 
                                  text, 
                                  font=fnt, 
