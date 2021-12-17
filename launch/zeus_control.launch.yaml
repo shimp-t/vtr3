@@ -1,0 +1,26 @@
+## minimal launch file for controlling Grizzly via XBox controller
+
+session_name: grizzly_control
+
+# environment:
+#   ROS_DOMAIN_ID: "1"  # set this to a unique number when multiple ROS2 processes running on the same network
+
+start_directory: ${HOME}
+
+suppress_history: false
+
+# ROS2 Galactic
+windows:
+  - window_name: main
+    layout: main-horizontal
+    panes:
+      - >
+        source ${VTRSRC}/robots/ros2/install/setup.bash
+        && ros2 launch utias_grizzly_description wired-grizzly_xbox_js0.launch
+      - >
+        source /opt/ros/noetic/setup.bash
+        && source /opt/ros/galactic/setup.bash
+        && export ROS_MASTER_URI=http://AUTODRIVE-BOLT:11311
+        && export ROS_HOSTNAME=yuchen-asrl
+        && export ROS_IP=192.168.0.253
+        && ros2 run ros1_bridge dynamic_bridge
