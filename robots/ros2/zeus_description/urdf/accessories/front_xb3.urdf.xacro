@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+
+	<!-- Included URDF/XACRO Files -->
+  <xacro:include filename="$(find grizzly_description)/urdf/add_frame.urdf.xacro" />
+
+  <!-- Front XB3 -->
+  <xacro:grizzly_tf parent="sensor_anchor_link" name="front_xb3"
+    translateX=".95" translateY=".12" translateZ="1.395"
+    rotateX="-1.833" rotateY="0.0" rotateZ="-1.57"/>
+</robot>

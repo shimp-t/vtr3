@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.16)
-project(utias_grizzly_description)
+project(zeus_description)
 
 # Find dependencies
 find_package(ament_cmake REQUIRED)
 
-# Install launch files.
+# Install launch and description files.
 install(DIRECTORY
   launch urdf
   DESTINATION share/${PROJECT_NAME}/

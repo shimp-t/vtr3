@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro" name="zeus">
+  <xacro:include filename="$(find grizzly_description)/urdf/base.urdf.xacro" />
+  <xacro:include filename="$(find zeus_description)/urdf/accessories/front_xb3.urdf.xacro" />
+</robot>
