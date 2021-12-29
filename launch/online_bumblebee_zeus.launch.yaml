@@ -22,8 +22,6 @@ windows:
         data_dir:=${VTRDATA}/online-test-camera/zeus/$(date '+%F')/$(date '+%F')_main
         clear_data_dir:=false
 
-      - sleep 5 && ros2 run rviz2 rviz2 -d ${VTRSRC}/rviz/camera.rviz
-
   - window_name: vtr_ui
     layout: main-horizontal
     shell_command_before:
