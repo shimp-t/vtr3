@@ -61,12 +61,14 @@ struct RadarQueryCache : public tactic::QueryCache {
         current_map_loc_vid("current_map_loc_vid", janitor_.get()),
         new_map("new_map", janitor_.get()),
         new_map_T_v_m("new_map_T_v_m", janitor_.get()),
-        radar_resolution("radar_resolution", janitor_.get()) {}
+        radar_resolution("radar_resolution", janitor_.get()),
+        raw_scan("raw_scan", janitor_.get()),
+        azimuth_times("azimuth_times", janitor_.get()),
+        azimuth_angles("azimuth_angles", janitor_.get()) {}
 
   common::cache_ptr<std::string> radar_frame;
   common::cache_ptr<lgmath::se3::TransformationWithCovariance> T_s_r;
   common::cache_ptr<sensor_msgs::msg::Image> scan_msg;
-  common::cache_ptr<cv::Mat> raw_scan;
   common::cache_ptr<std::vector<double>> raw_pointcloud_time;
   common::cache_ptr<std::vector<PointXYZ>> raw_pointcloud_cart;
   common::cache_ptr<std::vector<PointXYZ>> raw_pointcloud_pol;
@@ -78,7 +80,6 @@ struct RadarQueryCache : public tactic::QueryCache {
   common::cache_ptr<std::vector<float>> icp_scores;
   common::cache_ptr<std::vector<float>> normal_scores;
   common::cache_ptr<float> matched_points_ratio;
-  common::cache_ptr<float> radar_resolution;
 
   common::cache_ptr<IncrementalPointMap> current_map_odo;
   common::cache_ptr<tactic::VertexId> current_map_odo_vid;
@@ -88,6 +89,11 @@ struct RadarQueryCache : public tactic::QueryCache {
   common::cache_ptr<tactic::VertexId> current_map_loc_vid;
   common::cache_ptr<IncrementalPointMap> new_map;
   common::cache_ptr<lgmath::se3::TransformationWithCovariance> new_map_T_v_m;
+
+  common::cache_ptr<float> radar_resolution;
+  common::cache_ptr<cv::Mat> raw_scan;
+  common::cache_ptr<std::vector<double>> azimuth_times;
+  common::cache_ptr<std::vector<double>> azimuth_angles;
 };
 }  // namespace radar
 }  // namespace vtr

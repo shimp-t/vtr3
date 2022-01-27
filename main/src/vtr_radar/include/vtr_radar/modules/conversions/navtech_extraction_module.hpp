@@ -23,6 +23,7 @@
 #include <pcl_conversions/pcl_conversions.h>
 
 #include <vtr_radar/cache.hpp>
+#include <vtr_radar/utils/utils.hpp>
 #include <vtr_tactic/modules/base_module.hpp>
 
 namespace vtr {

@@ -29,34 +29,6 @@ namespace radar {
 using namespace tactic;
 using namespace vtr::lidar;
 
-namespace {
-
-/**
- * \brief Converts cartesian to polar and force polar coordinates to be
- * continuous.
- */
-void cart2Pol(const std::vector<PointXYZ> &cart, std::vector<PointXYZ> &polar) {
-  polar.clear();
-  polar.reserve(cart.size());
-
-  for (size_t i = 0; i < cart.size(); i++) {
-    const auto &p = cart[i];
-
-    const float rho = sqrt(p.sq_norm());
-    const float theta = atan2(sqrt(p.x * p.x + p.y * p.y), p.z);
-    float phi = atan2(p.y, p.x) + M_PI / 2;
-
-    if (i > 0 && (phi - polar[i - 1].z) > 1.5 * M_PI)
-      phi -= 2 * M_PI;
-    else if (i > 0 && (phi - polar[i - 1].z) < -1.5 * M_PI)
-      phi += 2 * M_PI;
-
-    polar.emplace_back(rho, theta, phi);
-  }
-}
-
-}  // namespace
-
 void NavtechExtractionModule::configFromROS(
     const rclcpp::Node::SharedPtr &node, const std::string param_prefix) {
   config_ = std::make_shared<Config>();
@@ -81,32 +53,42 @@ void NavtechExtractionModule::runImpl(QueryCache &qdata0,
   auto &qdata = dynamic_cast<RadarQueryCache &>(qdata0);
 
   /// Input
-  // const auto &msg = qdata.scan_msg.ptr();
-  qdata.raw_scan = cv_bridge::toCvShare(msg, "mono8")->image;
-  qdata.raw_scan.convertTo(qdata.raw_scan, CV_32F);
+  const auto &msg = qdata.scan_msg.ptr();
+  cv::Mat raw_data = cv_bridge::toCvShare(msg, "mono8")->image;
+  raw_data.convertTo(raw_data, CV_32F);
 
   /// Output
   auto &raw_pointcloud_time = *qdata.raw_pointcloud_time.fallback();
   auto &raw_pointcloud_cart = *qdata.raw_pointcloud_cart.fallback();
   auto &raw_pointcloud_pol = *qdata.raw_pointcloud_pol.fallback();
+  auto &raw_scan = *qdata.raw_scan.fallback();
+  auto &azimuth_times = *qdata.azimuth_times.fallback();
+  auto &azimuth_angles = *qdata.azimuth_angles.fallback();
+
+  // Load scan, times, azimuths from raw_data
+  qdata.radar_resolution = config_->radar_resolution;
+  load_radar(raw_data, azimuth_times, azimuth_angles, raw_scan);
 
   // Extract keypoints and times
-
-  // Copy over points and time
-  const auto N = (size_t)(msg->width * msg->height);
-  raw_pointcloud_time.reserve(N);
-  raw_pointcloud_cart.reserve(N);
-  sensor_msgs::PointCloud2ConstIterator<float> iter_x(*msg, "x"),
-      iter_y(*msg, "y"), iter_z(*msg, "z");
-  sensor_msgs::PointCloud2ConstIterator<double> iter_time(*msg, "t");
-  for (; iter_x != iter_x.end(); ++iter_x, ++iter_y, ++iter_z, ++iter_time) {
-    raw_pointcloud_cart.push_back(PointXYZ(*iter_x, *iter_y, *iter_z));
-    raw_pointcloud_time.push_back(*iter_time);
+  Detector detector;
+  switch(config_->detector) {
+    case "kstrongest":
+      detector = KStrongest(config_->kstrong, config_->threshold, config_->minr,
+        config_->maxr);
+    case "cen2018":
+      detector = Cen2018(config_->zq, config_->sigma, config_->minr, config_->maxr);
+    case "cacfar":
+      detector = CACFAR(config_->width, config_->guard, config_->threshold,
+        config_->minr, config_->maxr);
+    case "oscfar":
+      detector = OSCFAR(config_->width, config_->guard, config_->kstat,
+        config_->threshold, config_->minr, config_->maxr);
   }
+  detector.run(*qdata0);
 
-  // Velodyne has no polar coordinates, so compute them manually.
-  cart2Pol(raw_pointcloud_cart, raw_pointcloud_pol);
+  // Convert to cartesian format
+  pol2Cart(raw_pointcloud_pol, raw_pointcloud_cart);
 }
 
-}  // namespace lidar
+}  // namespace radar
 }  // namespace vtr

@@ -21,10 +21,7 @@
 
 #pragma once
 
-// #include <sensor_msgs/msg/image.hpp>
-// #include <vtr_lidar/pointmap/pointmap.hpp>
 #include <vtr_radar/cache.hpp>
-
 
 namespace vtr{
 namespace radar{
@@ -36,20 +33,24 @@ class Detector {
  public:
   Detector() {}
   virtual ~Detector() {}
-  virtual void run(RadarQueryCache qdata);
+  virtual void run(tactic::QueryCache &qdata);
 };
+
 
 class KStrongest : public Detector {
  public:
   KStrongest() {}
-  KStrongest(int kstrong, double minr, double maxr) : kstrong_(kstrong), min_r(minr), maxr_(maxr) {}
+  KStrongest(int kstrong, double threshold, double minr, double maxr) : kstrong_(kstrong),
+    threshold_(threshold), min_r(minr), maxr_(maxr) {}
   ~KStrongest() {}
  
  private:
   int kstrong_ = 10;
+  double threshold_ = 1.5;
   double minr_ = 2.0;
   double maxr_ = 100.0;
 };
+
 
 class Cen2018 : public Detector {
  public:
@@ -65,11 +66,12 @@ class Cen2018 : public Detector {
   double maxr_ = 100.0;
 };
 
+
 class CACFAR : public Detector {
  public:
   CACFAR() {}
-  CACFAR(int width, int guard, double treshold, double minr, double maxr) :
-    width_(width), guard_(guard), threshold_(treshold), min_r(minr), maxr_(maxr) {}
+  CACFAR(int width, int guard, double threshold, double minr, double maxr) :
+    width_(width), guard_(guard), threshold_(threshold), min_r(minr), maxr_(maxr) {}
   ~CACFAR() {}
  
  private:
@@ -80,11 +82,13 @@ class CACFAR : public Detector {
   double maxr_ = 100.0;
 };
 
+
 class OSCFAR : public Detector {
  public:
   OSCFAR() {}
-  OSCFAR(int width, int guard, int kstat, double treshold, double minr, double maxr) :
-    width_(width), guard_(guard), kstat_(kstat), threshold_(treshold), min_r(minr), maxr_(maxr) {}
+  OSCFAR(int width, int guard, int kstat, double threshold, double minr, double maxr) :
+    width_(width), guard_(guard), kstat_(kstat), threshold_(threshold), min_r(minr),
+    maxr_(maxr) {}
   ~OSCFAR() {}
  
  private:
