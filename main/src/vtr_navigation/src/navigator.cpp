@@ -101,6 +101,9 @@ Navigator::Navigator(const rclcpp::Node::SharedPtr node) : node_(node) {
 
   /// pipeline
   auto pipeline_factory = std::make_shared<ROSPipelineFactory>(node_);
+#ifdef VTR_ENABLE_RADAR
+  pipeline_factory->add<radar::RadarPipeline>();
+#endif
 #ifdef VTR_ENABLE_LIDAR
   pipeline_factory->add<lidar::LidarPipeline>();
 #endif
@@ -132,6 +135,12 @@ Navigator::Navigator(const rclcpp::Node::SharedPtr node) : node_(node) {
   robot_frame_ = node_->declare_parameter<std::string>("robot_frame", "base_link");
   // example data subscription, start with this to add new data subscription
   example_data_sub_ = node_->create_subscription<ExampleDataMsg>("/example_data", rclcpp::SensorDataQoS(), std::bind(&Navigator::exampleDataCallback, this, std::placeholders::_1));
+#ifdef VTR_ENABLE_RADAR
+  radar_frame_ = node_->declare_parameter<std::string>("radar_frame", "navtech");
+  T_radar_robot_ = loadTransform(radar_frame_, robot_frame_);
+  const auto radar_topic = node_->declare_parameter<std::string>("radar_topic", "/scans");
+  radar_sub_ = node_->create_subscription<sensor_msgs::msg::Image>(radar_topic, rclcpp::SystemDefaultsQoS(), std::bind(&Navigator::radarCallback, this, std::placeholders::_1));
+#endif
 #ifdef VTR_ENABLE_LIDAR
   lidar_frame_ = node_->declare_parameter<std::string>("lidar_frame", "velodyne");
   T_lidar_robot_ = loadTransform(lidar_frame_, robot_frame_);
@@ -203,6 +212,11 @@ void Navigator::process() {
 
     // get the front in queue
     auto qdata0 = queue_.front();
+#ifdef VTR_ENABLE_RADAR
+    if (const auto qdata =
+            std::dynamic_pointer_cast<radar::RadarQueryCache>(qdata0))
+      if (qdata->scan_msg.is_valid()) scan_in_queue_ = false;
+#endif
 #ifdef VTR_ENABLE_LIDAR
     if (const auto qdata =
             std::dynamic_pointer_cast<lidar::LidarQueryCache>(qdata0))
@@ -241,6 +255,46 @@ void Navigator::exampleDataCallback(const ExampleDataMsg::SharedPtr) {
   // queue_.push(query_data);
   // process_.notify_one();
 }
+
+#ifdef VTR_ENABLE_RADAR
+void Navigator::radarCallback(
+    const sensor_msgs::msg::Image::SharedPtr msg) {
+  CLOG(DEBUG, "navigator") << "Received a radar scan.";
+
+  if (scan_in_queue_) {
+    CLOG_EVERY_N(10, INFO, "navigator")
+        << "Skip scan message because there is already "
+           "one in queue.";
+    return;
+  }
+
+  // Convert message to query_data format and store into query_data
+  auto query_data = std::make_shared<radar::RadarQueryCache>();
+
+  /// \todo (yuchen) need to distinguish this with stamp
+  query_data->rcl_stamp.fallback(msg->header.stamp);
+
+  // set time stamp
+  TimeStampMsg stamp;
+  stamp.nanoseconds_since_epoch =
+      msg->header.stamp.sec * 1e9 + msg->header.stamp.nanosec;
+  query_data->stamp.fallback(stamp);
+
+  // put in the pointcloud msg pointer into query data
+  query_data->scan_msg = msg;
+
+  // fill in the vehicle to sensor transform and frame names
+  query_data->robot_frame.fallback(robot_frame_);
+  query_data->radar_frame.fallback(radar_frame_);
+  query_data->T_s_r.fallback(T_radar_robot_);
+
+  // add to the queue and notify the processing thread
+  queue_.push(query_data);
+  scan_in_queue_ = true;
+  process_.notify_one();
+};
+#endif
+
 #ifdef VTR_ENABLE_LIDAR
 void Navigator::lidarCallback(
     const sensor_msgs::msg::PointCloud2::SharedPtr msg) {

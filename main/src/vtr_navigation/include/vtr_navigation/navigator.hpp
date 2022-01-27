@@ -45,6 +45,11 @@
 #include <vtr_messages/msg/robot_status.hpp>
 #include <vtr_messages/msg/time_stamp.hpp>
 
+#ifdef VTR_ENABLE_RADAR
+#include <vtr_radar/pipeline.hpp>
+#include <sensor_msgs/msg/image.hpp>
+#endif
+
 #ifdef VTR_ENABLE_LIDAR
 #include <vtr_lidar/pipeline.hpp>
 
@@ -92,6 +97,12 @@ class Navigator : public PublisherInterface {
   const RCGraph::Ptr graph() const { return graph_; }
   const state::StateMachine::Ptr sm() const { return state_machine_; }
   const std::string &robot_frame() const { return robot_frame_; }
+#ifdef VTR_ENABLE_RADAR
+  const std::string &radar_frame() const { return radar_frame_; }
+  const lgmath::se3::TransformationWithCovariance &T_radar_robot() const {
+    return T_radar_robot_;
+  }
+#endif
 #ifdef VTR_ENABLE_LIDAR
   const std::string &lidar_frame() const { return lidar_frame_; }
   const lgmath::se3::TransformationWithCovariance &T_lidar_robot() const {
@@ -110,6 +121,9 @@ class Navigator : public PublisherInterface {
 
   /// Sensor specific stuff
   void exampleDataCallback(const ExampleDataMsg::SharedPtr);
+#ifdef VTR_ENABLE_RADAR
+  void radarCallback(const sensor_msgs::msg::Image::SharedPtr msg);
+#endif
 #ifdef VTR_ENABLE_LIDAR
   void lidarCallback(const sensor_msgs::msg::PointCloud2::SharedPtr msg);
 #endif
@@ -152,6 +166,13 @@ class Navigator : public PublisherInterface {
   std::string robot_frame_;
   // example data
   rclcpp::Subscription<ExampleDataMsg>::SharedPtr example_data_sub_;
+#ifdef VTR_ENABLE_RADAR
+  std::string radar_frame_;
+  /** \brief Radar data subscriber */
+  rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr radar_sub_;
+  std::atomic<bool> scan_in_queue_ = false;
+  lgmath::se3::TransformationWithCovariance T_radar_robot_;
+#endif
 #ifdef VTR_ENABLE_LIDAR
   std::string lidar_frame_;
   /** \brief Lidar data subscriber */

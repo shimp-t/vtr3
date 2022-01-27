@@ -47,6 +47,7 @@ endif()
 # out.
 add_definitions(-DVTR_ENABLE_CAMERA)
 add_definitions(-DVTR_ENABLE_LIDAR)
+add_definitions(-DVTR_ENABLE_RADAR)
 
 ## GPUSURF enable/disable flag (used by vision pipeline only)
 # Note: currently assume that gpusurf is always available, because we have no
