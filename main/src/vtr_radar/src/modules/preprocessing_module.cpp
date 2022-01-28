@@ -16,12 +16,12 @@
  * \file preprocessing_module.cpp
  * \brief PreprocessingModule class methods definition
  *
- * \author Yuchen Wu, Autonomous Space Robotics Lab (ASRL)
+ * \author Yuchen Wu, Keenan Burnett, Autonomous Space Robotics Lab (ASRL)
  */
-#include <vtr_lidar/modules/preprocessing_module.hpp>
+#include <vtr_radar/modules/preprocessing_module.hpp>
 
 namespace vtr {
-namespace lidar {
+namespace radar {
 
 namespace {
 PointCloudMsg::SharedPtr toROSMsg(const std::vector<PointXYZ> &points,
@@ -90,10 +90,7 @@ void PreprocessingModule::configFromROS(const rclcpp::Node::SharedPtr &node,
   LOG_IF(config_->num_threads != 1, WARNING) << "Point cloud pre-processor number of threads set to 1 in deterministic mode.";
   config_->num_threads = 1;
 #endif
-  config_->vertical_angle_res = node->declare_parameter<float>(param_prefix + ".vertical_angle_res", config_->vertical_angle_res);
-  config_->polar_r_scale = node->declare_parameter<float>(param_prefix + ".polar_r_scale", config_->polar_r_scale);
-  config_->r_scale = node->declare_parameter<float>(param_prefix + ".r_scale", config_->r_scale);
-  config_->h_scale = node->declare_parameter<float>(param_prefix + ".h_scale", config_->h_scale);
+  config_->polar_r = node->declare_parameter<float>(param_prefix + ".polar_r", config_->polar_r);
   config_->frame_voxel_size = node->declare_parameter<float>(param_prefix + ".frame_voxel_size", config_->frame_voxel_size);
 
   config_->num_sample1 = node->declare_parameter<int>(param_prefix + ".num_sample1", config_->num_sample1);
@@ -111,7 +108,7 @@ void PreprocessingModule::configFromROS(const rclcpp::Node::SharedPtr &node,
 }
 
 void PreprocessingModule::runImpl(QueryCache &qdata0, const Graph::ConstPtr &) {
-  auto &qdata = dynamic_cast<LidarQueryCache &>(qdata0);
+  auto &qdata = dynamic_cast<RadarQueryCache &>(qdata0);
 
   /// Create a node for visualization if necessary
   if (config_->visualize && !publisher_initialized_) {
@@ -129,11 +126,11 @@ void PreprocessingModule::runImpl(QueryCache &qdata0, const Graph::ConstPtr &) {
 
   if (points_time.size() == 0) {
     std::string err{"Empty point cloud."};
-    CLOG(ERROR, "lidar.preprocessing") << err;
+    CLOG(ERROR, "radar.preprocessing") << err;
     throw std::runtime_error{err};
   }
 
-  CLOG(DEBUG, "lidar.preprocessing")
+  CLOG(DEBUG, "radar.preprocessing")
       << "raw point cloud size: " << points.size();
 
   /// Grid subsampling
@@ -154,29 +151,19 @@ void PreprocessingModule::runImpl(QueryCache &qdata0, const Graph::ConstPtr &) {
     sampled_points_time.push_back(points_time[ind]);
   }
 
-  CLOG(DEBUG, "lidar.preprocessing")
+  CLOG(DEBUG, "radar.preprocessing")
       << "grid subsampled point cloud size: " << sampled_points.size();
 
   /// Compute normals and an icp score
 
-  // Scale polar points
-  std::vector<PointXYZ> polar_points_scaled(polar_points);
-  std::vector<PointXYZ> sampled_polar_points_scaled(sampled_polar_points);
-
-  // Apply scale to radius and angle horizontal
-  scaleAndLogRadius(polar_points_scaled, config_->r_scale);
-  scaleHorizontal(polar_points_scaled, config_->h_scale);
-  scaleAndLogRadius(sampled_polar_points_scaled, config_->r_scale);
-  scaleHorizontal(sampled_polar_points_scaled, config_->h_scale);
-
-  // Define the polar neighbors radius in the scaled polar coordinates
-  float polar_r = config_->polar_r_scale * config_->vertical_angle_res;
+  // Define the polar neighbors radius in polar coordinates
+  float polar_r = config_->polar_r_scale;
 
   // Extract normal vectors of sampled points
   std::vector<PointXYZ> normals;
   std::vector<float> norm_scores;
-  extractNormal(points, polar_points_scaled, sampled_points,
-                sampled_polar_points_scaled, polar_r, config_->num_threads,
+  extractNormal(points, polar_points, sampled_points,
+                sampled_polar_points, polar_r, config_->num_threads,
                 normals, norm_scores);
 
   // Better normal score based on distance and incidence angle
@@ -199,7 +186,7 @@ void PreprocessingModule::runImpl(QueryCache &qdata0, const Graph::ConstPtr &) {
     filterFloatVector(norm_scores, min_score);
   }
 
-  CLOG(DEBUG, "lidar.preprocessing")
+  CLOG(DEBUG, "radar.preprocessing")
       << "planarity sampled point size: " << sampled_points.size();
 
   /// Filter based on a normal directions
@@ -221,34 +208,34 @@ void PreprocessingModule::runImpl(QueryCache &qdata0, const Graph::ConstPtr &) {
     filterFloatVector(norm_scores, min_score);
   }
 
-  CLOG(DEBUG, "lidar.preprocessing")
+  CLOG(DEBUG, "radar.preprocessing")
       << "normal direction sampled point size: " << sampled_points.size();
 
   /// Remove isolated points (mostly points on trees)
 
-  float search_radius = 2 * config_->frame_voxel_size;
-  auto cluster_scores = getNumberOfNeighbors(sampled_points, search_radius);
+  // float search_radius = 2 * config_->frame_voxel_size;
+  // auto cluster_scores = getNumberOfNeighbors(sampled_points, search_radius);
 
-  auto sorted_cluster_scores = cluster_scores;
-  std::sort(sorted_cluster_scores.begin(), sorted_cluster_scores.end());
-  min_score = sorted_cluster_scores[std::max(
-      0, (int)sorted_cluster_scores.size() - config_->cluster_num_sample)];
-  min_score = std::max((float)1, min_score);  /// \todo config
-  if (min_score >= 1) {
-    filterPointCloud(sampled_points, cluster_scores, min_score);
-    filterPointCloud(normals, cluster_scores, min_score);
-    filterFloatVector(sampled_points_time, cluster_scores, min_score);
-    filterFloatVector(icp_scores, cluster_scores, min_score);
-    filterFloatVector(norm_scores, cluster_scores, min_score);
-  }
-  CLOG(DEBUG, "lidar.preprocessing")
-      << "cluster point size: " << sampled_points.size();
+  // auto sorted_cluster_scores = cluster_scores;
+  // std::sort(sorted_cluster_scores.begin(), sorted_cluster_scores.end());
+  // min_score = sorted_cluster_scores[std::max(
+  //     0, (int)sorted_cluster_scores.size() - config_->cluster_num_sample)];
+  // min_score = std::max((float)1, min_score);  /// \todo config
+  // if (min_score >= 1) {
+  //   filterPointCloud(sampled_points, cluster_scores, min_score);
+  //   filterPointCloud(normals, cluster_scores, min_score);
+  //   filterFloatVector(sampled_points_time, cluster_scores, min_score);
+  //   filterFloatVector(icp_scores, cluster_scores, min_score);
+  //   filterFloatVector(norm_scores, cluster_scores, min_score);
+  // }
+  // CLOG(DEBUG, "radar.preprocessing")
+  //     << "cluster point size: " << sampled_points.size();
 
-  CLOG(DEBUG, "lidar.preprocessing")
+  CLOG(DEBUG, "radar.preprocessing")
       << "final subsampled point size: " << sampled_points.size();
   if (config_->visualize)
     grid_sampled_pub_->publish(*toROSMsg(sampled_points, norm_scores,
-                                         *qdata.lidar_frame, *qdata.rcl_stamp));
+                                         *qdata.radar_frame, *qdata.rcl_stamp));
 
   /// Output
   qdata.preprocessed_pointcloud.fallback(sampled_points);
@@ -261,5 +248,5 @@ void PreprocessingModule::runImpl(QueryCache &qdata0, const Graph::ConstPtr &) {
 void PreprocessingModule::visualizeImpl(QueryCache &, const Graph::ConstPtr &) {
 }
 
-}  // namespace lidar
+}  // namespace radar
 }  // namespace vtr

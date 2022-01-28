@@ -22,7 +22,7 @@
 
 #include <pcl_conversions/pcl_conversions.h>
 
-#include <vtr_lidar/cache.hpp>
+#include <vtr_radar/cache.hpp>
 #include <vtr_lidar/polar_processing/polar_processing.hpp>
 #include <vtr_tactic/modules/base_module.hpp>
 
@@ -30,7 +30,7 @@
 #include <sensor_msgs/msg/point_cloud2.hpp>
 
 namespace vtr {
-namespace lidar {
+namespace radar {
 
 using PointCloudMsg = sensor_msgs::msg::PointCloud2;
 
@@ -38,15 +38,12 @@ using PointCloudMsg = sensor_msgs::msg::PointCloud2;
 class PreprocessingModule : public tactic::BaseModule {
  public:
   /** \brief Static module identifier. */
-  static constexpr auto static_name = "lidar.preprocessing";
+  static constexpr auto static_name = "radar.preprocessing";
 
   /** \brief Config parameters. */
   struct Config {
     int num_threads = 1;
-    float vertical_angle_res = 0.00745;
-    float polar_r_scale = 1.5;
-    float r_scale = 4.0;
-    float h_scale = 0.5;
+    float polar_r = 0.0314159;
     float frame_voxel_size = 0.1;
     int num_sample1 = 100000;
     float min_norm_score1 = 0.0;
@@ -79,5 +76,5 @@ class PreprocessingModule : public tactic::BaseModule {
   rclcpp::Publisher<PointCloudMsg>::SharedPtr normal_sampled_pub_;
 };
 
-}  // namespace lidar
+}  // namespace radar
 }  // namespace vtr
