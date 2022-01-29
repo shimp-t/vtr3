@@ -18,10 +18,10 @@
  *
  * \author Yuchen Wu, Autonomous Space Robotics Lab (ASRL)
  */
-#include <vtr_lidar/modules/map_maintenance_module.hpp>
+#include <vtr_radar/modules/map_maintenance_module.hpp>
 
 namespace vtr {
-namespace lidar {
+namespace radar {
 
 using namespace tactic;
 
@@ -36,6 +36,7 @@ void MapMaintenanceModule::configFromROS(const rclcpp::Node::SharedPtr &node,
 
   config_->min_num_observations = node->declare_parameter<int>(param_prefix + ".min_num_observations", config_->min_num_observations);
   config_->max_num_observations = node->declare_parameter<int>(param_prefix + ".max_num_observations", config_->max_num_observations);
+  config_->search_radius = node->declare_parameter<float>(param_prefix + ".search_radius", config_->search_radius);
 
   config_->visualize = node->declare_parameter<bool>(param_prefix + ".visualize", config_->visualize);
   // clang-format on
@@ -43,7 +44,7 @@ void MapMaintenanceModule::configFromROS(const rclcpp::Node::SharedPtr &node,
 
 void MapMaintenanceModule::runImpl(QueryCache &qdata0,
                                    const Graph::ConstPtr &) {
-  auto &qdata = dynamic_cast<LidarQueryCache &>(qdata0);
+  auto &qdata = dynamic_cast<RadarQueryCache &>(qdata0);
 
   if (config_->visualize && !publisher_initialized_) {
     // clang-format off
@@ -71,7 +72,7 @@ void MapMaintenanceModule::runImpl(QueryCache &qdata0,
 
   // Do not update the map if registration failed.
   if (!(*qdata.odo_success)) {
-    CLOG(WARNING, "lidar.map_maintenance")
+    CLOG(WARNING, "radar.map_maintenance")
         << "Point cloud registration failed - not updating the map.";
     return;
   }
@@ -107,6 +108,20 @@ void MapMaintenanceModule::runImpl(QueryCache &qdata0,
   FrustumGrid frustum_grid(config_->horizontal_resolution,
                            config_->vertical_resolution,
                            *qdata.undistorted_pointcloud);
+
+  // ********
+  // Build KDTree
+  PointCloud cloud;
+  cloud.pts = *qdata.undistorted_pointcloud;
+  nanoflann::KDTreeSingleIndexAdaptorParams tree_params(10 /* max leaf */);
+  auto index = std::make_unique<PointXYZ_KDTree>(3, cloud, tree_params);
+  index->buildIndex();
+  float r2 = config_->search_radius * config_->search_radius;
+  nanoflann::SearchParams search_params;
+  search_params.sorted = false;
+  // ********
+
+
   // convert our map to live frame coordinates
   const auto T_s_m = T_m_s.inverse();
   auto map_points = new_map.cloud.pts;  // has to be copied unfortunately.
@@ -117,24 +132,11 @@ void MapMaintenanceModule::runImpl(QueryCache &qdata0,
   T_tot = T_s_m.block<3, 1>(0, 3);
   map_pts_mat = (R_tot * map_pts_mat).colwise() + T_tot;
   map_norms_mat = R_tot * map_norms_mat;
-  // and then to polar coordinates
-  auto map_points_polar = map_points;
-  cart2Pol_(map_points_polar);
 
-  // check if the point is closer
-  for (size_t i = 0; i < map_points_polar.size(); i++) {
-    const auto &p = map_points_polar[i];
-    const auto k = frustum_grid.getKey(p);
-    // check if we have this point in this scan
-    if (!frustum_grid.find(k)) continue;
 
-    // the current point is occluded in the current observation
-    if (frustum_grid.isFarther(k, p.x)) continue;
-
-    // update this point only when we have a good normal
-    float angle =
-        acos(std::min(abs(map_points[i].dot(map_normals[i]) / p.x), 1.0f));
-    if (angle > 5 * M_PI / 12) continue;
+  // ********
+  for (size_t i = 0; i < map_points.size(); i++) {
+    const auto &p = map_points[i];
 
     // minimum number of observations to be considered static point
     if (new_map.movabilities[i].second < config_->min_num_observations) {
@@ -142,12 +144,16 @@ void MapMaintenanceModule::runImpl(QueryCache &qdata0,
       new_map.movabilities[i].second++;
       continue;
     }
-
+    std::vector<std::pair<size_t, float>> inds_dists;
+    inds_dists.reserve(10);
+    const float point[3] = {p.x, p.y, p.x};
+    const size_t num_neighbors = index->radiusSearch(point, r2, inds_dists, search_params);
+    const bool noNeighbors = num_neighbors == 0;
     if (new_map.movabilities[i].second < config_->max_num_observations) {
-      new_map.movabilities[i].first += frustum_grid.isCloser(k, p.x);
+      new_map.movabilities[i].first += noNeighbors;
       new_map.movabilities[i].second++;
     } else {
-      if (frustum_grid.isCloser(k, p.x)) {
+      if (noNeighbors) {
         new_map.movabilities[i].first = std::min(
             config_->max_num_observations, new_map.movabilities[i].first + 1);
       } else {
@@ -156,6 +162,7 @@ void MapMaintenanceModule::runImpl(QueryCache &qdata0,
       }
     }
   }
+  // ********
 
   if (config_->visualize) {
     {
@@ -279,5 +286,5 @@ void MapMaintenanceModule::runImpl(QueryCache &qdata0,
 void MapMaintenanceModule::visualizeImpl(QueryCache &,
                                          const Graph::ConstPtr &) {}
 
-}  // namespace lidar
+}  // namespace radar
 }  // namespace vtr

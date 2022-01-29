@@ -18,10 +18,10 @@
  *
  * \author Yuchen Wu, Autonomous Space Robotics Lab (ASRL)
  */
-#include <vtr_lidar/modules/odometry_icp_module.hpp>
+#include <vtr_radar/modules/odometry_icp_module.hpp>
 
 namespace vtr {
-namespace lidar {
+namespace radar {
 
 namespace {
 bool checkDiagonal(Eigen::Array<double, 1, 6> &diag) {
@@ -92,10 +92,10 @@ void OdometryICPModule::configFromROS(const rclcpp::Node::SharedPtr &node,
 
 void OdometryICPModule::runImpl(QueryCache &qdata0,
                                 const Graph::ConstPtr &graph) {
-  auto &qdata = dynamic_cast<LidarQueryCache &>(qdata0);
+  auto &qdata = dynamic_cast<RadarQueryCache &>(qdata0);
 
   if (!qdata.current_map_odo) {
-    CLOG(INFO, "lidar.odometry_icp") << "First keyframe, simply return.";
+    CLOG(INFO, "radar.odometry_icp") << "First keyframe, simply return.";
     qdata.undistorted_pointcloud.fallback(*qdata.preprocessed_pointcloud);
     qdata.undistorted_normals.fallback(*qdata.normals);
     *qdata.odo_success = true;
@@ -141,9 +141,9 @@ void OdometryICPModule::runImpl(QueryCache &qdata0,
   if (config_->trajectory_smoothing) {
     computeTrajectory(qdata, graph, T_r_m_eval, traj_state_vars,
                       prior_cost_terms);
-    CLOG(DEBUG, "lidar.odometry_icp") << "Number of trajectory cost terms: "
+    CLOG(DEBUG, "radar.odometry_icp") << "Number of trajectory cost terms: "
                                       << prior_cost_terms->numCostTerms();
-    CLOG(DEBUG, "lidar.odometry_icp")
+    CLOG(DEBUG, "radar.odometry_icp")
         << "Number of state variables: " << traj_state_vars.size();
   }
 
@@ -327,7 +327,7 @@ void OdometryICPModule::runImpl(QueryCache &qdata0,
     try {
       solver.optimize();
     } catch (const steam::decomp_failure &) {
-      CLOG(WARNING, "lidar.odometry_icp")
+      CLOG(WARNING, "radar.odometry_icp")
           << "Steam optimization failed! T_mq left unchanged.";
     }
 
@@ -397,7 +397,7 @@ void OdometryICPModule::runImpl(QueryCache &qdata0,
     if (!refinement_stage && step >= first_steps) {
       if ((step >= max_it - 1) || (mean_dT < config_->trans_diff_thresh &&
                                    mean_dR < config_->rot_diff_thresh)) {
-        CLOG(DEBUG, "lidar.odometry_icp")
+        CLOG(DEBUG, "radar.odometry_icp")
             << "Initial alignment takes " << step << " steps.";
 
         // enter the second refine stage
@@ -419,7 +419,7 @@ void OdometryICPModule::runImpl(QueryCache &qdata0,
         (refinement_step > config_->averaging_num_steps &&
          mean_dT < config_->trans_diff_thresh &&
          mean_dR < config_->rot_diff_thresh)) {
-      CLOG(DEBUG, "lidar.odometry_icp")
+      CLOG(DEBUG, "radar.odometry_icp")
           << "Total number of steps: " << step << ".";
       // result
       T_r_m_icp = EdgeTransform(T_r_m_var->getValue(),
@@ -428,11 +428,11 @@ void OdometryICPModule::runImpl(QueryCache &qdata0,
           (float)filtered_sample_inds.size() / (float)sample_inds.size();
       if (mean_dT >= config_->trans_diff_thresh ||
           mean_dR >= config_->rot_diff_thresh) {
-        CLOG(WARNING, "lidar.odometry_icp")
+        CLOG(WARNING, "radar.odometry_icp")
             << "ICP did not converge to threshold, "
                "matched_points_ratio set to 0.";
         if (!refinement_stage) {
-          CLOG(WARNING, "lidar.odometry_icp")
+          CLOG(WARNING, "radar.odometry_icp")
               << "ICP did not enter refinement stage at all.";
         }
         // matched_points_ratio = 0;
@@ -443,7 +443,7 @@ void OdometryICPModule::runImpl(QueryCache &qdata0,
 
   /// Dump timing info
   for (size_t i = 0; i < clock_str.size(); i++) {
-    CLOG(DEBUG, "lidar.odometry_icp")
+    CLOG(DEBUG, "radar.odometry_icp")
         << clock_str[i] << timer[i].count() << "ms";
   }
 
@@ -465,7 +465,7 @@ void OdometryICPModule::runImpl(QueryCache &qdata0,
     *qdata.odo_success = true;
     if (config_->trajectory_smoothing) qdata.trajectory = trajectory_;
   } else {
-    CLOG(WARNING, "lidar.odometry_icp")
+    CLOG(WARNING, "radar.odometry_icp")
         << "Matched points ratio " << matched_points_ratio
         << " is below the threshold. ICP is considered failed.";
     // do not undistort the pointcloud
@@ -478,7 +478,7 @@ void OdometryICPModule::runImpl(QueryCache &qdata0,
 }
 
 void OdometryICPModule::computeTrajectory(
-    LidarQueryCache &qdata, const Graph::ConstPtr &graph,
+    RadarQueryCache &qdata, const Graph::ConstPtr &graph,
     const steam::se3::TransformEvaluator::Ptr &T_r_m_eval,
     std::map<unsigned int, steam::StateVariableBase::Ptr> &state_vars,
     const steam::ParallelizedCostTermCollection::Ptr &prior_cost_terms) {
@@ -492,7 +492,7 @@ void OdometryICPModule::computeTrajectory(
 
   // get the live vertex
   const auto live_vertex = graph->at(*qdata.live_id);
-  CLOG(DEBUG, "lidar.odometry_icp") << "Looking at live id: " << *qdata.live_id;
+  CLOG(DEBUG, "radar.odometry_icp") << "Looking at live id: " << *qdata.live_id;
 
   /// Set up a search for the previous keyframes in the graph
   TemporalEvaluator::Ptr tempeval(new TemporalEvaluator());
@@ -584,7 +584,7 @@ void OdometryICPModule::computeTrajectory(
                      prev_frame_acceleration);
     next_stamp = prev_stamp;
 
-    CLOG(DEBUG, "lidar.odometry_icp")
+    CLOG(DEBUG, "radar.odometry_icp")
         << "Looking at previous vertex id: " << prev_vertex->id() << std::endl
         << "T_previous_live: " << T_p_l.vec().transpose() << std::endl
         << "velocity: " << prev_velocity.transpose() << std::endl
@@ -594,12 +594,12 @@ void OdometryICPModule::computeTrajectory(
   if (!velocity_map.empty()) {
     auto itr = velocity_map.begin();
     itr->second->setLock(true);
-    CLOG(DEBUG, "lidar.odometry_icp")
+    CLOG(DEBUG, "radar.odometry_icp")
         << "Locking the first velocity corresponding to vertex id: "
         << itr->first;
     itr++;
     for (; itr != velocity_map.end(); itr++) {
-      CLOG(DEBUG, "lidar.odometry_icp")
+      CLOG(DEBUG, "radar.odometry_icp")
           << "Adding velocity corresponding to vertex id: " << itr->first;
       state_vars[itr->second->getKey().getID()] = itr->second;
     }
@@ -608,11 +608,11 @@ void OdometryICPModule::computeTrajectory(
   if (config_->use_constant_acc && !acceleration_map.empty()) {
     auto itr = acceleration_map.begin();
     // itr->second->setLock(true);
-    // CLOG(DEBUG, "lidar.odometry_icp")
+    // CLOG(DEBUG, "radar.odometry_icp")
     //   << "Locking the first acc corresponding to vertex id: " << itr->first;
     // itr++;
     for (; itr != acceleration_map.end(); itr++) {
-      CLOG(DEBUG, "lidar.odometry_icp")
+      CLOG(DEBUG, "radar.odometry_icp")
           << "Adding acceleration corresponding to vertex id: " << itr->first;
       state_vars[itr->second->getKey().getID()] = itr->second;
     }
@@ -627,7 +627,7 @@ void OdometryICPModule::computeTrajectory(
   // generate velocity estimate
   Eigen::Matrix<double, 6, 1> query_velocity =
       (*qdata.T_r_m_odo).vec() / (query_live_dt / 1e9);
-  CLOG(DEBUG, "lidar.odometry_icp")
+  CLOG(DEBUG, "radar.odometry_icp")
       << "Adding query-live velocity: " << query_velocity.transpose()
       << ", time difference: " << query_live_dt / 1e9;
   // generate acceleration estimate
@@ -683,5 +683,5 @@ void OdometryICPModule::computeTrajectory(
   trajectory_->appendPriorCostTerms(prior_cost_terms);
 }
 
-}  // namespace lidar
+}  // namespace radar
 }  // namespace vtr

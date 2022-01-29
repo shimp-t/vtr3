@@ -25,18 +25,18 @@
 #include <steam.hpp>
 
 #include <vtr_common/timing/stopwatch.hpp>
-#include <vtr_lidar/cache.hpp>
+#include <vtr_radar/cache.hpp>
 #include <vtr_tactic/modules/base_module.hpp>
 
 namespace vtr {
 
-namespace lidar {
+namespace radar {
 
 /** \brief ICP for odometry. */
 class OdometryICPModule : public tactic::BaseModule {
  public:
   /** \brief Static module identifier. */
-  static constexpr auto static_name = "lidar.odometry_icp";
+  static constexpr auto static_name = "radar.odometry_icp";
 
   /** \brief Config parameters. */
   struct Config : public steam::VanillaGaussNewtonSolver::Params {
@@ -84,7 +84,7 @@ class OdometryICPModule : public tactic::BaseModule {
                const tactic::Graph::ConstPtr &graph) override;
 
   void computeTrajectory(
-      LidarQueryCache &qdata, const tactic::Graph::ConstPtr &graph,
+      RadarQueryCache &qdata, const tactic::Graph::ConstPtr &graph,
       const steam::se3::TransformEvaluator::Ptr &T_r_m_eval,
       std::map<unsigned int, steam::StateVariableBase::Ptr> &state_vars,
       const steam::ParallelizedCostTermCollection::Ptr &prior_cost_terms);
@@ -97,5 +97,5 @@ class OdometryICPModule : public tactic::BaseModule {
   std::shared_ptr<Config> config_;
 };
 
-}  // namespace lidar
+}  // namespace radar
 }  // namespace vtr

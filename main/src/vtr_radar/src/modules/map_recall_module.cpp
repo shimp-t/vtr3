@@ -18,10 +18,10 @@
  *
  * \author Yuchen Wu, Autonomous Space Robotics Lab (ASRL)
  */
-#include <vtr_lidar/modules/map_recall_module.hpp>
+#include <vtr_radar/modules/map_recall_module.hpp>
 
 namespace vtr {
-namespace lidar {
+namespace radar {
 
 namespace {
 
@@ -64,7 +64,7 @@ void MapRecallModule::configFromROS(const rclcpp::Node::SharedPtr &node,
 
 void MapRecallModule::runImpl(QueryCache &qdata0,
                               const Graph::ConstPtr &graph) {
-  auto &qdata = dynamic_cast<LidarQueryCache &>(qdata0);
+  auto &qdata = dynamic_cast<RadarQueryCache &>(qdata0);
 
   if (*qdata.first_frame) {
     LOG(INFO) << "First keyframe, simply return.";
@@ -98,7 +98,7 @@ void MapRecallModule::runImpl(QueryCache &qdata0,
 
 void MapRecallModule::visualizeImpl(QueryCache &qdata0,
                                     const Graph::ConstPtr &) {
-  auto &qdata = dynamic_cast<LidarQueryCache &>(qdata0);
+  auto &qdata = dynamic_cast<RadarQueryCache &>(qdata0);
 
   if (!config_->visualize) return;
 
@@ -131,5 +131,5 @@ void MapRecallModule::visualizeImpl(QueryCache &qdata0,
   map_pub_->publish(*pc2_msg);
 }
 
-}  // namespace lidar
+}  // namespace radar
 }  // namespace vtr

@@ -104,6 +104,7 @@ void PreprocessingModule::configFromROS(const rclcpp::Node::SharedPtr &node,
   config_->cluster_num_sample = node->declare_parameter<int>(param_prefix + ".cluster_num_sample", config_->cluster_num_sample);
 
   config_->visualize = node->declare_parameter<bool>(param_prefix + ".visualize", config_->visualize);
+  config_->isolated_radius = node->declare_parameter<float>(param_prefix + ".isolated_radius", config_->isolated_radius);
   // clang-format on
 }
 
@@ -211,25 +212,24 @@ void PreprocessingModule::runImpl(QueryCache &qdata0, const Graph::ConstPtr &) {
   CLOG(DEBUG, "radar.preprocessing")
       << "normal direction sampled point size: " << sampled_points.size();
 
-  /// Remove isolated points (mostly points on trees)
+  /// Remove isolated points
 
-  // float search_radius = 2 * config_->frame_voxel_size;
-  // auto cluster_scores = getNumberOfNeighbors(sampled_points, search_radius);
+  auto cluster_scores = getNumberOfNeighbors(sampled_points, config_->isolate_radius);
 
-  // auto sorted_cluster_scores = cluster_scores;
-  // std::sort(sorted_cluster_scores.begin(), sorted_cluster_scores.end());
-  // min_score = sorted_cluster_scores[std::max(
-  //     0, (int)sorted_cluster_scores.size() - config_->cluster_num_sample)];
-  // min_score = std::max((float)1, min_score);  /// \todo config
-  // if (min_score >= 1) {
-  //   filterPointCloud(sampled_points, cluster_scores, min_score);
-  //   filterPointCloud(normals, cluster_scores, min_score);
-  //   filterFloatVector(sampled_points_time, cluster_scores, min_score);
-  //   filterFloatVector(icp_scores, cluster_scores, min_score);
-  //   filterFloatVector(norm_scores, cluster_scores, min_score);
-  // }
-  // CLOG(DEBUG, "radar.preprocessing")
-  //     << "cluster point size: " << sampled_points.size();
+  auto sorted_cluster_scores = cluster_scores;
+  std::sort(sorted_cluster_scores.begin(), sorted_cluster_scores.end());
+  min_score = sorted_cluster_scores[std::max(
+      0, (int)sorted_cluster_scores.size() - config_->cluster_num_sample)];
+  min_score = std::max((float)1, min_score);  /// \todo config
+  if (min_score >= 1) {
+    filterPointCloud(sampled_points, cluster_scores, min_score);
+    filterPointCloud(normals, cluster_scores, min_score);
+    filterFloatVector(sampled_points_time, cluster_scores, min_score);
+    filterFloatVector(icp_scores, cluster_scores, min_score);
+    filterFloatVector(norm_scores, cluster_scores, min_score);
+  }
+  CLOG(DEBUG, "radar.preprocessing")
+      << "cluster point size: " << sampled_points.size();
 
   CLOG(DEBUG, "radar.preprocessing")
       << "final subsampled point size: " << sampled_points.size();

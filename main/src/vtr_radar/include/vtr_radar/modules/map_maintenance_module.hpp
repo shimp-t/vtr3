@@ -22,7 +22,7 @@
 
 #include <pcl_conversions/pcl_conversions.h>
 
-#include <vtr_lidar/cache.hpp>
+#include <vtr_radar/cache.hpp>
 #include <vtr_lidar/pointmap/pointmap.hpp>
 #include <vtr_lidar/ray_tracing.hpp>
 #include <vtr_tactic/modules/base_module.hpp>
@@ -32,7 +32,7 @@
 // #include <visualization_msgs/msg/marker_array.hpp>
 
 namespace vtr {
-namespace lidar {
+namespace radar {
 
 /** \brief */
 class MapMaintenanceModule : public tactic::BaseModule {
@@ -42,7 +42,7 @@ class MapMaintenanceModule : public tactic::BaseModule {
   // using MarkerArrayMsg = visualization_msgs::msg::MarkerArray;
 
   /** \brief Static module identifier. */
-  static constexpr auto static_name = "lidar.map_maintenance";
+  static constexpr auto static_name = "radar.map_maintenance";
 
   /** \brief Config parameters. */
   struct Config {
@@ -52,6 +52,7 @@ class MapMaintenanceModule : public tactic::BaseModule {
     float vertical_resolution = 0.001;
     int min_num_observations = 0;
     int max_num_observations = 20;
+    float search_radius = 0.1;
 
     bool visualize = false;
   };
@@ -80,5 +81,5 @@ class MapMaintenanceModule : public tactic::BaseModule {
   rclcpp::Publisher<PointCloudMsg>::SharedPtr movability_obs_map_pub_;
 };
 
-}  // namespace lidar
+}  // namespace radar
 }  // namespace vtr

@@ -22,7 +22,7 @@
 
 #include <pcl_conversions/pcl_conversions.h>
 
-#include <vtr_lidar/cache.hpp>
+#include <vtr_radar/cache.hpp>
 #include <vtr_tactic/modules/base_module.hpp>
 
 // temp
@@ -31,7 +31,7 @@
 #include <vtr_messages/msg/point_map.hpp>
 
 namespace vtr {
-namespace lidar {
+namespace radar {
 
 using PointCloudMsg = sensor_msgs::msg::PointCloud2;
 using PointXYZMsg = vtr_messages::msg::PointXYZ;
@@ -42,7 +42,7 @@ using PointMapMsg = vtr_messages::msg::PointMap;
 class MapRecallModule : public tactic::BaseModule {
  public:
   /** \brief Static module identifier. */
-  static constexpr auto static_name = "lidar.map_recall";
+  static constexpr auto static_name = "radar.map_recall";
 
   /** \brief Config parameters. */
   struct Config {
@@ -70,5 +70,5 @@ class MapRecallModule : public tactic::BaseModule {
   rclcpp::Publisher<PointCloudMsg>::SharedPtr map_pub_;
 };
 
-}  // namespace lidar
+}  // namespace radar
 }  // namespace vtr

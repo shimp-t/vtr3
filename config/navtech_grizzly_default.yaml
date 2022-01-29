@@ -15,15 +15,14 @@
         "mission_planning_server",
         "state_machine",
         "pose_graph",
-        "lidar.pipeline",
-        "lidar.velodyne_converter",
-        "lidar.honeycomb_converter",
-        "lidar.preprocessing",
-        "lidar.odometry_icp",
-        "lidar.map_maintenance",
-        "lidar.keyframe_test",
-        "lidar.windowed_map_recall",
-        "lidar.localization_icp",
+        "radar.pipeline",
+        "radar.navtech_extractor",
+        "radar.preprocessing",
+        "radar.odometry_icp",
+        "radar.map_maintenance",
+        "radar.keyframe_test",
+        "radar.windowed_map_recall",
+        "radar.localization_icp",
         "path_tracker",
       ]
 
@@ -33,9 +32,9 @@
     camera_frame: front_xb3
     camera_topic: camera_not_used
     camera_calibration_topic: /xb3_calibration
-    # lidar related
-    lidar_frame: honeycomb
-    lidar_topic: /points
+    # radar related
+    radar_frame: navtech
+    radar_topic: /scans
 
     ############ map projection configuration ############
     map_projection:
@@ -71,7 +70,7 @@
 
     ############ pipeline configuration ############
     pipeline:
-      type: lidar
+      type: radar
 
       preprocessing: ["extraction", "filtering"]
       odometry: ["recall", "icp", "mapping", "keyframe_test"]
@@ -116,15 +115,17 @@
 
         visualize: true
 
+        isolated_radius: 0.5
+
     odometry:
       recall:
-        type: lidar.map_recall
+        type: radar.map_recall
 
         map_voxel_size: 0.3
         visualize: true
 
       icp:
-        type: lidar.odometry_icp
+        type: radar.odometry_icp
 
         # Prior terms
         trajectory_smoothing: true
@@ -151,20 +152,21 @@
         min_matched_ratio: 0.5
 
       mapping:
-        type: lidar.map_maintenance
+        type: radar.map_maintenance
 
         map_voxel_size: 0.3
 
         # dynamic objects removal
-        horizontal_resolution: 0.02042
+        horizontal_resolution: 0.015708
         vertical_resolution: 0.01326
         min_num_observations: 1
         max_num_observations: 5
+        search_radius: 0.1  # used for movability calculations
 
         visualize: true
 
       keyframe_test:
-        type: lidar.keyframe_test
+        type: radar.keyframe_test
 
         min_translation: 1.0
         min_rotation: 15.0
@@ -177,7 +179,7 @@
 
     localization:
       recall:
-        type: lidar.windowed_map_recall
+        type: radar.windowed_map_recall
 
         single_exp_map_voxel_size: 0.3
         multi_exp_map_voxel_size: 0.3
@@ -193,7 +195,7 @@
         visualize: true
 
       icp:
-        type: lidar.localization_icp
+        type: radar.localization_icp
 
         use_pose_prior: true
 

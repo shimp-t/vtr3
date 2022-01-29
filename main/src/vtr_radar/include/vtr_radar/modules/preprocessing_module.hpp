@@ -56,6 +56,7 @@ class PreprocessingModule : public tactic::BaseModule {
     float max_normal_estimate_angle = 0.417;  // 5/12 original parameter value
     int cluster_num_sample = 100000;
     bool visualize = false;
+    float isolated_radius = 1.25;
   };
 
   PreprocessingModule(const std::string &name = static_name)
